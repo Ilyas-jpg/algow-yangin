@@ -117,16 +117,16 @@ export default function HakkindaPage() {
           </p>
           <p>
             Bu konunun dürüst olmayı en çok hak eden kısmı şu: kendi verimizle
-            geriye dönük bir sınama yaptık. <b>Altı yangın sezonu</b>
-            (2021–2026), <b>468 bin uydu tespiti</b>, orman ve makilik alanda
-            <b> 90 yangına ait 350 ölçülebilir ilerleme</b>. Her birinde bir
+            geriye dönük bir sınama yaptık. <b>Altı yangın sezonu</b>{" "}
+            (2021–2026), <b>468 bin uydu tespiti</b>, orman ve makilik alanda{" "}
+            <b>90 yangına ait 350 ölçülebilir ilerleme</b>. Her birinde bir
             geçiş anındaki tahmini, yangının bir sonraki geçişte gerçekte hangi
             yöne büyüdüğüyle karşılaştırdık.
           </p>
           <p>
-            Sonuç: tahmin rastgeleden <b>iyi, ama az</b>. Ortanca açı hatası
-            <b> 76°</b> (rastgele beklenti 90°); tahminlerin <b>%31&apos;i</b>{" "}
-            45° içinde isabet ediyor (rastgelede %25), <b>%19&apos;u</b> ise
+            Sonuç: tahmin rastgeleden <b>iyi, ama az</b>. Ortanca açı hatası{" "}
+            <b>76°</b> (rastgele beklenti 90°); tahminlerin <b>%31&apos;i</b>{" "}
+            45° içinde isabet ediyor (rastgelede %25), <b>%19&apos;u</b>{" "}
             tamamen ters yönü gösteriyor (rastgelede %25). Daha önce bu sayfada
             yirmi üç örneğe dayanarak &quot;rastgeleden iyi değil&quot;
             yazıyorduk; <b>o örneklem yanılmamıza yetecek kadar küçükmüş</b> —
@@ -135,7 +135,8 @@ export default function HakkindaPage() {
             %59&apos;dan %63&apos;e taşıyor: gerçek ama mütevazı bir kazanç.
           </p>
           <p>
-            Tavanı da ölçtük: iki geçiş arasındaki <i>gerçek</i> ortalama rüzgâr
+            Tavanı da ölçtük: iki geçiş arasındaki <i>gerçek</i>{" "}
+            ortalama rüzgâr
             önceden bilinseydi bile ortanca hata ancak 69°&apos;ye inerdi. Yani
             kalan hata rüzgâr tahmininden değil, <b>söndürme müdahalesinden,
             arazi ve yakıt ayrıntısından</b> geliyor — hiçbir koni bu belirsizliği
@@ -146,8 +147,9 @@ export default function HakkindaPage() {
             uzatmıyoruz.
           </p>
           <p>
-            Bu yüzden koniyi bir kehanet gibi değil, <b>&quot;rüzgâr şu anda
-            bu yöne taşıyor&quot;</b> bilgisi olarak sunuyoruz. Yangının son
+            Bu yüzden koniyi bir kehanet gibi değil, <b>&quot;rüzgâr ve arazi
+            şu anda bu yöne işaret ediyor&quot;</b> bilgisi olarak sunuyoruz.
+            Yangının son
             saatlerde gerçekte nereye ilerlediğini gösteren beyaz iz ise
             gözleme dayanır ve daha güvenilirdir; ikisi ayrıştığında{" "}
             <b>gözlenen yönü esas alın</b>. Koni hiçbir koşulda tahliye kararı
