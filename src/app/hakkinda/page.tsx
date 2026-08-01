@@ -129,8 +129,8 @@ export default function HakkindaPage() {
             45° içinde isabet ediyor (rastgelede %25), <b>%19&apos;u</b>{" "}
             tamamen ters yönü gösteriyor (rastgelede %25). Daha önce bu sayfada
             yirmi üç örneğe dayanarak &quot;rastgeleden iyi değil&quot;
-            yazıyorduk; <b>o örneklem yanılmamıza yetecek kadar küçükmüş</b> —
-            düzelttik. Eğimi hesaba katmak dik arazide (%15 üzeri) ortalama
+            yazıyorduk; <b>o örneklem yanılmamıza yetecek kadar küçükmüş</b>{" "}
+            — düzelttik. Eğimi hesaba katmak dik arazide (%15 üzeri) ortalama
             hatayı 78,0°&apos;den 76,8°&apos;ye, 90° içinde kalma oranını
             %59&apos;dan %63&apos;e taşıyor: gerçek ama mütevazı bir kazanç.
           </p>
