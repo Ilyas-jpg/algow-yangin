@@ -5,11 +5,13 @@ import type { WindGrid } from "@/lib/types";
  * TR bölgesi 0.5° rüzgar gridi (Open-Meteo current, m/s).
  * ~700 nokta, 100'lük parçalarla; upstream 3 saat cache'lenir.
  */
+// FIRMS bbox'ını (25.0,34.8 → 45.5,42.6) tamamen kapsamalı; aksi hâlde
+// kapsam dışı yangın sessizce konisiz kalır (Güney Kıbrıs vakası).
 const LON0 = 25.0;
-const LAT0 = 35.0;
+const LAT0 = 34.5;
 const D = 0.5;
 const NX = 42; // 25.0 → 45.5
-const NY = 16; // 35.0 → 42.5
+const NY = 17; // 34.5 → 42.5
 
 export async function GET() {
   const coords: { lat: number; lon: number }[] = [];
@@ -20,45 +22,61 @@ export async function GET() {
   }
 
   const CHUNK = 100;
-  const u = new Array<number>(coords.length).fill(0);
-  const v = new Array<number>(coords.length).fill(0);
+  // Eksik hücre 0 DEĞİL null olmalı: 0 "tam durgun" demektir ve
+  // interpolasyona girip koniyi olduğundan kısa çizer.
+  const u = new Array<number | null>(coords.length).fill(null);
+  const v = new Array<number | null>(coords.length).fill(null);
+  const totalChunks = Math.ceil(coords.length / CHUNK);
   let failedChunks = 0;
 
-  const tasks: Promise<void>[] = [];
-  for (let start = 0; start < coords.length; start += CHUNK) {
-    const slice = coords.slice(start, start + CHUNK);
+  let obsTime: string | null = null;
+
+  const fetchChunk = async (offset: number, attempt = 0): Promise<void> => {
+    const slice = coords.slice(offset, offset + CHUNK);
     const url =
       "https://api.open-meteo.com/v1/forecast" +
       `?latitude=${slice.map((c) => c.lat.toFixed(2)).join(",")}` +
       `&longitude=${slice.map((c) => c.lon.toFixed(2)).join(",")}` +
       "&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=UTC";
-    const offset = start;
-    tasks.push(
-      (async () => {
-        try {
-          const res = await fetch(url, { next: { revalidate: 10800 } });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          const arr = Array.isArray(data) ? data : [data];
-          arr.forEach((loc, i) => {
-            const spd = loc?.current?.wind_speed_10m;
-            const dir = loc?.current?.wind_direction_10m;
-            if (typeof spd === "number" && typeof dir === "number") {
-              const rad = (dir * Math.PI) / 180;
-              // dir = rüzgarın GELDİĞİ yön → vektör ters yöne akar
-              u[offset + i] = -spd * Math.sin(rad);
-              v[offset + i] = -spd * Math.cos(rad);
-            }
-          });
-        } catch {
-          failedChunks++;
+    try {
+      // 1/3/6 saatlik projeksiyon için 3 saatlik bayat rüzgâr fazla:
+      // deniz meltemi gün içinde yön değiştirebiliyor.
+      const res = await fetch(url, { next: { revalidate: 1200 } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : [data];
+      arr.forEach((loc, i) => {
+        const spd = loc?.current?.wind_speed_10m;
+        const dir = loc?.current?.wind_direction_10m;
+        if (typeof spd === "number" && typeof dir === "number") {
+          const rad = (dir * Math.PI) / 180;
+          // dir = rüzgarın GELDİĞİ yön → vektör ters yöne akar
+          u[offset + i] = -spd * Math.sin(rad);
+          v[offset + i] = -spd * Math.cos(rad);
         }
-      })()
-    );
-  }
-  await Promise.all(tasks);
+      });
+      if (!obsTime && typeof arr[0]?.current?.time === "string") {
+        obsTime = arr[0].current.time;
+      }
+    } catch {
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        return fetchChunk(offset, attempt + 1);
+      }
+      failedChunks++;
+    }
+  };
 
-  if (failedChunks * CHUNK >= coords.length) {
+  // Tüm parçaları aynı anda göndermek Open-Meteo'nun dakikalık sınırına
+  // takılıyor ve gridin üçte biri boş dönüyordu; ikişerli dalgalar hâlinde.
+  const offsets: number[] = [];
+  for (let s = 0; s < coords.length; s += CHUNK) offsets.push(s);
+  const WAVE = 2;
+  for (let i = 0; i < offsets.length; i += WAVE) {
+    await Promise.all(offsets.slice(i, i + WAVE).map((o) => fetchChunk(o)));
+  }
+
+  if (failedChunks >= totalChunks) {
     return NextResponse.json(
       { error: "Rüzgar verisine ulaşılamadı" },
       { status: 503 }
@@ -72,15 +90,17 @@ export async function GET() {
     dLat: D,
     nx: NX,
     ny: NY,
-    u: u.map((x) => Math.round(x * 100) / 100),
-    v: v.map((x) => Math.round(x * 100) / 100),
+    u: u.map((x) => (x === null ? null : Math.round(x * 100) / 100)),
+    v: v.map((x) => (x === null ? null : Math.round(x * 100) / 100)),
     time: Date.now(),
+    obsTime,
     failedChunks,
+    totalChunks,
   };
 
   return NextResponse.json(body, {
     headers: {
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+      "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
     },
   });
 }

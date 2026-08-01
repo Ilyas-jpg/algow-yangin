@@ -10,19 +10,18 @@ import type {
   WindPoint,
   WindowHours,
 } from "@/lib/types";
-import { clusterEvents } from "@/lib/cluster";
+import { clusterEvents, statusOf } from "@/lib/cluster";
 import { buildCone, type ConeGeom } from "@/lib/wind";
 import { fmtClock, fmtNum } from "@/lib/format";
 import { bearingDeg, compassTr, havKm } from "@/lib/geo";
 import { useGeolocation } from "./useGeolocation";
+import { useAlerts } from "./useAlerts";
+import AlertPanel from "./AlertPanel";
 import dynamic from "next/dynamic";
 import TopBar from "./TopBar";
 import EventPanel from "./EventPanel";
 import TimelineBar from "./TimelineBar";
 import Legend from "./Legend";
-
-/** Service Worker önbellekten servis ettiyse bunu işaretler. */
-let servedOffline = false;
 
 /**
  * Harita motoru (MapLibre, ~290 KB) ayrı parçada yüklenir: zayıf bağlantıda
@@ -37,11 +36,16 @@ const FireMap = dynamic(() => import("./FireMap"), {
   ),
 });
 
+/**
+ * Service Worker önbellekten servis ettiyse işareti yanıt gövdesine gömer.
+ * Modül değişkeni kullanılmaz: React'ın görüp bandı gösterebilmesi ve
+ * farklı uçların birbirinin bayrağını ezmemesi gerekiyor.
+ */
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  servedOffline = res.headers.get("x-algow-offline") === "1";
-  return res.json();
+  const body = await res.json();
+  return { ...body, __offline: res.headers.get("x-algow-offline") === "1" };
 };
 
 /** Zayıf/ölçülü bağlantı: ağır katmanlar kapalı başlar. */
@@ -74,10 +78,14 @@ export default function App() {
     heat: true,
     cones: true,
     satellite: false,
+    burnt: false,
+    danger: false,
   });
   const [offline, setOffline] = useState(false);
   const geo = useGeolocation();
   const userLoc = geo.state.status === "ready" ? geo.state.loc : null;
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{ lon: number; lat: number } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -130,10 +138,11 @@ export default function App() {
     revalidateOnFocus: true,
   });
 
-  const { data: windGrid } = useSWR<WindGrid>("/api/wind/grid", fetcher, {
-    refreshInterval: 10_800_000,
-    revalidateOnFocus: false,
-  });
+  const { data: windGrid, error: windError } = useSWR<WindGrid>(
+    "/api/wind/grid",
+    fetcher,
+    { refreshInterval: 1_800_000, revalidateOnFocus: false }
+  );
 
   const live = scrub === null;
   const effT = scrub ?? now;
@@ -154,10 +163,25 @@ export default function App() {
     }));
   }, [fires]);
 
-  const { events, pointEvent } = useMemo(
-    () => clusterEvents(points, now),
-    [points, now]
+  const { events: rawEvents, pointEvent } = useMemo(
+    () => clusterEvents(points),
+    [points]
   );
+
+  // Durum ve sıralama saate bağlı; kümelemeyi yeniden çalıştırmadan türetilir.
+  const events = useMemo(() => {
+    const rank = { active: 0, waning: 1, old: 2 } as const;
+    return rawEvents
+      .map((e) => ({ ...e, status: statusOf(e.lastSeen, now) }))
+      .sort(
+        (a, b) =>
+          Number(a.abroad) - Number(b.abroad) ||
+          rank[a.status] - rank[b.status] ||
+          b.frpLast - a.frpLast
+      );
+  }, [rawEvents, now]);
+
+  const alerts = useAlerts(events);
 
   const selectedEvent = useMemo(
     () => events.find((e) => e.id === selectedId) ?? null,
@@ -177,9 +201,10 @@ export default function App() {
 
   const cones = useMemo<ConeGeom[]>(() => {
     if (!windGrid || !live) return [];
-    const candidates = events
-      .filter((e) => e.status === "active" && !e.abroad)
-      .slice(0, 12);
+    // Koni yurt dışı bayrağına göre kısıtlanmaz: sınır boyunda en yakın
+    // yerleşim karşı tarafta kalabiliyor (Akçakale, Nusaybin, Silopi...),
+    // o yüzden gerçek bir TR yangını yanlışlıkla konisiz kalmasın.
+    const candidates = events.filter((e) => e.status === "active").slice(0, 14);
     if (
       selectedEvent &&
       selectedEvent.status !== "old" &&
@@ -301,6 +326,9 @@ export default function App() {
       return;
     }
     const DURATION = 18_000; // pencere ~18 sn'de oynar
+    // Her karede state güncellemek tüm ağacı (kümeleme, koni, panel)
+    // 60 fps yeniden hesaplatıyordu; ~10 fps oynatma için fazlasıyla yeterli.
+    let lastCommit = 0;
     const tick = (t: number) => {
       const frac = Math.min(1, (t - start) / DURATION);
       const cur = from + span * frac;
@@ -309,7 +337,10 @@ export default function App() {
         setScrub(null);
         return;
       }
-      setScrub(cur);
+      if (t - lastCommit >= 100) {
+        lastCommit = t;
+        setScrub(cur);
+      }
       playRef.current = requestAnimationFrame(tick);
     };
     playRef.current = requestAnimationFrame(tick);
@@ -364,7 +395,10 @@ export default function App() {
   );
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-obsidian-1">
+    <main className="fixed inset-0 flex flex-col bg-obsidian-1">
+      <h1 className="sr-only">
+        Algow Yangın — Türkiye canlı yangın haritası ve yön tahmini
+      </h1>
       <TopBar
         windowHours={windowHours}
         onWindow={(w) => {
@@ -380,9 +414,13 @@ export default function App() {
         geoActive={geo.state.status === "ready"}
         geoBusy={geo.state.status === "locating"}
         onGeoToggle={geo.toggle}
+        alertCount={alerts.points.length}
+        onAlertsToggle={() => setAlertsOpen((o) => !o)}
       />
 
-      {(offline || (servedOffline && fires)) && (
+      {(offline ||
+        (fires as (FiresResponse & { __offline?: boolean }) | undefined)
+          ?.__offline) && (
         <div className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn">
           Çevrimdışısın — cihazında saklanan son veri gösteriliyor
           {fires ? ` (${fmtClock(fires.meta.fetchedAt)})` : ""}. Bağlantı
@@ -390,9 +428,40 @@ export default function App() {
         </div>
       )}
       {noData && !offline && (
-        <div className="relative z-20 border-b border-danger/40 bg-danger/10 px-3 py-1.5 text-xs text-danger">
+        <div
+          role="alert"
+          className="relative z-20 border-b border-danger/40 bg-danger/10 px-3 py-1.5 text-xs text-danger"
+        >
           NASA FIRMS verisine şu an ulaşılamıyor — bağlantı aralıklarla yeniden
           denenecek.
+        </div>
+      )}
+      {fires && fires.meta.sourcesOk < fires.meta.sourcesTotal && (
+        <div
+          role="status"
+          className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
+        >
+          {fires.meta.sourcesTotal} uydu kaynağından{" "}
+          {fires.meta.sourcesTotal - fires.meta.sourcesOk} tanesi yanıt
+          vermiyor — bazı tespitler eksik olabilir.
+        </div>
+      )}
+      {windGrid && windGrid.failedChunks > 0 && (
+        <div
+          role="status"
+          className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
+        >
+          Rüzgâr verisi kısmen eksik — bazı bölgelerde yön tahmini
+          gösterilmiyor.
+        </div>
+      )}
+      {windError && (
+        <div
+          role="status"
+          className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
+        >
+          Rüzgâr verisine ulaşılamıyor — yön tahmini ve rüzgâr katmanı şu an
+          devre dışı.
         </div>
       )}
       {staleData && fires && (
@@ -418,11 +487,29 @@ export default function App() {
           flyTarget={flyTarget}
           userLoc={userLoc}
           onSelect={handleSelect}
+          onCenterChange={setMapCenter}
         />
+
+        {alertsOpen && (
+          <AlertPanel
+            points={alerts.points}
+            onAdd={alerts.add}
+            onRemove={alerts.remove}
+            permission={alerts.permission}
+            onRequestPermission={alerts.requestPermission}
+            userLoc={userLoc}
+            mapCenter={mapCenter}
+            onClose={() => setAlertsOpen(false)}
+          />
+        )}
 
         {/* Konum durumu: yalnız cihazda kalır, sunucuya gönderilmez */}
         {geo.state.status !== "idle" && (
-          <div className="pointer-events-none absolute top-3 left-1/2 z-10 w-[min(92vw,420px)] -translate-x-1/2 md:left-[calc(340px+50%-170px)]">
+          <div
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none absolute top-3 left-1/2 z-10 w-[min(92vw,420px)] -translate-x-1/2 md:left-[calc(340px+(100%-340px)/2)]"
+          >
             <div className="pointer-events-auto rounded-md border border-line bg-obsidian-1/95 px-3 py-2">
               {geo.state.status === "locating" && (
                 <p className="font-mono text-[11px] text-ink-2">
@@ -528,6 +615,8 @@ export default function App() {
           <div className="border-t border-line bg-obsidian-1">
             <button
               onClick={() => setSheetOpen((o) => !o)}
+              aria-expanded={sheetOpen}
+              aria-controls="olay-listesi"
               className="flex w-full items-center justify-between px-4 py-2.5"
             >
               <span className="text-xs text-ink-2">
@@ -554,10 +643,14 @@ export default function App() {
                 />
               </svg>
             </button>
-            {sheetOpen && <div className="h-[42dvh]">{panel}</div>}
+            {sheetOpen && (
+              <div id="olay-listesi" className="h-[42dvh]">
+                {panel}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

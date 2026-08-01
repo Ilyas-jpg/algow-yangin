@@ -11,11 +11,13 @@ const WINDOWS: { value: WindowHours; label: string }[] = [
   { value: 168, label: "7g" },
 ];
 
-const TOGGLES: { key: keyof LayerToggles; label: string }[] = [
-  { key: "wind", label: "Rüzgar" },
-  { key: "heat", label: "Isı" },
-  { key: "cones", label: "Tahmin" },
-  { key: "satellite", label: "Uydu" },
+const TOGGLES: { key: keyof LayerToggles; label: string; title: string }[] = [
+  { key: "wind", label: "Rüzgar", title: "Rüzgâr akış animasyonu" },
+  { key: "heat", label: "Isı", title: "Tespit yoğunluğu ısı haritası" },
+  { key: "cones", label: "Tahmin", title: "Rüzgâra göre taşıma konisi" },
+  { key: "burnt", label: "Yanan alan", title: "EFFIS yanan alan perimetreleri (Sentinel-2)" },
+  { key: "danger", label: "Tehlike", title: "GWIS yangın hava indeksi tahmini" },
+  { key: "satellite", label: "Uydu", title: "Uydu görüntüsü altlığı" },
 ];
 
 interface TopBarProps {
@@ -29,6 +31,8 @@ interface TopBarProps {
   geoActive: boolean;
   geoBusy: boolean;
   onGeoToggle: () => void;
+  alertCount: number;
+  onAlertsToggle: () => void;
 }
 
 export default function TopBar({
@@ -42,6 +46,8 @@ export default function TopBar({
   geoActive,
   geoBusy,
   onGeoToggle,
+  alertCount,
+  onAlertsToggle,
 }: TopBarProps) {
   const newest = meta?.newest ?? null;
   const ageH = newest ? (now - newest) / 3600_000 : null;
@@ -76,7 +82,8 @@ export default function TopBar({
               <button
                 key={w.value}
                 onClick={() => onWindow(w.value)}
-                className={`px-2.5 py-1 font-mono text-[11px] transition-colors active:scale-[0.98] ${
+                aria-pressed={windowHours === w.value}
+                className={`tap-target px-2.5 py-1 font-mono text-[11px] transition-colors active:scale-[0.98] ${
                   windowHours === w.value
                     ? "bg-obsidian-3 text-ink"
                     : "text-ink-3 hover:text-ink-2"
@@ -90,7 +97,9 @@ export default function TopBar({
             <button
               key={t.key}
               onClick={() => onToggle(t.key)}
-              className={`shrink-0 rounded border px-2.5 py-1 text-[11px] transition-colors active:scale-[0.98] ${
+              aria-pressed={layers[t.key]}
+              title={t.title}
+              className={`tap-target shrink-0 rounded border px-2.5 py-1 text-[11px] transition-colors active:scale-[0.98] ${
                 layers[t.key]
                   ? "border-cobalt/60 bg-cobalt/10 text-ink"
                   : "border-line text-ink-3 hover:text-ink-2"
@@ -138,6 +147,26 @@ export default function TopBar({
               />
             </svg>
             Konumum
+          </button>
+          <button
+            onClick={onAlertsToggle}
+            title="Bir yeri izlemeye al, yakınında yangın çıkarsa haber ver"
+            className={`tap-target flex shrink-0 items-center gap-1.5 rounded border px-2.5 py-1 text-[11px] transition-colors active:scale-[0.98] ${
+              alertCount > 0
+                ? "border-cobalt/60 bg-cobalt/10 text-ink"
+                : "border-line text-ink-3 hover:text-ink-2"
+            }`}
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
+              <path
+                d="M6 1.2a3 3 0 0 0-3 3v2L2 8.2h8L9 6.2v-2a3 3 0 0 0-3-3ZM4.9 9.4a1.15 1.15 0 0 0 2.2 0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.1"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Uyarı{alertCount > 0 ? ` (${alertCount})` : ""}
           </button>
           {meta?.demo && (
             <span className="shrink-0 rounded border border-warn/50 px-2 py-1 text-[10px] text-warn">

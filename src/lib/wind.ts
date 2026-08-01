@@ -19,14 +19,24 @@ export function sampleUV(
   const ty = fy - y0;
   const at = (x: number, y: number) => y * g.nx + x;
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+  // Dört köşeden biri bile eksikse interpolasyon yapma: eksik veriyi
+  // 0 sayıp "durgun" göstermek koniyi olduğundan kısa çizer.
+  const corners = [at(x0, y0), at(x1, y0), at(x0, y1), at(x1, y1)];
+  for (const i of corners) {
+    if (g.u[i] === null || g.v[i] === null) return null;
+  }
+  const uAt = (i: number) => g.u[i] as number;
+  const vAt = (i: number) => g.v[i] as number;
+
   const u = lerp(
-    lerp(g.u[at(x0, y0)], g.u[at(x1, y0)], tx),
-    lerp(g.u[at(x0, y1)], g.u[at(x1, y1)], tx),
+    lerp(uAt(corners[0]), uAt(corners[1]), tx),
+    lerp(uAt(corners[2]), uAt(corners[3]), tx),
     ty
   );
   const v = lerp(
-    lerp(g.v[at(x0, y0)], g.v[at(x1, y0)], tx),
-    lerp(g.v[at(x0, y1)], g.v[at(x1, y1)], tx),
+    lerp(vAt(corners[0]), vAt(corners[1]), tx),
+    lerp(vAt(corners[2]), vAt(corners[3]), tx),
     ty
   );
   return { u, v };
@@ -46,7 +56,9 @@ export function uvToSpeedDir(u: number, v: number): { kmh: number; fromDeg: numb
  * Bilimsel model DEĞİLDİR; UI'da daima disclaimer ile.
  */
 export function headSpreadKmh(windKmh: number): number {
-  if (windKmh < 10) return 0.7;
+  // Süreklilik önemli: eşikte sıçrama olursa aynı yangın iki tazeleme
+  // arasında gözle görülür şekilde büyüyüp küçülür.
+  if (windKmh < 10) return 0.7 + (windKmh / 10) * 0.3; // 0.7 → 1
   if (windKmh < 30) return 1 + ((windKmh - 10) / 20) * 2; // 1 → 3
   if (windKmh < 50) return 3 + ((windKmh - 30) / 20) * 3; // 3 → 6
   return Math.min(10, 6 + ((windKmh - 50) / 30) * 4); // 6 → 10

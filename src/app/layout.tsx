@@ -39,7 +39,8 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0b",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // maximumScale KOYMA: az gören kullanıcı küçük metinleri büyütebilmeli
+  // (WCAG 1.4.4). Harita kendi jestlerini zaten yönetiyor.
 };
 
 export default function RootLayout({

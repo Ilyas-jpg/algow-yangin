@@ -50,6 +50,8 @@ export interface Drift {
   bearingDeg: number;
   km: number;
   kmh: number;
+  /** ölçümün kapsadığı süre (ilk → son geçiş), ms */
+  spanMs: number;
 }
 
 export interface FireEvent {
@@ -80,11 +82,14 @@ export interface WindGrid {
   dLat: number;
   nx: number;
   ny: number;
-  /** m/s, row-major (satır = lat, güneyden kuzeye) */
-  u: number[];
-  v: number[];
+  /** m/s, row-major (satır = lat, güneyden kuzeye). null = veri alınamadı. */
+  u: (number | null)[];
+  v: (number | null)[];
   time: number;
+  /** gözlem saati (Open-Meteo current.time, UTC) — tazelik göstergesi */
+  obsTime: string | null;
   failedChunks: number;
+  totalChunks: number;
 }
 
 export interface WindPoint {
@@ -94,6 +99,30 @@ export interface WindPoint {
   windDirDeg: number | null;
   gustKmh: number | null;
   vpdKpa: number | null;
+  /** duman göstergesi — CAMS tabanlı yüzey konsantrasyonu, µg/m³ */
+  pm25: number | null;
+  pm10: number | null;
+  aqi: number | null;
+  /** arazi — yangın yamaç yukarı hızlanır, rüzgârdan bağımsız */
+  terrain: {
+    elevM: number;
+    /** yüzde eğim */
+    slopePct: number;
+    /** yokuş yukarı yön (derece) — alevlerin tırmanacağı yön */
+    upslopeDeg: number;
+  } | null;
+  /** yakıt kuruluğu özeti (Kanada FWI) */
+  fwi: {
+    ffmc: number;
+    dmc: number;
+    dc: number;
+    isi: number;
+    bui: number;
+    fwi: number;
+    label: string;
+    level: 0 | 1 | 2 | 3 | 4 | 5;
+    days: number;
+  } | null;
   time: number;
 }
 
@@ -119,4 +148,8 @@ export interface LayerToggles {
   heat: boolean;
   cones: boolean;
   satellite: boolean;
+  /** EFFIS yanan alan poligonları (Sentinel-2 tabanlı, günde 2 kez) */
+  burnt: boolean;
+  /** GWIS yangın tehlike tahmini (FWI) */
+  danger: boolean;
 }

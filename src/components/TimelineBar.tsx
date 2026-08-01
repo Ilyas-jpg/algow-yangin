@@ -75,6 +75,7 @@ export default function TimelineBar({
           value={effT}
           onChange={(e) => onScrub(Number(e.target.value))}
           aria-label="Zaman kaydırıcısı"
+          aria-valuetext={fmtDayTime(effT)}
         />
       </div>
 

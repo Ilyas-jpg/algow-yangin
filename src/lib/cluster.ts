@@ -15,14 +15,31 @@ export interface ClusterResult {
  * Basit tek-bağlantılı (single-linkage) mekânsal kümeleme.
  * Grid-hash ile komşuluk: 3 km hücreler, 3x3 tarama.
  */
-export function clusterEvents(points: FirePoint[], now: number): ClusterResult {
+/** Olay durumu son görülmeye göre — render sırasında ucuzca türetilir. */
+export function statusOf(lastSeen: number, now: number): FireEvent["status"] {
+  const ageH = (now - lastSeen) / 3600_000;
+  return ageH <= 12 ? "active" : ageH <= 24 ? "waning" : "old";
+}
+
+/**
+ * Kümeleme `now` almaz: saat ilerledikçe (30 sn'de bir) tüm kümeleme ve
+ * yer-adı aramasının baştan çalışmasına gerek yok. Durum türetimi ayrı.
+ */
+export function clusterEvents(points: FirePoint[]): ClusterResult {
   if (points.length === 0) return { events: [], pointEvent: {} };
 
   const cellDeg = EPS_KM / 111; // ~lat hücre boyu
+  // Boylam bölenini SABİT tut: noktanın kendi enlemine göre hesaplanırsa
+  // ızgara tutarsız olur ve eşiğe yakın komşular 3x3 taramanın dışında
+  // kalıp tek yangın iki olaya bölünür.
+  const lonCell = cellDeg / Math.cos(toRad(42.6));
+  const cellOf = (lon: number, lat: number) => ({
+    cx: Math.floor(lon / lonCell),
+    cy: Math.floor(lat / cellDeg),
+  });
   const key = (p: FirePoint) => {
-    const cx = Math.floor(p.lon / (cellDeg / Math.cos(toRad(p.lat))));
-    const cy = Math.floor(p.lat / cellDeg);
-    return `${cx}:${cy}`;
+    const c = cellOf(p.lon, p.lat);
+    return `${c.cx}:${c.cy}`;
   };
 
   const cells = new Map<string, number[]>();
@@ -44,8 +61,7 @@ export function clusterEvents(points: FirePoint[], now: number): ClusterResult {
     while (stack.length) {
       const cur = stack.pop()!;
       const p = points[cur];
-      const cx = Math.floor(p.lon / (cellDeg / Math.cos(toRad(p.lat))));
-      const cy = Math.floor(p.lat / cellDeg);
+      const { cx, cy } = cellOf(p.lon, p.lat);
       for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
           const bucket = cells.get(`${cx + dx}:${cy + dy}`);
@@ -81,17 +97,21 @@ export function clusterEvents(points: FirePoint[], now: number): ClusterResult {
     let group: FirePoint[] = [];
     const flush = () => {
       if (!group.length) return;
-      let sLon = 0, sLat = 0, sFrp = 0;
+      let sLon = 0, sLat = 0;
+      // FRP'yi uyduya göre ayır: aynı yörünge düzlemindeki VIIRS platformları
+      // ~50 dk arayla geçiyor ve tek "geçiş" penceresine düşüyor. Toplamak
+      // aynı ısıyı iki-üç kez sayıp şiddeti ve trendi şişiriyordu.
+      const bySat = new Map<string, number>();
       for (const g of group) {
         sLon += g.lon;
         sLat += g.lat;
-        sFrp += g.frp;
+        bySat.set(g.sat, (bySat.get(g.sat) ?? 0) + g.frp);
       }
       passes.push({
         t: group[Math.floor(group.length / 2)].dt,
         lon: sLon / group.length,
         lat: sLat / group.length,
-        frp: Math.round(sFrp * 10) / 10,
+        frp: Math.round(Math.max(...bySat.values()) * 10) / 10,
         count: group.length,
       });
       group = [];
@@ -106,14 +126,22 @@ export function clusterEvents(points: FirePoint[], now: number): ClusterResult {
     const first = passes[0];
 
     let drift: FireEvent["drift"] = null;
-    if (passes.length >= 2) {
+    // Centroid, piksel sayısı değiştikçe yangın ilerlemese de kayar.
+    // Eşik VIIRS piksel ölçeğinin (375 m) üstünde olmalı, yoksa ölçüm
+    // gürültüsü "yön değişimi" iddiası olarak sunulur. Tek-iki pikselli
+    // geçişlerde centroid zaten güvenilmez.
+    const MIN_DRIFT_KM = 1.2;
+    const enoughPixels = first.count >= 3 && last.count >= 3;
+    if (passes.length >= 2 && enoughPixels) {
       const km = havKm(first.lon, first.lat, last.lon, last.lat);
-      const hours = Math.max(0.5, (last.t - first.t) / 3600_000);
-      if (km >= 0.4) {
+      const spanMs = last.t - first.t;
+      const hours = Math.max(0.5, spanMs / 3600_000);
+      if (km >= MIN_DRIFT_KM) {
         drift = {
           bearingDeg: bearingDeg(first.lon, first.lat, last.lon, last.lat),
           km: Math.round(km * 10) / 10,
           kmh: Math.round((km / hours) * 100) / 100,
+          spanMs,
         };
       }
     }
@@ -123,13 +151,11 @@ export function clusterEvents(points: FirePoint[], now: number): ClusterResult {
       .filter((p) => p.dt >= lastCut)
       .map((p) => ({ lon: p.lon, lat: p.lat }));
 
-    const ageH = (now - last.t) / 3600_000;
-    const status: FireEvent["status"] =
-      ageH <= 12 ? "active" : ageH <= 24 ? "waning" : "old";
-
     const frpMax = Math.max(...passes.map((p) => p.frp));
 
-    const evId = `${last.lon.toFixed(2)}:${last.lat.toFixed(2)}:${Math.round(first.t / 86400_000)}`;
+    // Kimlik İLK geçişe bağlanır: son geçiş centroid'i her tazelemede
+    // kayıyor ve seçili olay kullanıcının elinden düşüyordu.
+    const evId = `${first.lon.toFixed(2)}:${first.lat.toFixed(2)}:${Math.round(first.t / 3600_000)}`;
     for (const p of pts) pointEvent[p.id] = evId;
     const where = nearestPlace(last.lon, last.lat);
     events.push({
@@ -146,18 +172,9 @@ export function clusterEvents(points: FirePoint[], now: number): ClusterResult {
       passes,
       drift,
       lastPassPoints,
-      status,
+      status: "active",
     });
   }
-
-  // Önem sırası: yurt içi önce → durum → son geçiş FRP
-  const rank = { active: 0, waning: 1, old: 2 } as const;
-  events.sort(
-    (a, b) =>
-      Number(a.abroad) - Number(b.abroad) ||
-      rank[a.status] - rank[b.status] ||
-      b.frpLast - a.frpLast
-  );
   return { events, pointEvent };
 }
 

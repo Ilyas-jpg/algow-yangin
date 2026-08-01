@@ -25,7 +25,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => !k.endsWith(VERSION))
+            .filter((k) => k.split("-").pop() !== VERSION)
             .map((k) => caches.delete(k))
         )
       )
@@ -51,7 +51,10 @@ async function networkFirst(request, cacheName) {
     const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
     const fresh = await fetch(request, { signal: controller.signal });
     clearTimeout(timer);
-    if (fresh.ok) cache.put(request, fresh.clone());
+    if (fresh.ok) {
+      await cache.put(request, fresh.clone());
+      await trim(cacheName, 60);
+    }
     return fresh;
   } catch {
     const cached = await cache.match(request);
@@ -84,14 +87,47 @@ async function cacheFirst(request, cacheName, limit) {
   return fresh;
 }
 
+// Bildirime tıklanınca uygulamayı öne getir
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) return c.focus();
+      }
+      return self.clients.openWindow("/");
+    })
+  );
+});
+
+// Uygulama kapalıyken periyodik kontrol (destekleyen cihazlarda).
+// Konum istemcide olduğu için burada yalnız veriyi tazeliyoruz; eşleştirmeyi
+// uygulama açıldığında sayfa yapıyor.
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag !== "yangin-kontrol") return;
+  event.waitUntil(
+    fetch("/api/fires?days=1")
+      .then((res) => (res.ok ? caches.open(DATA).then((c) => c.put("/api/fires?days=1", res)) : null))
+      .catch(() => null)
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
-  // Harita karoları, sprite, glyph (cross-origin) — kalıcı cache
-  if (/cartocdn\.com|arcgisonline\.com/.test(url.hostname)) {
+  // Harita karoları, sprite, glyph (cross-origin) — kalıcı cache.
+  // Tam host eşleşmesi: substring testi "cartocdn.com.saldirgan.net" gibi
+  // adresleri de kabul edip kalıcı cache zehirlenmesine yol açardı.
+  if (
+    url.hostname === "server.arcgisonline.com" ||
+    url.hostname === "basemaps.cartocdn.com" ||
+    /^[a-d]\.basemaps\.cartocdn\.com$/.test(url.hostname) ||
+    url.hostname === "tiles.basemaps.cartocdn.com" ||
+    /^tiles-[a-d]\.basemaps\.cartocdn\.com$/.test(url.hostname)
+  ) {
     event.respondWith(cacheFirst(request, TILES, TILE_LIMIT));
     return;
   }
@@ -126,6 +162,6 @@ self.addEventListener("fetch", (event) => {
 
   // Diğer aynı-köken varlıklar (marka görselleri vb.)
   if (url.origin === self.location.origin) {
-    event.respondWith(cacheFirst(request, SHELL));
+    event.respondWith(cacheFirst(request, SHELL, 120));
   }
 });

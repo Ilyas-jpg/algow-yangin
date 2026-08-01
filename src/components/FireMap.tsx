@@ -10,12 +10,23 @@ import type {
   MapMouseEvent,
 } from "maplibre-gl";
 import type { LayerToggles, UserLocation, WindGrid } from "@/lib/types";
+import { metersPerPixel } from "@/lib/geo";
 import type { ConeGeom } from "@/lib/wind";
 import { WindParticleLayer } from "./WindParticles";
 
 const STYLE_URL = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 const ESRI_TILES =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+/**
+ * Copernicus EFFIS/GWIS WMS — ücretsiz, atıf zorunlu.
+ * STYLES boş da olsa GÖNDERİLMELİ: MapServer 8 onu zorunlu tutuyor,
+ * yoksa görüntü yerine ServiceException XML dönüyor.
+ */
+const wms = (service: string, layer: string) =>
+  `https://maps.effis.emergency.copernicus.eu/${service}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
+  `&LAYERS=${layer}&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857` +
+  `&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`;
 
 const EMPTY_FC: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
@@ -59,6 +70,7 @@ interface FireMapProps {
   flyTarget: { lon: number; lat: number; key: number } | null;
   userLoc: UserLocation | null;
   onSelect: (id: string | null) => void;
+  onCenterChange?: (c: { lon: number; lat: number }) => void;
 }
 
 export default function FireMap({
@@ -76,13 +88,19 @@ export default function FireMap({
   flyTarget,
   userLoc,
   onSelect,
+  onCenterChange,
 }: FireMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const windRef = useRef<WindParticleLayer | null>(null);
   const [ready, setReady] = useState(false);
+  const [styleFailed, setStyleFailed] = useState(false);
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
+  const onCenterRef = useRef(onCenterChange);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+    onCenterRef.current = onCenterChange;
+  });
 
   // ── Harita kurulumu (bir kez)
   useEffect(() => {
@@ -99,6 +117,9 @@ export default function FireMap({
     mapRef.current = map;
 
     map.on("error", (e) => {
+      // Altlık yüklenemezse "load" hiç ateşlenmez ve kullanıcı sebepsiz
+      // boş bir kutu görür; en azından listenin çalıştığını söyleyelim.
+      if (!map.isStyleLoaded()) setStyleFailed(true);
       console.error("[harita]", e.error?.message ?? e);
     });
 
@@ -160,6 +181,42 @@ export default function FireMap({
           source: "sat",
           layout: { visibility: "none" },
           paint: { "raster-opacity": 0.92 },
+        },
+        labelTop
+      );
+
+      // Yangın tehlikesi (GWIS FWI tahmini) — en altta, zemin gibi
+      map.addSource("danger", {
+        type: "raster",
+        tiles: [wms("gwis", "ecmwf.fwi")],
+        tileSize: 256,
+        attribution: "GWIS / Copernicus EMS",
+      });
+      map.addLayer(
+        {
+          id: "danger",
+          type: "raster",
+          source: "danger",
+          layout: { visibility: "none" },
+          paint: { "raster-opacity": 0.45 },
+        },
+        labelTop
+      );
+
+      // Yanan alan perimetreleri (EFFIS, Sentinel-2 tabanlı)
+      map.addSource("burnt", {
+        type: "raster",
+        tiles: [wms("effis", "effis.nrt.ba.poly")],
+        tileSize: 256,
+        attribution: "EFFIS / Copernicus EMS",
+      });
+      map.addLayer(
+        {
+          id: "burnt",
+          type: "raster",
+          source: "burnt",
+          layout: { visibility: "none" },
+          paint: { "raster-opacity": 0.75 },
         },
         labelTop
       );
@@ -326,6 +383,13 @@ export default function FireMap({
         map.getCanvas().style.cursor = "";
       });
 
+      const emitCenter = () => {
+        const c = map.getCenter();
+        onCenterRef.current?.({ lon: c.lng, lat: c.lat });
+      };
+      emitCenter();
+      map.on("moveend", emitCenter);
+
       windRef.current = new WindParticleLayer(map, containerRef.current!);
       setReady(true);
     });
@@ -394,19 +458,33 @@ export default function FireMap({
       map.setFilter("fires-pulse", ["==", ["get", "dt"], -1]);
       return;
     }
-    map.setFilter("fires-pulse", [">=", ["get", "dt"], effT - 6 * 3600_000]);
     let raf = 0;
     const start = performance.now();
+    let last = 0;
     const tick = (t: number) => {
       raf = requestAnimationFrame(tick);
+      // setPaintProperty her çağrıda expression'ı yeniden derletiyor;
+      // 60 yerine ~20 fps nabız için yeterli ve harita akıcı kalıyor.
+      if (t - last < 50) return;
+      last = t;
       const phase = ((t - start) % 2000) / 2000;
       map.setPaintProperty("fires-pulse", "circle-radius", [
-        "+", ["*", R_EXPR, 1], 2 + phase * 11,
+        "+", R_EXPR, 2 + phase * 11,
       ]);
       map.setPaintProperty("fires-pulse", "circle-stroke-opacity", 0.5 * (1 - phase));
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+    // effT bağımlılığa girmez: canlı modda 30 sn'de bir değişip animasyonu
+    // baştan başlatıyor ve nabız gözle görülür şekilde zıplıyordu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, live, reducedMotion]);
+
+  // Nabız filtresi (taze tespitler) ayrı effect'te — animasyonu sıfırlamadan
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !live || reducedMotion) return;
+    map.setFilter("fires-pulse", [">=", ["get", "dt"], effT - 6 * 3600_000]);
   }, [ready, live, effT, reducedMotion]);
 
   // ── Katman görünürlükleri
@@ -415,7 +493,9 @@ export default function FireMap({
     if (!ready || !map) return;
     map.setLayoutProperty("sat", "visibility", layers.satellite ? "visible" : "none");
     map.setLayoutProperty("fires-heat", "visibility", layers.heat ? "visible" : "none");
-  }, [ready, layers.satellite, layers.heat]);
+    map.setLayoutProperty("burnt", "visibility", layers.burnt ? "visible" : "none");
+    map.setLayoutProperty("danger", "visibility", layers.danger ? "visible" : "none");
+  }, [ready, layers.satellite, layers.heat, layers.burnt, layers.danger]);
 
   // ── Rüzgar partikülleri
   useEffect(() => {
@@ -437,9 +517,7 @@ export default function FireMap({
       return;
     }
     const render = () => {
-      const mPerPx =
-        (156543.03392 * Math.cos((userLoc.lat * Math.PI) / 180)) /
-        Math.pow(2, map.getZoom() + 8);
+      const mPerPx = metersPerPixel(userLoc.lat, map.getZoom());
       src.setData({
         type: "FeatureCollection",
         features: [
@@ -471,15 +549,24 @@ export default function FireMap({
       padding: isDesktop
         ? { left: 360, top: 60, right: 40, bottom: 80 }
         : { left: 20, top: 60, right: 20, bottom: 260 },
-      duration: 700,
+      // Tam ekran kamera hareketi vestibüler rahatsızlık yaratabilir
+      duration: reducedMotion ? 0 : 700,
     });
-  }, [ready, flyTarget]);
+  }, [ready, flyTarget, reducedMotion]);
 
   // Dış sarmalayıcı konumu verir; MapLibre kendi container'ına
   // position:relative bastığı için harita div'i yüzdeyle doldurulur.
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} className="h-full w-full" />
+      {styleFailed && !ready && (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
+          <p className="max-w-[300px] text-center text-xs leading-relaxed text-ink-2">
+            Harita altlığı yüklenemedi. Yangın listesi ve uyarılar çalışmaya
+            devam ediyor; bağlantı düzelince harita kendiliğinden gelir.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,11 @@ const WINDOW_TO_DAYRANGE: Record<string, { hours: number; dayRange: number }> = 
 
 export async function GET(request: NextRequest) {
   const daysParam = request.nextUrl.searchParams.get("days") ?? "1";
-  const win = WINDOW_TO_DAYRANGE[daysParam] ?? WINDOW_TO_DAYRANGE["1"];
+  // hasOwn şart: "constructor"/"__proto__" gibi anahtarlar truthy döner ve
+  // ?? fallback'ini atlayıp win.hours'u undefined bırakırdı.
+  const win = Object.hasOwn(WINDOW_TO_DAYRANGE, daysParam)
+    ? WINDOW_TO_DAYRANGE[daysParam]
+    : WINDOW_TO_DAYRANGE["1"];
   const now = Date.now();
   const mapKey = process.env.FIRMS_MAP_KEY;
 
@@ -46,9 +50,11 @@ export async function GET(request: NextRequest) {
       }
     }
     if (sourcesOk === 0) {
+      // Detay yalnız sunucu logunda: upstream gövdesi istek yolunu
+      // (dolayısıyla MAP_KEY'i) yansıtabilir, istemciye verilmez.
       console.error("FIRMS tüm kaynaklar fail:", errors);
       return NextResponse.json(
-        { error: "FIRMS kaynaklarına ulaşılamadı", errors },
+        { error: "FIRMS kaynaklarına ulaşılamadı" },
         { status: 503 }
       );
     }

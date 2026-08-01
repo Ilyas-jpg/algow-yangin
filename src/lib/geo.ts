@@ -77,6 +77,15 @@ export function sectorRing(
   return ring;
 }
 
+/**
+ * Web Mercator çözünürlüğü (metre/piksel). MapLibre 512 px karo kullanır,
+ * bu yüzden bölen 2^(zoom+1). Tek kaynak: harita üstü ölçek hesapları
+ * (doğruluk halkası, partikül adımı) bunu paylaşır.
+ */
+export function metersPerPixel(lat: number, zoom: number): number {
+  return (156543.03392 * Math.cos(toRad(lat))) / Math.pow(2, zoom + 1);
+}
+
 const COMPASS_TR = [
   "K", "KKD", "KD", "DKD", "D", "DGD", "GD", "GGD",
   "G", "GGB", "GB", "BGB", "B", "BKB", "KB", "KKB",

@@ -1,6 +1,7 @@
 import type { Map as MlMap } from "maplibre-gl";
 import type { WindGrid } from "@/lib/types";
 import { sampleUV } from "@/lib/wind";
+import { metersPerPixel } from "@/lib/geo";
 
 /**
  * Windy hissi veren hafif partikül katmanı.
@@ -128,10 +129,7 @@ export class WindParticleLayer {
         this.spawn(i);
         continue;
       }
-      // 512px tile Web Mercator metre/piksel
-      const mpp =
-        (156543.03392 * Math.cos((ll.lat * Math.PI) / 180)) /
-        Math.pow(2, zoom + 1);
+      const mpp = metersPerPixel(ll.lat, zoom);
       const scale = 170 / mpp; // zaman abartısı: 1 kare ≈ 170 sn rüzgar
       let dx = uv.u * scale;
       let dy = -uv.v * scale; // ekran y aşağı

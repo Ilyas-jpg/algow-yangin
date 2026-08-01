@@ -40,21 +40,28 @@ export function useGeolocation() {
           },
         }),
       (err) => {
+        // İzin reddi kalıcıdır → izlemeyi kapat. Geçici sinyal kaybı
+        // (tünel, bina içi) izlemeyi ÖLDÜRMEMELİ: saha ekibi hareket
+        // hâlinde ve fix birazdan geri gelir.
         if (err.code === err.PERMISSION_DENIED) {
           setState({ status: "denied" });
-        } else {
-          setState({
-            status: "error",
-            message:
-              err.code === err.TIMEOUT
-                ? "Konum alınamadı — açık alanda tekrar deneyin"
-                : "Konum servisi şu an yanıt vermiyor",
-          });
+          if (watchRef.current !== null) {
+            navigator.geolocation.clearWatch(watchRef.current);
+            watchRef.current = null;
+          }
+          return;
         }
-        if (watchRef.current !== null) {
-          navigator.geolocation.clearWatch(watchRef.current);
-          watchRef.current = null;
-        }
+        setState((s) =>
+          s.status === "ready"
+            ? s
+            : {
+                status: "error",
+                message:
+                  err.code === err.TIMEOUT
+                    ? "Konum alınamadı — açık alanda tekrar deneyin"
+                    : "Konum servisi şu an yanıt vermiyor",
+              }
+        );
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );

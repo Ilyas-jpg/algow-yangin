@@ -91,14 +91,29 @@ export default function HakkindaPage() {
           </h2>
           <p>
             Bir yangının etrafındaki mavi koni, son uydu geçişindeki öncü
-            kenardan başlayarak rüzgârın taşıdığı yönü ve kaba bir hızla bir,
-            üç ve altı saatlik olası erişimi gösterir. Hesap bilinçli olarak
-            basittir: rüzgâr hızına göre Akdeniz bitki örtüsü için tipik
+            kenardan başlayarak <b>rüzgârın taşıma yönünü</b> ve kaba bir hızla
+            bir, üç ve altı saatlik olası erişimi gösterir. Hesap bilinçli
+            olarak basittir: rüzgâr hızına göre Akdeniz bitki örtüsü için tipik
             yayılma hızları kullanılır; arazi eğimi, yakıt tipi ve söndürme
-            müdahalesi hesaba katılmaz. Ayrıca yangının son saatlerdeki
-            gözlenen ilerlemesi beyaz izle çizilir — gözlem ile rüzgâr tahmini
-            aynı yönü gösteriyorsa koniye güven artar, ayrışıyorsa rüzgârın
-            döndüğüne işarettir. Koni bir öngörü aracıdır, tahliye kararı
+            müdahalesi hesaba katılmaz.
+          </p>
+          <p>
+            Bu konunun dürüst olmayı en çok hak eden kısmı şu: kendi verimizle
+            geriye dönük bir sınama yaptık. Yedi günlük yangınlarda, bir uydu
+            geçişindeki rüzgâra bakıp yaptığımız yön tahminini, yangının bir
+            sonraki geçişte gerçekte hangi yöne büyüdüğüyle karşılaştırdık.
+            Yirmi üç ölçülebilir örnekte <b>tahmin, gözlenen yönü rastgele bir
+            tahminden daha iyi kestiremedi</b>. Sebepleri anlaşılır: söndürme
+            ekipleri çoğu zaman yangının ilerleyen başını keser, dağlık arazide
+            alevler rüzgârdan bağımsız olarak yamaç yukarı tırmanır ve uydu iki
+            geçiş arasında rüzgârın döndüğünü göremez.
+          </p>
+          <p>
+            Bu yüzden koniyi bir kehanet gibi değil, <b>&quot;rüzgâr şu anda
+            bu yöne taşıyor&quot;</b> bilgisi olarak sunuyoruz. Yangının son
+            saatlerde gerçekte nereye ilerlediğini gösteren beyaz iz ise
+            gözleme dayanır ve daha güvenilirdir; ikisi ayrıştığında{" "}
+            <b>gözlenen yönü esas alın</b>. Koni hiçbir koşulda tahliye kararı
             aracı değildir.
           </p>
 

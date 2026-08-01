@@ -179,12 +179,31 @@ function FireWeather({
       </p>
     );
   }
+  const FWI_CLS = [
+    "text-ok",
+    "text-ok",
+    "text-ink",
+    "text-warn",
+    "text-danger",
+    "text-danger",
+  ];
+  const aqiCls =
+    weather.aqi === null
+      ? undefined
+      : weather.aqi > 150
+        ? "text-danger"
+        : weather.aqi > 100
+          ? "text-warn"
+          : undefined;
+
   const rows: { k: string; v: string; cls?: string }[] = [
     {
+      // "-dan" eki kritik: hemen altındaki tahmin yangının GİDECEĞİ yönü
+      // veriyor. Ek olmadan iki zıt pusula yan yana okunup ters anlaşılıyordu.
       k: "Rüzgar",
       v:
         weather.windKmh !== null && weather.windDirDeg !== null
-          ? `${fmtNum(weather.windKmh)} km/sa ${compassTr(weather.windDirDeg)}`
+          ? `${compassTr(weather.windDirDeg)}'dan ${fmtNum(weather.windKmh)} km/sa`
           : "—",
     },
     {
@@ -210,16 +229,70 @@ function FireWeather({
     },
   ];
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-      {rows.map((r) => (
-        <div key={r.k} className="flex items-baseline justify-between gap-2">
-          <span className="text-[10px] text-ink-3">{r.k}</span>
-          <span className={`font-mono text-[11px] ${r.cls ?? "text-ink"}`}>
-            {r.v}
-          </span>
+    <>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {rows.map((r) => (
+          <div key={r.k} className="flex items-baseline justify-between gap-2">
+            <span className="text-[10px] text-ink-3">{r.k}</span>
+            <span className={`font-mono text-[11px] ${r.cls ?? "text-ink"}`}>
+              {r.v}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Yakıt kuruluğu ve duman — ham veriden karara */}
+      {(weather.fwi || weather.pm25 !== null) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/60 pt-2">
+          {weather.fwi && (
+            <div
+              className="flex items-baseline gap-1.5"
+              title={`FFMC ${weather.fwi.ffmc} · DMC ${weather.fwi.dmc} · DC ${weather.fwi.dc} · ISI ${weather.fwi.isi} · BUI ${weather.fwi.bui} (${weather.fwi.days} günlük seri)`}
+            >
+              <span className="text-[10px] text-ink-3">Yangın hava indeksi</span>
+              <span className={`font-mono text-[11px] ${FWI_CLS[weather.fwi.level]}`}>
+                {fmtNum(weather.fwi.fwi, 1)}
+              </span>
+              <span className={`text-[10px] ${FWI_CLS[weather.fwi.level]}`}>
+                {weather.fwi.label}
+              </span>
+            </div>
+          )}
+          {weather.pm25 !== null && (
+            <div
+              className="flex items-baseline gap-1.5"
+              title="Yüzeydeki ince partikül — duman göstergesi (CAMS)"
+            >
+              <span className="text-[10px] text-ink-3">Duman (PM2.5)</span>
+              <span className={`font-mono text-[11px] ${aqiCls ?? "text-ink"}`}>
+                {fmtNum(weather.pm25)} µg/m³
+              </span>
+              {weather.aqi !== null && (
+                <span className={`text-[10px] ${aqiCls ?? "text-ink-3"}`}>
+                  AQI {fmtNum(weather.aqi)}
+                </span>
+              )}
+            </div>
+          )}
+          {weather.terrain && (
+            <div
+              className="flex items-baseline gap-1.5"
+              title="Yangın yokuş yukarı hızlanır — rüzgâr ters yöne esse bile"
+            >
+              <span className="text-[10px] text-ink-3">Arazi</span>
+              <span className="font-mono text-[11px] text-ink">
+                {fmtNum(weather.terrain.elevM)} m · %{fmtNum(weather.terrain.slopePct)} eğim
+              </span>
+              {weather.terrain.slopePct >= 10 && (
+                <span className="text-[10px] text-warn">
+                  yokuş {compassTr(weather.terrain.upslopeDeg)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
@@ -237,13 +310,14 @@ function Assessment({
   const lines: React.ReactNode[] = [];
 
   if (ev.drift) {
-    const hours = Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000);
+    const hours = Math.max(0.5, ev.drift.spanMs / 3600_000);
     lines.push(
       <span key="drift">
-        Gözlenen ilerleme: <b className="font-mono font-normal text-ink">
-          {compassTr(ev.drift.bearingDeg)}
+        Gözlenen ilerleme:{" "}
+        <b className="font-mono font-normal text-ink">
+          {compassTr(ev.drift.bearingDeg)} yönüne
         </b>{" "}
-        yönünde {fmtNum(ev.drift.km, 1)} km / {fmtNum(hours)} sa
+        {fmtNum(ev.drift.km, 1)} km / {fmtNum(hours)} sa
       </span>
     );
   }
@@ -251,10 +325,15 @@ function Assessment({
   if (cone) {
     lines.push(
       <span key="cone">
-        Tahmini yönelim: <b className="font-mono font-normal text-ink">
+        {/* 2026-08-01 retrospektif doğrulama: rüzgâr yönüyle yapılan
+            yayılma tahmini, gözlenen ilerlemeyi rastgeleden daha iyi
+            kestiremedi (n=23, medyan hata 118°). Bu yüzden iddia
+            "yangın buraya gidecek"ten "rüzgâr bu yöne taşır"a çekildi. */}
+        Rüzgâr taşıma yönü:{" "}
+        <b className="font-mono font-normal text-ink">
           {compassTr(cone.spreadDeg)}
         </b>{" "}
-        · rüzgar {fmtNum(cone.windKmh)} km/sa · koni 1·3·6 sa
+        · koni yalnız rüzgârı yansıtır, arazi ve müdahaleyi bilmez
       </span>
     );
     if (ev.drift) {
@@ -262,14 +341,30 @@ function Assessment({
       lines.push(
         d <= 45 ? (
           <span key="agree" className="text-ok">
-            Gözlenen ilerleme rüzgar yönüyle tutarlı
+            Gözlenen ilerleme rüzgâr yönüyle uyuşuyor — koniye güven artar
           </span>
         ) : (
           <span key="dis" className="text-warn">
-            İlerleme rüzgar yönünden sapıyor — yön değişimi olası
+            Gözlenen ilerleme rüzgâr yönünden sapıyor; arazi, yakıt veya
+            söndürme etkili olabilir — <b className="font-normal">gözlenen
+            yönü esas al</b>
           </span>
         )
       );
+    }
+    // Dik yamaçta alevler rüzgârdan bağımsız tırmanır — doğrulama testimizde
+    // koninin yanılma sebeplerinden biri buydu, kullanıcı bilsin.
+    if (weather?.terrain && weather.terrain.slopePct >= 15) {
+      const d = angDiff(weather.terrain.upslopeDeg, cone.spreadDeg);
+      if (d > 60) {
+        lines.push(
+          <span key="slope" className="text-warn">
+            Dik yamaç (%{fmtNum(weather.terrain.slopePct)}):{" "}
+            {compassTr(weather.terrain.upslopeDeg)} yönünde yokuş yukarı da
+            ilerleyebilir
+          </span>
+        );
+      }
     }
   } else if (!live) {
     lines.push(
