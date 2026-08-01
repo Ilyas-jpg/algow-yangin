@@ -147,7 +147,13 @@ export interface LayerToggles {
   wind: boolean;
   heat: boolean;
   cones: boolean;
+  /** Sentinel-2 cloudless 10 m altlık (Esri'nin yıllar öncesine ait olabilen
+   *  mozaiğinin yerine) */
   satellite: boolean;
+  /** NASA GIBS günlük gerçek renk — dün/bugünün görüntüsü, dumanı gösterir */
+  today: boolean;
+  /** Terrarium DEM tabanlı tepe gölgelemesi (topoğrafya) */
+  terrain: boolean;
   /** EFFIS yanan alan poligonları (Sentinel-2 tabanlı, günde 2 kez) */
   burnt: boolean;
   /** GWIS yangın tehlike tahmini (FWI) */

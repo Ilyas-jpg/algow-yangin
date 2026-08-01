@@ -15,9 +15,33 @@ import type { ConeGeom } from "@/lib/wind";
 import { WindParticleLayer } from "./WindParticles";
 
 const STYLE_URL = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-const ESRI_TILES =
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
+/** Sentinel-2 cloudless (EOX) — 10 m, bulutsuz yıllık mozaik, anahtarsız */
+const S2_TILES =
+  "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg";
+
+/** Terrarium kodlu DEM — tepe gölgeleme için, anahtarsız */
+const TERRARIUM_TILES =
+  "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+
+/**
+ * NASA GIBS günlük gerçek renk karo şablonu.
+ * Görüntü uydu geçişinden birkaç saat sonra yayınlanıyor; 14:00 UTC'den önce
+ * bugünün karosu henüz yok olabilir, o yüzden erken saatlerde düne düşülür.
+ */
+function gibsDate(): string {
+  const now = new Date();
+  const d = new Date(now);
+  if (now.getUTCHours() < 14) d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+function gibsTiles(): string {
+  return (
+    "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/" +
+    `VIIRS_NOAA20_CorrectedReflectance_TrueColor/default/${gibsDate()}/` +
+    "GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg"
+  );
+}
 /**
  * Copernicus EFFIS/GWIS WMS — ücretsiz, atıf zorunlu.
  * STYLES boş da olsa GÖNDERİLMELİ: MapServer 8 onu zorunlu tutuyor,
@@ -155,19 +179,24 @@ export default function FireMap({
       // Yerleşim adları: dark-matter bunları geç zoom'da açar (ilçe z8, köy z10).
       // Yangın haritasında "neresi yanıyor" okunabilmeli → erken göster ve
       // koyu zeminde okunur hale getir (halo + parlak metin).
+      // ⚠️ Eskiden şehir katmanlarının HEPSİ (r6, r5, dot_r7, dot_z7) aynı anda
+      // erken zoom'a çekiliyordu. Bunlar dark-matter'da birbirini DIŞLAYAN zoom
+      // aralıklarında; hepsi açılınca aynı şehir iki kez yazılıyordu
+      // ("Bursa/Bursa", "İzmir/İzmir"). Tek bir şehir katmanı öne alınır,
+      // diğer varyantlar kapatılır.
       const PLACE_MINZOOM: Record<string, number> = {
-        place_town: 5,
-        place_villages: 7,
-        place_hamlet: 9,
-        place_suburbs: 10,
-        place_city_r6: 4.5,
-        place_city_r5: 4.5,
-        place_city_dot_r7: 4.5,
-        place_city_dot_z7: 5,
         place_capital_dot_z7: 4,
+        place_city_r6: 4.5,
+        place_town: 6,
+        place_villages: 8,
+        place_hamlet: 10,
+        place_suburbs: 11,
       };
       for (const [id, mz] of Object.entries(PLACE_MINZOOM)) {
         if (map.getLayer(id)) map.setLayerZoomRange(id, mz, 24);
+      }
+      for (const id of ["place_city_r5", "place_city_dot_r7", "place_city_dot_z7"]) {
+        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
       }
       for (const layer of map.getStyle().layers) {
         if (layer.type !== "symbol" || !layer.id.startsWith("place_")) continue;
@@ -183,12 +212,66 @@ export default function FireMap({
         .getStyle()
         .layers.find((l) => l.type === "symbol")?.id;
 
-      // Uydu görüntüsü (varsayılan kapalı)
+      // ── TOPOĞRAFYA: Terrarium DEM'den tepe gölgeleme.
+      // Yangın davranışının yarısı arazi; kullanıcı vadiyi ve sırtı görebilmeli.
+      // Etiketlerin ALTINA girer, veri katmanlarının altında kalır.
+      map.addSource("dem", {
+        type: "raster-dem",
+        tiles: [TERRARIUM_TILES],
+        tileSize: 256,
+        maxzoom: 13,
+        encoding: "terrarium",
+        attribution: "Terrain: Mapzen/AWS · SRTM, ASTER",
+      });
+      map.addLayer(
+        {
+          id: "hillshade",
+          type: "hillshade",
+          source: "dem",
+          layout: { visibility: "none" },
+          paint: {
+            "hillshade-exaggeration": 0.55,
+            // Koyu temada gölge siyaha, ışık soğuk griye gider; kobalt/turuncu
+            // veri katmanlarıyla yarışmasın diye doygunluk düşük tutuldu.
+            "hillshade-shadow-color": "#04060a",
+            "hillshade-highlight-color": "#6b7280",
+            "hillshade-accent-color": "#0b0f14",
+          },
+        },
+        // Su ve arazi dolgularının üstünde, yollardan/etiketlerden altta
+        map.getLayer("waterway") ? "waterway" : labelTop
+      );
+
+      // ── BUGÜNKÜ GÖRÜNTÜ: NASA GIBS gerçek renk (250 m).
+      // Çözünürlüğü kaba ama TARİHİ bugün — büyük yangınların DUMANI görünür.
+      // Esri mozaiği yıllar öncesine ait olabilir; bu katman onun yapamadığını yapar.
+      map.addSource("today", {
+        type: "raster",
+        tiles: [gibsTiles()],
+        tileSize: 256,
+        maxzoom: 8,
+        attribution: "NASA EOSDIS GIBS · VIIRS/NOAA-20",
+      });
+      map.addLayer(
+        {
+          id: "today",
+          type: "raster",
+          source: "today",
+          layout: { visibility: "none" },
+          paint: { "raster-opacity": 0.95 },
+        },
+        labelTop
+      );
+
+      // Uydu görüntüsü (varsayılan kapalı) — Sentinel-2 cloudless 10 m.
+      // Esri World Imagery'nin yerini aldı: hem daha keskin hem daha güncel.
       map.addSource("sat", {
         type: "raster",
-        tiles: [ESRI_TILES],
+        tiles: [S2_TILES],
         tileSize: 256,
-        attribution: "Esri, Maxar, Earthstar Geographics",
+        maxzoom: 16,
+        attribution:
+          "Sentinel-2 cloudless by EOX (Contains modified Copernicus Sentinel data)",
       });
       map.addLayer(
         {
@@ -691,10 +774,20 @@ export default function FireMap({
     const map = mapRef.current;
     if (!ready || !map) return;
     map.setLayoutProperty("sat", "visibility", layers.satellite ? "visible" : "none");
+    map.setLayoutProperty("today", "visibility", layers.today ? "visible" : "none");
+    map.setLayoutProperty("hillshade", "visibility", layers.terrain ? "visible" : "none");
     map.setLayoutProperty("fires-heat", "visibility", layers.heat ? "visible" : "none");
     map.setLayoutProperty("burnt", "visibility", layers.burnt ? "visible" : "none");
     map.setLayoutProperty("danger", "visibility", layers.danger ? "visible" : "none");
-  }, [ready, layers.satellite, layers.heat, layers.burnt, layers.danger]);
+  }, [
+    ready,
+    layers.satellite,
+    layers.today,
+    layers.terrain,
+    layers.heat,
+    layers.burnt,
+    layers.danger,
+  ]);
 
   // ── Rüzgar partikülleri
   useEffect(() => {

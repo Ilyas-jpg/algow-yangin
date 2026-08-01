@@ -89,6 +89,8 @@ export default function App() {
     heat: true,
     cones: true,
     satellite: false,
+    today: false,
+    terrain: false,
     burnt: false,
     danger: false,
     msg: true,

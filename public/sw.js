@@ -126,7 +126,9 @@ self.addEventListener("fetch", (event) => {
   // Tam host eşleşmesi: substring testi "cartocdn.com.saldirgan.net" gibi
   // adresleri de kabul edip kalıcı cache zehirlenmesine yol açardı.
   if (
-    url.hostname === "server.arcgisonline.com" ||
+    url.hostname === "tiles.maps.eox.at" ||
+    url.hostname === "s3.amazonaws.com" ||
+    url.hostname === "gibs.earthdata.nasa.gov" ||
     url.hostname === "basemaps.cartocdn.com" ||
     /^[a-d]\.basemaps\.cartocdn\.com$/.test(url.hostname) ||
     url.hostname === "tiles.basemaps.cartocdn.com" ||

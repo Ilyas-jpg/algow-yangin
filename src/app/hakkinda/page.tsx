@@ -227,6 +227,38 @@ export default function HakkindaPage() {
 
           <div className="space-y-4 text-sm">
             <div>
+              <p className="font-medium text-ink">2 Ağustos 2026 — harita turu</p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">Topoğrafya eklendi.</b>{" "}
+                  &quot;Arazi&quot; düğmesi tepe gölgelemesini açıyor: vadiler,
+                  sırtlar ve yamaç yönleri görünüyor. Yangın davranışının yarısı
+                  arazi olduğu için bu, koninin neden o tarafa eğildiğini de
+                  okunur kılıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Uydu altlığı yenilendi ve bir de günlük görüntü geldi.
+                  </b>{" "}
+                  Önceki altlık yıllar öncesine ait olabilen bir mozaikti.
+                  Yerine <b className="font-medium">Sentinel-2 cloudless</b>{" "}
+                  (10 m, bulutsuz) geldi. Ayrıca{" "}
+                  <b className="font-medium">&quot;Bugün&quot;</b> düğmesi NASA
+                  GIBS günlük gerçek renk görüntüsünü açıyor — çözünürlüğü kaba
+                  (250 m) ama tarihi bugün, yani büyük yangınların dumanı
+                  görülebiliyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Çift yazılan şehir adları düzeltildi.
+                  </b>{" "}
+                  Etiketleri erken zoom&apos;da göstermek için yaptığımız ayar,
+                  birbirini dışlaması gereken şehir katmanlarını aynı anda
+                  açıyordu; aynı şehir iki kez yazılıyordu.
+                </li>
+              </ul>
+            </div>
+            <div>
               <p className="font-medium text-ink">2 Ağustos 2026 — ikinci tur</p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
@@ -359,9 +391,12 @@ export default function HakkindaPage() {
             >
               OpenStreetMap
             </a>{" "}
-            katkıda bulunanları. Uydu görüntüsü katmanı: Esri, Maxar, Earthstar
-            Geographics. NASA, bu platformun içeriğini onaylamış veya
-            desteklemiş değildir; veri olduğu gibi sunulur.
+            katkıda bulunanları. Uydu görüntüsü: <b>Sentinel-2 cloudless</b> (EOX
+            IT Services, değiştirilmiş Copernicus Sentinel verisi içerir).
+            Günlük görüntü: <b>NASA EOSDIS GIBS</b>, VIIRS/NOAA-20 gerçek renk.
+            Arazi yüksekliği: Mapzen/AWS Terrain Tiles (SRTM, ASTER). NASA, bu
+            platformun içeriğini onaylamış veya desteklemiş değildir; veri
+            olduğu gibi sunulur.
           </p>
         </div>
 

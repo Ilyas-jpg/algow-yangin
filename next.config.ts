@@ -9,8 +9,8 @@ import type { NextConfig } from "next";
  */
 const CSP = [
   "default-src 'self'",
-  "img-src 'self' data: blob: https://*.cartocdn.com https://server.arcgisonline.com https://maps.effis.emergency.copernicus.eu",
-  "connect-src 'self' https://*.cartocdn.com https://server.arcgisonline.com https://maps.effis.emergency.copernicus.eu",
+  "img-src 'self' data: blob: https://*.cartocdn.com https://tiles.maps.eox.at https://s3.amazonaws.com https://gibs.earthdata.nasa.gov https://maps.effis.emergency.copernicus.eu",
+  "connect-src 'self' https://*.cartocdn.com https://tiles.maps.eox.at https://s3.amazonaws.com https://gibs.earthdata.nasa.gov https://maps.effis.emergency.copernicus.eu",
   "worker-src 'self' blob:",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",

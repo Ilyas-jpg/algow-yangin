@@ -25,7 +25,9 @@ const TOGGLES: { key: keyof LayerToggles; label: string; title: string }[] = [
   },
   { key: "burnt", label: "Yanan alan", title: "EFFIS yanan alan perimetreleri (Sentinel-2)" },
   { key: "danger", label: "Tehlike", title: "GWIS yangın hava indeksi tahmini" },
-  { key: "satellite", label: "Uydu", title: "Uydu görüntüsü altlığı" },
+  { key: "satellite", label: "Uydu", title: "Sentinel-2 bulutsuz mozaik (10 m)" },
+  { key: "today", label: "Bugün", title: "NASA GIBS günlük gerçek renk — büyük yangınların dumanı görünür (250 m)" },
+  { key: "terrain", label: "Arazi", title: "Tepe gölgeleme — vadi ve sırtları gösterir" },
 ];
 
 interface TopBarProps {
