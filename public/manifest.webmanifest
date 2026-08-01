@@ -1,0 +1,17 @@
+{
+  "name": "Algow Yangın — Türkiye yangın haritası",
+  "short_name": "Algow Yangın",
+  "description": "Uydu tespitleriyle canlı yangın izleme, geçmiş ilerleme ve rüzgâra göre yön tahmini. Zayıf bağlantıda da çalışır.",
+  "lang": "tr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "icons": [
+    { "src": "/brand/algow-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/brand/favicon-48.png", "sizes": "48x48", "type": "image/png" }
+  ]
+}

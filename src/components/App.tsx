@@ -1,0 +1,563 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
+import type {
+  FirePoint,
+  FiresResponse,
+  LayerToggles,
+  WindGrid,
+  WindPoint,
+  WindowHours,
+} from "@/lib/types";
+import { clusterEvents } from "@/lib/cluster";
+import { buildCone, type ConeGeom } from "@/lib/wind";
+import { fmtClock, fmtNum } from "@/lib/format";
+import { bearingDeg, compassTr, havKm } from "@/lib/geo";
+import { useGeolocation } from "./useGeolocation";
+import dynamic from "next/dynamic";
+import TopBar from "./TopBar";
+import EventPanel from "./EventPanel";
+import TimelineBar from "./TimelineBar";
+import Legend from "./Legend";
+
+/** Service Worker önbellekten servis ettiyse bunu işaretler. */
+let servedOffline = false;
+
+/**
+ * Harita motoru (MapLibre, ~290 KB) ayrı parçada yüklenir: zayıf bağlantıda
+ * olay listesi ve veriler haritayı beklemeden görünür.
+ */
+const FireMap = dynamic(() => import("./FireMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 grid place-items-center bg-obsidian-1">
+      <span className="font-mono text-[11px] text-ink-3">harita yükleniyor…</span>
+    </div>
+  ),
+});
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  servedOffline = res.headers.get("x-algow-offline") === "1";
+  return res.json();
+};
+
+/** Zayıf/ölçülü bağlantı: ağır katmanlar kapalı başlar. */
+function isThinConnection(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const c = (
+    navigator as Navigator & {
+      connection?: { effectiveType?: string; saveData?: boolean };
+    }
+  ).connection;
+  if (!c) return false;
+  return (
+    c.saveData === true ||
+    c.effectiveType === "2g" ||
+    c.effectiveType === "slow-2g" ||
+    c.effectiveType === "3g"
+  );
+}
+
+const DAYS_PARAM: Record<WindowHours, string> = { 24: "1", 48: "2", 168: "7" };
+const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+
+export default function App() {
+  const [windowHours, setWindowHours] = useState<WindowHours>(24);
+  const [scrub, setScrub] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [layers, setLayers] = useState<LayerToggles>({
+    wind: true,
+    heat: true,
+    cones: true,
+    satellite: false,
+  });
+  const [offline, setOffline] = useState(false);
+  const geo = useGeolocation();
+  const userLoc = geo.state.status === "ready" ? geo.state.loc : null;
+  const [now, setNow] = useState(() => Date.now());
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [flyTarget, setFlyTarget] = useState<{
+    lon: number;
+    lat: number;
+    key: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const cb = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", cb);
+    return () => mq.removeEventListener("change", cb);
+  }, []);
+
+  // Zayıf bağlantıda rüzgar animasyonu ve ısı katmanı kapalı başlasın;
+  // kullanıcı isterse üst bardan açar.
+  useEffect(() => {
+    if (isThinConnection()) {
+      setLayers((l) => ({ ...l, wind: false, heat: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    const sync = () => setOffline(!navigator.onLine);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
+
+  // ── Veri
+  const {
+    data: fires,
+    error: firesError,
+    isLoading: firesLoading,
+  } = useSWR<FiresResponse>(`/api/fires?days=${DAYS_PARAM[windowHours]}`, fetcher, {
+    refreshInterval: 600_000,
+    keepPreviousData: true,
+    revalidateOnFocus: true,
+  });
+
+  const { data: windGrid } = useSWR<WindGrid>("/api/wind/grid", fetcher, {
+    refreshInterval: 10_800_000,
+    revalidateOnFocus: false,
+  });
+
+  const live = scrub === null;
+  const effT = scrub ?? now;
+  const windowMs = windowHours * 3600_000;
+
+  // Pencere değişince kaydırıcı pencere dışında kalmasın
+  useEffect(() => {
+    if (scrub !== null && scrub < now - windowMs) setScrub(null);
+  }, [scrub, now, windowMs]);
+
+  // ── Türetilmiş veri
+  const points = useMemo<FirePoint[]>(() => {
+    if (!fires) return [];
+    return fires.features.map((f) => ({
+      ...f.properties,
+      lon: f.geometry.coordinates[0],
+      lat: f.geometry.coordinates[1],
+    }));
+  }, [fires]);
+
+  const { events, pointEvent } = useMemo(
+    () => clusterEvents(points, now),
+    [points, now]
+  );
+
+  const selectedEvent = useMemo(
+    () => events.find((e) => e.id === selectedId) ?? null,
+    [events, selectedId]
+  );
+
+  const mapFC = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!fires) return EMPTY_FC;
+    return {
+      type: "FeatureCollection",
+      features: fires.features.map((f) => ({
+        ...f,
+        properties: { ...f.properties, eventId: pointEvent[f.properties.id] ?? "" },
+      })),
+    };
+  }, [fires, pointEvent]);
+
+  const cones = useMemo<ConeGeom[]>(() => {
+    if (!windGrid || !live) return [];
+    const candidates = events
+      .filter((e) => e.status === "active" && !e.abroad)
+      .slice(0, 12);
+    if (
+      selectedEvent &&
+      selectedEvent.status !== "old" &&
+      !candidates.some((c) => c.id === selectedEvent.id)
+    ) {
+      candidates.push(selectedEvent);
+    }
+    const out: ConeGeom[] = [];
+    for (const ev of candidates) {
+      const cone = buildCone(ev, windGrid);
+      if (cone) out.push(cone);
+    }
+    return out;
+  }, [events, selectedEvent, windGrid, live]);
+
+  const conesFC = useMemo<GeoJSON.FeatureCollection>(
+    () => ({
+      type: "FeatureCollection",
+      features: cones.flatMap((c) =>
+        c.rings.map((r) => ({
+          type: "Feature" as const,
+          geometry: { type: "Polygon" as const, coordinates: [r.ring] },
+          properties: { hours: r.hours, eventId: c.eventId },
+        }))
+      ),
+    }),
+    [cones]
+  );
+
+  const coneLinesFC = useMemo<GeoJSON.FeatureCollection>(
+    () => ({
+      type: "FeatureCollection",
+      features: cones.map((c) => ({
+        type: "Feature" as const,
+        geometry: { type: "LineString" as const, coordinates: c.centerline },
+        properties: { eventId: c.eventId },
+      })),
+    }),
+    [cones]
+  );
+
+  const trailFC = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!selectedEvent) return EMPTY_FC;
+    const passes = selectedEvent.passes.filter((p) => p.t <= effT);
+    if (passes.length === 0) return EMPTY_FC;
+    const features: GeoJSON.Feature[] = passes.map((p, i) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+      properties: {
+        kind: "pass",
+        order: passes.length === 1 ? 1 : i / (passes.length - 1),
+      },
+    }));
+    if (passes.length >= 2) {
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: passes.map((p) => [p.lon, p.lat]),
+        },
+        properties: { kind: "line" },
+      });
+    }
+    return { type: "FeatureCollection", features };
+  }, [selectedEvent, effT]);
+
+  /** Konum açıkken: sana en yakın yangın ne kadar uzakta, hangi yönde. */
+  const nearestToMe = useMemo(() => {
+    if (!userLoc || events.length === 0) return null;
+    let best: (typeof events)[number] | null = null;
+    let bestKm = Infinity;
+    for (const ev of events) {
+      if (ev.status === "old") continue;
+      const km = havKm(userLoc.lon, userLoc.lat, ev.lon, ev.lat);
+      if (km < bestKm) {
+        bestKm = km;
+        best = ev;
+      }
+    }
+    if (!best) return null;
+    return {
+      ev: best,
+      km: bestKm,
+      dir: compassTr(bearingDeg(userLoc.lon, userLoc.lat, best.lon, best.lat)),
+    };
+  }, [userLoc, events]);
+
+  const ticks = useMemo(() => {
+    const q = new Set<number>();
+    const min = now - windowMs;
+    for (const p of points) {
+      if (p.dt >= min) q.add(Math.round(p.dt / 900_000) * 900_000);
+    }
+    return [...q].sort((a, b) => a - b);
+  }, [points, now, windowMs]);
+
+  // ── Hava (seçili olay)
+  const {
+    data: weather,
+    error: weatherError,
+    isLoading: weatherLoading,
+  } = useSWR<WindPoint>(
+    selectedEvent
+      ? `/api/wind/point?lat=${selectedEvent.lat.toFixed(2)}&lon=${selectedEvent.lon.toFixed(2)}`
+      : null,
+    fetcher,
+    { refreshInterval: 1_800_000, revalidateOnFocus: false }
+  );
+
+  // ── Oynatma
+  const playRef = useRef(0);
+  useEffect(() => {
+    if (!playing) return;
+    const start = performance.now();
+    const from = live ? now - windowMs : effT;
+    const span = now - from;
+    if (span <= 0) {
+      setPlaying(false);
+      return;
+    }
+    const DURATION = 18_000; // pencere ~18 sn'de oynar
+    const tick = (t: number) => {
+      const frac = Math.min(1, (t - start) / DURATION);
+      const cur = from + span * frac;
+      if (frac >= 1) {
+        setPlaying(false);
+        setScrub(null);
+        return;
+      }
+      setScrub(cur);
+      playRef.current = requestAnimationFrame(tick);
+    };
+    playRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(playRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing]);
+
+  const handleSelect = useCallback(
+    (id: string | null) => {
+      setSelectedId(id);
+      if (id) {
+        const ev = events.find((e) => e.id === id);
+        if (ev) setFlyTarget({ lon: ev.lon, lat: ev.lat, key: Date.now() });
+        setSheetOpen(true);
+      }
+    },
+    [events]
+  );
+
+  // Konum ilk kez geldiğinde haritayı oraya getir (sonraki güncellemelerde değil)
+  const flewToMe = useRef(false);
+  useEffect(() => {
+    if (!userLoc) {
+      flewToMe.current = false;
+      return;
+    }
+    if (flewToMe.current) return;
+    flewToMe.current = true;
+    setFlyTarget({ lon: userLoc.lon, lat: userLoc.lat, key: Date.now() });
+  }, [userLoc]);
+
+  const toggleLayer = useCallback(
+    (k: keyof LayerToggles) => setLayers((l) => ({ ...l, [k]: !l[k] })),
+    []
+  );
+
+  const staleData = Boolean(firesError && fires);
+  const noData = Boolean(firesError && !fires);
+
+  const panel = (
+    <EventPanel
+      events={events}
+      selectedId={selectedId}
+      onSelect={handleSelect}
+      now={now}
+      live={live}
+      weather={weather}
+      weatherLoading={weatherLoading}
+      weatherError={Boolean(weatherError)}
+      cones={cones}
+    />
+  );
+
+  return (
+    <div className="fixed inset-0 flex flex-col bg-obsidian-1">
+      <TopBar
+        windowHours={windowHours}
+        onWindow={(w) => {
+          setWindowHours(w);
+          setScrub(null);
+          setPlaying(false);
+        }}
+        layers={layers}
+        onToggle={toggleLayer}
+        meta={fires?.meta}
+        now={now}
+        loading={firesLoading}
+        geoActive={geo.state.status === "ready"}
+        geoBusy={geo.state.status === "locating"}
+        onGeoToggle={geo.toggle}
+      />
+
+      {(offline || (servedOffline && fires)) && (
+        <div className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn">
+          Çevrimdışısın — cihazında saklanan son veri gösteriliyor
+          {fires ? ` (${fmtClock(fires.meta.fetchedAt)})` : ""}. Bağlantı
+          gelince kendiliğinden tazelenir.
+        </div>
+      )}
+      {noData && !offline && (
+        <div className="relative z-20 border-b border-danger/40 bg-danger/10 px-3 py-1.5 text-xs text-danger">
+          NASA FIRMS verisine şu an ulaşılamıyor — bağlantı aralıklarla yeniden
+          denenecek.
+        </div>
+      )}
+      {staleData && fires && (
+        <div className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn">
+          Bağlantı sorunu — {fmtClock(fires.meta.fetchedAt)} itibarıyla alınan
+          son veri gösteriliyor.
+        </div>
+      )}
+
+      <div className="relative min-h-0 flex-1">
+        <FireMap
+          mapFC={mapFC}
+          conesFC={conesFC}
+          coneLinesFC={coneLinesFC}
+          trailFC={trailFC}
+          selectedId={selectedId}
+          effT={effT}
+          windowHours={windowHours}
+          live={live}
+          layers={layers}
+          windGrid={windGrid}
+          reducedMotion={reducedMotion}
+          flyTarget={flyTarget}
+          userLoc={userLoc}
+          onSelect={handleSelect}
+        />
+
+        {/* Konum durumu: yalnız cihazda kalır, sunucuya gönderilmez */}
+        {geo.state.status !== "idle" && (
+          <div className="pointer-events-none absolute top-3 left-1/2 z-10 w-[min(92vw,420px)] -translate-x-1/2 md:left-[calc(340px+50%-170px)]">
+            <div className="pointer-events-auto rounded-md border border-line bg-obsidian-1/95 px-3 py-2">
+              {geo.state.status === "locating" && (
+                <p className="font-mono text-[11px] text-ink-2">
+                  konum alınıyor…
+                </p>
+              )}
+              {geo.state.status === "denied" && (
+                <p className="text-[11px] leading-relaxed text-ink-2">
+                  Konum izni verilmedi. Tarayıcı ayarlarından bu siteye konum
+                  izni verirsen kendini haritada görebilirsin.
+                </p>
+              )}
+              {geo.state.status === "error" && (
+                <p className="text-[11px] text-ink-2">{geo.state.message}</p>
+              )}
+              {geo.state.status === "ready" && (
+                <div className="flex items-center gap-3">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-cobalt" />
+                  <div className="min-w-0 flex-1">
+                    {nearestToMe ? (
+                      <p className="text-[12px] leading-tight">
+                        Sana en yakın yangın{" "}
+                        <b className="font-medium">
+                          {fmtNum(nearestToMe.km, nearestToMe.km < 10 ? 1 : 0)} km
+                        </b>{" "}
+                        <b className="font-medium">{nearestToMe.dir}</b> yönünde
+                        <span className="text-ink-3"> · {nearestToMe.ev.place}</span>
+                      </p>
+                    ) : (
+                      <p className="text-[12px]">
+                        Yakınında aktif yangın tespiti yok.
+                      </p>
+                    )}
+                    <p className="mt-0.5 font-mono text-[10px] text-ink-3">
+                      konum ±{fmtNum(geo.state.loc.accuracy)} m · cihazından
+                      çıkmaz
+                    </p>
+                  </div>
+                  {nearestToMe && (
+                    <button
+                      onClick={() => handleSelect(nearestToMe.ev.id)}
+                      className="shrink-0 rounded border border-line px-2 py-1 text-[10px] text-ink-2 transition-colors hover:text-ink active:scale-[0.98]"
+                    >
+                      Göster
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Masaüstü sol panel */}
+        <aside className="absolute top-0 bottom-0 left-0 z-10 hidden w-[340px] border-r border-line bg-obsidian-1/95 md:block">
+          {panel}
+        </aside>
+
+        {/* Masaüstü zaman çizgisi + lejant */}
+        <div className="pointer-events-none absolute bottom-4 left-[352px] right-[240px] z-10 hidden justify-center md:flex">
+          <TimelineBar
+            className="pointer-events-auto w-full max-w-[620px]"
+            windowHours={windowHours}
+            now={now}
+            effT={effT}
+            live={live}
+            playing={playing}
+            ticks={ticks}
+            onScrub={(t) => {
+              setPlaying(false);
+              setScrub(t >= now - 60_000 ? null : t);
+            }}
+            onLive={() => {
+              setPlaying(false);
+              setScrub(null);
+            }}
+            onPlayToggle={() => setPlaying((p) => !p)}
+          />
+        </div>
+        <div className="absolute right-3 bottom-4 z-10 hidden md:block">
+          <Legend />
+        </div>
+
+        {/* Mobil alt yığın: zaman çizgisi + olay listesi */}
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col md:hidden">
+          <TimelineBar
+            className="mx-2 mb-2"
+            windowHours={windowHours}
+            now={now}
+            effT={effT}
+            live={live}
+            playing={playing}
+            ticks={ticks}
+            onScrub={(t) => {
+              setPlaying(false);
+              setScrub(t >= now - 60_000 ? null : t);
+            }}
+            onLive={() => {
+              setPlaying(false);
+              setScrub(null);
+            }}
+            onPlayToggle={() => setPlaying((p) => !p)}
+          />
+          <div className="border-t border-line bg-obsidian-1">
+            <button
+              onClick={() => setSheetOpen((o) => !o)}
+              className="flex w-full items-center justify-between px-4 py-2.5"
+            >
+              <span className="text-xs text-ink-2">
+                <span className="font-mono text-danger">
+                  {
+                    events.filter((e) => e.status === "active" && !e.abroad)
+                      .length
+                  }
+                </span>{" "}
+                aktif yangın · {events.filter((e) => !e.abroad).length} olay
+              </span>
+              <svg
+                width="12"
+                height="7"
+                viewBox="0 0 12 7"
+                aria-hidden
+                className={`text-ink-3 transition-transform ${sheetOpen ? "rotate-180" : ""}`}
+              >
+                <path
+                  d="M1 6 L6 1 L11 6"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  fill="none"
+                />
+              </svg>
+            </button>
+            {sheetOpen && <div className="h-[42dvh]">{panel}</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

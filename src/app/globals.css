@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  /* Algow obsidian + cobalt (reference_algow_brand) */
+  --color-obsidian-0: #000000;
+  --color-obsidian-1: #0a0a0b;
+  --color-obsidian-2: #131316;
+  --color-obsidian-3: #1c1c21;
+  --color-line: #26262c;
+
+  --color-cobalt: #3d5bff;
+  --color-cobalt-hover: #5872ff;
+  --color-cobalt-pressed: #2d48e5;
+
+  --color-ink: #fafafa;
+  --color-ink-2: #a1a1aa;
+  --color-ink-3: #6b6b74;
+
+  --color-ok: #22c55e;
+  --color-warn: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* FRP veri rampası (marka altınından bilerek ayrı) */
+  --color-fire-low: #9a3412;
+  --color-fire-mid: #f97316;
+  --color-fire-high: #fdba74;
+  --color-fire-max: #fff1e0;
+}
+
+/* Font değişkenleri body'de (next/font) tanımlanır — inline çözülmeli */
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono",
+    Consolas, "Roboto Mono", monospace;
+}
+
+html,
+body {
+  background: var(--color-obsidian-1);
+  color: var(--color-ink);
+}
+
+/* İnce scrollbar (panel listeleri) */
+.scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: #2e2e35 transparent;
+}
+.scroll-slim::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: #2e2e35;
+  border-radius: 3px;
+}
+
+/* MapLibre kontrolleri koyu temaya uydur */
+.maplibregl-ctrl-attrib {
+  background: rgba(10, 10, 11, 0.75) !important;
+  color: #6b6b74 !important;
+  font-size: 10px !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: #8a8a93 !important;
+}
+.maplibregl-canvas {
+  outline: none;
+}
+
+/* Rüzgar partikül tuvali harita üstünde, etkileşimi engellemez */
+.wind-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Zaman çizgisi kaydırıcı */
+input[type="range"].scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].scrub::-webkit-slider-runnable-track {
+  height: 2px;
+  background: #2e2e35;
+}
+input[type="range"].scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px;
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--color-ink);
+}
+input[type="range"].scrub::-moz-range-track {
+  height: 2px;
+  background: #2e2e35;
+}
+input[type="range"].scrub::-moz-range-thumb {
+  width: 3px;
+  height: 14px;
+  border: none;
+  border-radius: 1px;
+  background: var(--color-ink);
+}

@@ -1,0 +1,32 @@
+{
+  "name": "algow-yangin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Türkiye canlı yangın izleme ve rüzgâra dayalı yön tahmini haritası (NASA FIRMS + Open-Meteo)",
+  "license": "AGPL-3.0-or-later",
+  "author": "İlyas Saltay / Algow",
+  "homepage": "https://yangin.algow.net",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "maplibre-gl": "^5.24.0",
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "swr": "^2.4.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

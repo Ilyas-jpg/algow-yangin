@@ -1,0 +1,296 @@
+"use client";
+
+import type { FireEvent, WindPoint } from "@/lib/types";
+import type { ConeGeom } from "@/lib/wind";
+import { compassTr } from "@/lib/geo";
+import { angDiff, fmtAgo, fmtNum } from "@/lib/format";
+import Sparkline from "./Sparkline";
+
+const STATUS_LABEL: Record<FireEvent["status"], { text: string; cls: string }> = {
+  active: { text: "AKTİF", cls: "border-danger/50 text-danger" },
+  waning: { text: "SÖNÜYOR", cls: "border-warn/50 text-warn" },
+  old: { text: "ESKİ", cls: "border-line text-ink-3" },
+};
+
+function trendOf(ev: FireEvent): { text: string; cls: string } | null {
+  if (ev.passes.length < 2) return null;
+  const a = ev.passes[0].frp;
+  const b = ev.passes[ev.passes.length - 1].frp;
+  if (b > a * 1.25) return { text: "büyüyor", cls: "text-danger" };
+  if (b < a * 0.75) return { text: "geriliyor", cls: "text-ok" };
+  return { text: "yatay", cls: "text-ink-2" };
+}
+
+interface EventPanelProps {
+  events: FireEvent[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  now: number;
+  live: boolean;
+  weather: WindPoint | undefined;
+  weatherLoading: boolean;
+  weatherError: boolean;
+  cones: ConeGeom[];
+}
+
+export default function EventPanel(props: EventPanelProps) {
+  const { events, selectedId, onSelect, now } = props;
+  const activeCount = events.filter(
+    (e) => e.status === "active" && !e.abroad
+  ).length;
+  const abroadCount = events.filter((e) => e.abroad).length;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-baseline justify-between border-b border-line px-3 py-2.5">
+        <span className="text-xs text-ink-2">Türkiye&apos;de aktif</span>
+        <span
+          className="font-mono text-[11px] text-ink-3"
+          title={`${abroadCount} olay komşu ülkelerde (uydu görüş alanı sınırla bitmiyor)`}
+        >
+          <span className="text-danger">{activeCount}</span> aktif ·{" "}
+          {events.length - abroadCount} olay
+          {abroadCount > 0 && ` · +${abroadCount} sınır ötesi`}
+        </span>
+      </div>
+
+      {events.length === 0 ? (
+        <div className="px-3 py-6 text-xs leading-relaxed text-ink-3">
+          Seçili zaman penceresinde uydu tespiti yok. Pencereyi genişletmeyi
+          deneyebilirsin; uydular her bölgeyi günde birkaç kez tarar.
+        </div>
+      ) : (
+        <ul className="scroll-slim min-h-0 flex-1 divide-y divide-line/70 overflow-y-auto">
+          {events.map((ev) => (
+            <EventCard key={ev.id} ev={ev} {...props} ago={fmtAgo(ev.lastSeen, now)} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function EventCard({
+  ev,
+  ago,
+  selectedId,
+  onSelect,
+  live,
+  weather,
+  weatherLoading,
+  weatherError,
+  cones,
+}: EventPanelProps & { ev: FireEvent; ago: string }) {
+  const selected = ev.id === selectedId;
+  const status = STATUS_LABEL[ev.status];
+  const trend = trendOf(ev);
+  const cone = cones.find((c) => c.eventId === ev.id);
+
+  return (
+    <li>
+      <button
+        onClick={() => onSelect(selected ? null : ev.id)}
+        className={`block w-full px-3 py-2.5 text-left transition-colors ${
+          selected
+            ? "bg-obsidian-2 shadow-[inset_2px_0_0_0_var(--color-cobalt)]"
+            : "hover:bg-obsidian-2/60"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+            {ev.place}
+          </span>
+          {ev.abroad && (
+            <span className="shrink-0 rounded border border-line px-1.5 py-px font-mono text-[9px] tracking-wide text-ink-3">
+              YURT DIŞI
+            </span>
+          )}
+          <span
+            className={`shrink-0 rounded border px-1.5 py-px font-mono text-[9px] tracking-wide ${status.cls}`}
+          >
+            {status.text}
+          </span>
+        </div>
+        <div className="mt-1 font-mono text-[11px] text-ink-2">
+          {ev.count} tespit · {fmtNum(ev.frpLast)} MW · {ago}
+        </div>
+        <div className="mt-1.5 flex items-center gap-2">
+          <Sparkline passes={ev.passes} />
+          {trend && (
+            <span className={`font-mono text-[10px] ${trend.cls}`}>{trend.text}</span>
+          )}
+          {ev.drift && (
+            <span className="ml-auto font-mono text-[10px] text-ink-2">
+              {compassTr(ev.drift.bearingDeg)} yönünde {fmtNum(ev.drift.km, 1)} km
+            </span>
+          )}
+        </div>
+      </button>
+
+      {selected && (
+        <div className="border-t border-line/60 bg-obsidian-2/50 px-3 py-2.5">
+          <FireWeather
+            weather={weather}
+            loading={weatherLoading}
+            error={weatherError}
+          />
+          <Assessment ev={ev} weather={weather} cone={cone} live={live} />
+          {ev.passes.length >= 3 && ev.drift === null && (
+            <p className="mt-2 rounded border border-line bg-obsidian-3/60 px-2 py-1.5 text-[10px] leading-relaxed text-ink-2">
+              Bu nokta {ev.passes.length} uydu geçişi boyunca yerinden
+              kıpırdamadı. Sabit bir ısı kaynağı (baca, santral, sanayi tesisi)
+              olabilir.
+            </p>
+          )}
+          <p className="mt-2 border-t border-line/60 pt-2 text-[10px] leading-relaxed text-ink-3">
+            Uydu ısı görür; her tespit yangın olmayabilir. Yönelim
+            göstergesidir, resmi uyarı yerine geçmez. Acil durumda{" "}
+            <span className="font-mono text-ink-2">112</span> · Orman Yangını İhbar{" "}
+            <span className="font-mono text-ink-2">177</span>
+          </p>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function FireWeather({
+  weather,
+  loading,
+  error,
+}: {
+  weather: WindPoint | undefined;
+  loading: boolean;
+  error: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-3.5 animate-pulse rounded-sm bg-obsidian-3" />
+        ))}
+      </div>
+    );
+  }
+  if (error || !weather) {
+    return (
+      <p className="text-[11px] text-ink-3">
+        Bölge hava verisi şu an alınamıyor.
+      </p>
+    );
+  }
+  const rows: { k: string; v: string; cls?: string }[] = [
+    {
+      k: "Rüzgar",
+      v:
+        weather.windKmh !== null && weather.windDirDeg !== null
+          ? `${fmtNum(weather.windKmh)} km/sa ${compassTr(weather.windDirDeg)}`
+          : "—",
+    },
+    {
+      k: "Hamle",
+      v: weather.gustKmh !== null ? `${fmtNum(weather.gustKmh)} km/sa` : "—",
+    },
+    {
+      k: "Nem",
+      v: weather.rh !== null ? `%${fmtNum(weather.rh)}` : "—",
+      cls: weather.rh !== null && weather.rh < 30 ? "text-warn" : undefined,
+    },
+    {
+      k: "Sıcaklık",
+      v: weather.tempC !== null ? `${fmtNum(weather.tempC)}°C` : "—",
+    },
+    {
+      k: "VPD",
+      v: weather.vpdKpa !== null ? `${fmtNum(weather.vpdKpa, 2)} kPa` : "—",
+      cls:
+        weather.vpdKpa !== null && weather.vpdKpa > 1.6
+          ? "text-danger"
+          : undefined,
+    },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      {rows.map((r) => (
+        <div key={r.k} className="flex items-baseline justify-between gap-2">
+          <span className="text-[10px] text-ink-3">{r.k}</span>
+          <span className={`font-mono text-[11px] ${r.cls ?? "text-ink"}`}>
+            {r.v}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Assessment({
+  ev,
+  weather,
+  cone,
+  live,
+}: {
+  ev: FireEvent;
+  weather: WindPoint | undefined;
+  cone: ConeGeom | undefined;
+  live: boolean;
+}) {
+  const lines: React.ReactNode[] = [];
+
+  if (ev.drift) {
+    const hours = Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000);
+    lines.push(
+      <span key="drift">
+        Gözlenen ilerleme: <b className="font-mono font-normal text-ink">
+          {compassTr(ev.drift.bearingDeg)}
+        </b>{" "}
+        yönünde {fmtNum(ev.drift.km, 1)} km / {fmtNum(hours)} sa
+      </span>
+    );
+  }
+
+  if (cone) {
+    lines.push(
+      <span key="cone">
+        Tahmini yönelim: <b className="font-mono font-normal text-ink">
+          {compassTr(cone.spreadDeg)}
+        </b>{" "}
+        · rüzgar {fmtNum(cone.windKmh)} km/sa · koni 1·3·6 sa
+      </span>
+    );
+    if (ev.drift) {
+      const d = angDiff(ev.drift.bearingDeg, cone.spreadDeg);
+      lines.push(
+        d <= 45 ? (
+          <span key="agree" className="text-ok">
+            Gözlenen ilerleme rüzgar yönüyle tutarlı
+          </span>
+        ) : (
+          <span key="dis" className="text-warn">
+            İlerleme rüzgar yönünden sapıyor — yön değişimi olası
+          </span>
+        )
+      );
+    }
+  } else if (!live) {
+    lines.push(
+      <span key="past" className="text-ink-3">
+        Tahmin konisi yalnız canlı görünümde çizilir
+      </span>
+    );
+  } else if (weather && weather.windKmh !== null && weather.windKmh < 4) {
+    lines.push(
+      <span key="calm" className="text-ink-3">
+        Rüzgar durgun — belirgin bir yönelim yok
+      </span>
+    );
+  }
+
+  if (lines.length === 0) return null;
+  return (
+    <div className="mt-2 space-y-1 border-t border-line/60 pt-2 text-[11px] leading-relaxed text-ink-2">
+      {lines.map((l, i) => (
+        <p key={i}>{l}</p>
+      ))}
+    </div>
+  );
+}
