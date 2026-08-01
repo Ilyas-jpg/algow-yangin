@@ -119,29 +119,45 @@ export default function HakkindaPage() {
             Bu konunun dürüst olmayı en çok hak eden kısmı şu: kendi verimizle
             geriye dönük bir sınama yaptık. <b>Altı yangın sezonu</b>{" "}
             (2021–2026), <b>468 bin uydu tespiti</b>, orman ve makilik alanda{" "}
-            <b>90 yangına ait 350 ölçülebilir ilerleme</b>. Her birinde bir
+            <b>79 yangına ait 232 ölçülebilir ilerleme</b>. Her birinde bir
             geçiş anındaki tahmini, yangının bir sonraki geçişte gerçekte hangi
             yöne büyüdüğüyle karşılaştırdık.
           </p>
           <p>
-            Sonuç: tahmin rastgeleden <b>iyi, ama az</b>. Ortanca açı hatası{" "}
-            <b>76°</b> (rastgele beklenti 90°); tahminlerin <b>%31&apos;i</b>{" "}
-            45° içinde isabet ediyor (rastgelede %25), <b>%19&apos;u</b>{" "}
-            tamamen ters yönü gösteriyor (rastgelede %25). Daha önce bu sayfada
-            yirmi üç örneğe dayanarak &quot;rastgeleden iyi değil&quot;
-            yazıyorduk; <b>o örneklem yanılmamıza yetecek kadar küçükmüş</b>{" "}
-            — düzelttik. Eğimi hesaba katmak dik arazide (%15 üzeri) ortalama
-            hatayı 78,0°&apos;den 76,8°&apos;ye, 90° içinde kalma oranını
-            %59&apos;dan %63&apos;e taşıyor: gerçek ama mütevazı bir kazanç.
+            Sonuç: tahmin rastgeleden <b>iyi, ama kesin değil</b>. Ortanca açı
+            hatası <b>68°</b> (rastgele beklenti 90°); tahminlerin{" "}
+            <b>%33&apos;ü</b> 45° içinde isabet ediyor (rastgelede %25),{" "}
+            <b>%16&apos;sı</b> tamamen ters yönü gösteriyor (rastgelede %25).
+            Daha önce bu sayfada yirmi üç örneğe dayanarak &quot;rastgeleden
+            iyi değil&quot; yazıyorduk;{" "}
+            <b>o örneklem yanılmamıza yetecek kadar küçükmüş</b> — düzelttik.
+            Eğimi hesaba katmak dik arazide (%15 üzeri) en kötü hatayı
+            belirgin biçimde azaltıyor: tamamen ters tahmin oranı{" "}
+            <b>%22&apos;den %11&apos;e</b> iniyor.
+          </p>
+          <p>
+            Koninin <i>boyutunu</i> da ilk kez ölçtük ve burada ciddi biçimde
+            yanılıyormuşuz. Eski halkalar hiçbir ölçüme dayanmıyordu ve
+            gerçeğin <b>8–12 katıydı</b> — 3 saatlik halkayı 7,6 km çiziyorduk,
+            oysa ölçülen yangınların %90&apos;ı aynı sürede kendi kenarından
+            <b> 2,5 km&apos;den az</b> ilerlemişti. Halkalar bu ölçüme göre
+            küçültüldü ve artık net bir anlamı var:{" "}
+            <b>&quot;ölçtüğümüz yangınların onda dokuzu bu sınırın içinde
+            kaldı&quot;</b>. Aynı şekilde koninin açısı da 15–30° ile fazla dar
+            ve fazla iddialıydı; gözlenen sapmaların yalnız %30&apos;unu
+            kapsıyordu. Artık açı da ölçülen dağılımdan geliyor — rüzgâr
+            zayıfken yön neredeyse belirsiz olduğu için koni genişliyor,{" "}
+            <b>çok belirsizse kama yerine daire</b> çiziliyor: sahip olmadığımız
+            bir kesinliği ima etmemek için.
           </p>
           <p>
             Tavanı da ölçtük: iki geçiş arasındaki <i>gerçek</i>{" "}
             ortalama rüzgâr
-            önceden bilinseydi bile ortanca hata ancak 69°&apos;ye inerdi. Yani
+            önceden bilinseydi bile ortanca hata ancak 64°&apos;ye inerdi. Yani
             kalan hata rüzgâr tahmininden değil, <b>söndürme müdahalesinden,
             arazi ve yakıt ayrıntısından</b> geliyor — hiçbir koni bu belirsizliği
             kapatamaz. Bir bulgu daha: yangının <b>bir önceki geçişte gözlenen
-            yönü, sonraki adımın kötü bir habercisi</b> (ortanca hata 103°,
+            yönü, sonraki adımın kötü bir habercisi</b> (ortanca hata 99°,
             rastgeleden kötü) — çünkü ilerleyen baş söndürülünce yangın yanlarda
             ve geride yanmaya devam ediyor. Bu yüzden beyaz izi ileri doğru
             uzatmıyoruz.
@@ -200,6 +216,74 @@ export default function HakkindaPage() {
             kapalı bir kopyasını çıkaramaz. Algow adı ve görsel kimliği bu
             lisansın dışındadır; kendi sürümünüze kendi adınızı verin.
           </p>
+
+          <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
+            Güncelleme notları
+          </h2>
+          <p className="text-sm">
+            Neyi ne zaman değiştirdiğimizi burada açıkça yazıyoruz — özellikle
+            de kendi hatamızı düzelttiğimizde.
+          </p>
+
+          <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium text-ink">2 Ağustos 2026</p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Koninin boyutu ölçülüp küçültüldü.
+                  </b>{" "}
+                  Halkaların yarıçapı bugüne kadar hiçbir ölçüme dayanmıyordu
+                  ve gerçeğin <b className="font-medium">8–12 katıydı</b>. Altı
+                  sezonluk veriyle ölçtük: 3 saatlik halkayı 7,6 km çiziyorduk,
+                  yangınların %90&apos;ı aynı sürede kendi kenarından 2,5
+                  km&apos;den az ilerlemişti. Halkalar bu ölçüme çekildi.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Koninin açısı gerçek belirsizliği yansıtıyor.
+                  </b>{" "}
+                  Eski 15–30°&apos;lik dar kama, gözlenen sapmaların yalnız
+                  %30&apos;unu kapsıyordu. Açı artık ölçülen dağılımdan geliyor;
+                  rüzgâr zayıfken yön neredeyse belirsiz olduğu için{" "}
+                  <b className="font-medium">kama yerine daire</b> çiziliyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Yön tahminine arazi eğimi eklendi.
+                  </b>{" "}
+                  Yön artık rüzgâr ve eğimin bileşkesi. Dik arazide tamamen
+                  ters tahmin oranı %22&apos;den %11&apos;e indi.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Doğrulama yenilendi, eski hükmümüz düzeltildi.
+                  </b>{" "}
+                  Bu sayfa yirmi üç örneğe dayanarak &quot;tahmin rastgeleden
+                  iyi değil&quot; diyordu. Altı sezon ve 468 bin tespitle
+                  tekrarlayınca bunun küçük örneklem yanılgısı olduğu görüldü.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">1 Ağustos 2026</p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  Meteosat 15 dakikalık katman eklendi; kör aralık 5 saatten
+                  ~35 dakikaya indi.
+                </li>
+                <li>
+                  Yangın hava indeksi (FWI), duman (PM2.5), arazi eğimi, yanan
+                  alan ve tehlike katmanları eklendi.
+                </li>
+                <li>
+                  Yakınımda yangın uyarısı eklendi — kayıtlı yerler cihazdan
+                  çıkmaz.
+                </li>
+                <li>Platform yayına alındı; kaynak kodu açıldı.</li>
+              </ul>
+            </div>
+          </div>
 
           <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
             Atıflar

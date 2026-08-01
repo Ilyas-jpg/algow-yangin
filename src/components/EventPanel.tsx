@@ -352,23 +352,49 @@ function Assessment({
   if (cone) {
     lines.push(
       <span key="cone">
-        {/* 2026-08-01 retrospektif doğrulama: rüzgâr yönüyle yapılan
-            yayılma tahmini, gözlenen ilerlemeyi rastgeleden daha iyi
-            kestiremedi (n=23, medyan hata 118°). Bu yüzden iddia
-            "yangın buraya gidecek"ten "rüzgâr bu yöne taşır"a çekildi. */}
-        Rüzgâr taşıma yönü:{" "}
-        <b className="font-mono font-normal text-ink">
-          {compassTr(cone.spreadDeg)}
-        </b>{" "}
-        · koni yalnız rüzgârı yansıtır, arazi ve müdahaleyi bilmez
+        {/* 2026-08-02 doğrulama (6 sezon, 232 orman/maki ilerlemesi):
+            rüzgâr+eğim bileşkesi rastgeleden iyi ama ortanca hata 68°.
+            Yarım açı ve yarıçap artık gözlenen dağılımdan geliyor. */}
+        {cone.isDisc ? (
+          <>
+            Yön belirsiz (rüzgâr {cone.windKmh} km/sa):{" "}
+            <b className="font-normal text-ink">her yöne benzer erişim</b> —
+            daire, tek bir yön iddiası değil
+          </>
+        ) : (
+          <>
+            Yayılma eğilimi:{" "}
+            <b className="font-mono font-normal text-ink">
+              {compassTr(cone.spreadDeg)}
+            </b>{" "}
+            · rüzgâr ve eğimin bileşkesi, ±{Math.round(cone.halfAngle)}°
+          </>
+        )}
       </span>
     );
-    if (ev.drift) {
+    lines.push(
+      <span key="cone-mean" className="text-ink-3">
+        Halkalar 1·3·6 saatlik <b className="font-normal">%90&apos;lık erişim</b>:
+        ölçtüğümüz yangınların onda dokuzu bu sınır içinde kaldı. Söndürme
+        müdahalesi hesaba katılmaz.
+      </span>
+    );
+    if (ev.drift && cone.isDisc) {
+      // Daire modunda ortada bir yön iddiası yok; en güvenilir sinyal gözlem.
+      lines.push(
+        <span key="obs" className="text-ok">
+          Elimizdeki en güvenilir yön bilgisi gözlem:{" "}
+          <b className="font-normal">
+            son geçişlerde {compassTr(ev.drift.bearingDeg)} yönüne ilerledi
+          </b>
+        </span>
+      );
+    } else if (ev.drift) {
       const d = angDiff(ev.drift.bearingDeg, cone.spreadDeg);
       lines.push(
         d <= 45 ? (
           <span key="agree" className="text-ok">
-            Gözlenen ilerleme rüzgâr yönüyle uyuşuyor — koniye güven artar
+            Gözlenen ilerleme tahmin yönüyle uyuşuyor — güven artar
           </span>
         ) : (
           <span key="dis" className="text-warn">

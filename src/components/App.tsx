@@ -288,11 +288,15 @@ export default function App() {
   const coneLinesFC = useMemo<GeoJSON.FeatureCollection>(
     () => ({
       type: "FeatureCollection",
-      features: cones.map((c) => ({
-        type: "Feature" as const,
-        geometry: { type: "LineString" as const, coordinates: c.centerline },
-        properties: { eventId: c.eventId },
-      })),
+      // Daire modunda merkez çizgisi yok (yön iddiası taşımasın): boş
+      // LineString geçersiz GeoJSON'dur, o yüzden tamamen eleniyor.
+      features: cones
+        .filter((c) => c.centerline.length >= 2)
+        .map((c) => ({
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: c.centerline },
+          properties: { eventId: c.eventId },
+        })),
     }),
     [cones]
   );

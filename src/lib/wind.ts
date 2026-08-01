@@ -55,20 +55,71 @@ export function uvToSpeedDir(u: number, v: number): { kmh: number; fromDeg: numb
  * Kaba yayılma hızı (km/h) — Akdeniz makisi için yönelim göstergesi.
  * Bilimsel model DEĞİLDİR; UI'da daima disclaimer ile.
  */
-export function headSpreadKmh(windKmh: number): number {
-  // Süreklilik önemli: eşikte sıçrama olursa aynı yangın iki tazeleme
-  // arasında gözle görülür şekilde büyüyüp küçülür.
-  if (windKmh < 10) return 0.7 + (windKmh / 10) * 0.3; // 0.7 → 1
-  if (windKmh < 30) return 1 + ((windKmh - 10) / 20) * 2; // 1 → 3
-  if (windKmh < 50) return 3 + ((windKmh - 30) / 20) * 3; // 3 → 6
-  return Math.min(10, 6 + ((windKmh - 50) / 30) * 4); // 6 → 10
+/** Ölçülmüş çapa noktaları arasında doğrusal ara değer. */
+function interp(x: number, pts: readonly (readonly [number, number])[]): number {
+  if (x <= pts[0][0]) return pts[0][1];
+  const last = pts[pts.length - 1];
+  if (x >= last[0]) return last[1];
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1];
+    const [x1, y1] = pts[i];
+    if (x <= x1) return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+  }
+  return last[1];
 }
 
-/** Koni yarım açısı: rüzgar güçlendikçe daralır. */
-export function coneHalfAngle(windKmh: number): number {
-  const t = Math.min(1, windKmh / 50);
-  return 30 - t * 15;
+/**
+ * Yangının kendi kenarından ilerleme hızı (km/sa) — %90'lık dilim.
+ *
+ * ÖLÇÜLDÜ (2026-08-02): 6 sezonluk FIRMS arşivinden 291 doğal-yakıt ilerlemesi,
+ * "yangının o anki ayak izinin dışına taşınan mesafe" olarak. Buradaki değerler
+ * gözlenen ilerlemelerin %90'lık dilimi — yani 10 yangından 9'u bu halkanın
+ * içinde kaldı. Ortanca çok daha küçük (~0,10–0,22 km/sa); %90 bilinçli seçim,
+ * güvenlik aracında ortanca kullanmak yangınların yarısını eksik uyarır.
+ *
+ * ⚠️ Önceki değerler (0,7–10 km/sa) hiçbir ölçüme dayanmıyordu ve gerçeğin
+ * 8–12 katıydı: 3 saatlik halka 7,6 km çiziliyordu, ölçülen %90'lık dilim
+ * 2,5 km. Koni o yüzden bilerek küçüldü.
+ *
+ * ⚠️ Veri ~12 saatlik uydu geçiş aralıklarından geliyor; 1–3 saatlik ani
+ * atakları çözemez. Kısa süreli sıçramalar bu değerlerin üstüne çıkabilir.
+ */
+const ROS_ANCHORS = [
+  [4, 0.26],  // ölçüldü (n=107)
+  [11, 0.44], // ölçüldü (n=139)
+  [18, 0.47], // ölçüldü (n=27)
+  [26, 0.83], // ölçüldü (n=15)
+  [45, 1.3],  // veri yok — trendden uzatıldı
+] as const;
+
+export function headSpreadKmh(windKmh: number): number {
+  return interp(windKmh, ROS_ANCHORS);
 }
+
+/**
+ * Koni yarım açısı — gözlenen yönlerin %80'ini kapsayan açı.
+ *
+ * ÖLÇÜLDÜ: rüzgâr zayıfken yön neredeyse belirsiz (±130°, yani yarım daireye
+ * yakın), güçlendikçe daralıyor. Önceki 15–30° değerleri uydurmaydı ve
+ * gözlenen sapmaların yalnız %30'unu kapsıyordu — kullanıcıya hak etmediğimiz
+ * bir kesinlik gösteriyorduk.
+ */
+const ANGLE_ANCHORS = [
+  [4, 130],  // ölçüldü (n=92)
+  [11, 110], // ölçüldü (n=125)
+  [18, 78],  // ölçüldü (n=22)
+  [30, 70],  // az veri — trendden uzatıldı
+] as const;
+
+export function coneHalfAngle(windKmh: number): number {
+  return interp(windKmh, ANGLE_ANCHORS);
+}
+
+/**
+ * Yarım açı bu eşiği aşarsa kama çizmek yanıltıcı: yön bilgisi neredeyse yok,
+ * dürüst gösterim "her yöne bu kadar ulaşabilir" dairesidir.
+ */
+export const DISC_THRESHOLD_DEG = 100;
 
 /**
  * Rüzgâr ve eğimin bileşik yayılma yönü — Rothermel (1972) rüzgâr/eğim
@@ -122,6 +173,10 @@ export interface ConeGeom {
   windOnlyDeg: number;
   /** Bileşik yönde eğimin payı (0–1); 0 = arazi verisi yok veya düz */
   slopeShare: number;
+  /** Ölçülmüş yarım açı (gözlenen yönlerin %80'ini kapsar) */
+  halfAngle: number;
+  /** Açı çok genişse yön bilgisi yok demektir — kama yerine daire çizilir */
+  isDisc: boolean;
 }
 
 export const CONE_HOURS = [1, 3, 6] as const;
@@ -148,10 +203,13 @@ export function buildCone(
   const apexPt = leadingEdge(ev, spreadDeg);
   const ros = headSpreadKmh(kmh);
   const half = coneHalfAngle(kmh);
+  const isDisc = half >= DISC_THRESHOLD_DEG;
+  // Yön belirsizse daire çiz: kama, sahip olmadığımız bir kesinliği ima eder.
+  const drawHalf = isDisc ? 180 : half;
 
   const rings = CONE_HOURS.map((h) => ({
     hours: h,
-    ring: sectorRing(apexPt.lon, apexPt.lat, spreadDeg, half, ros * h),
+    ring: sectorRing(apexPt.lon, apexPt.lat, spreadDeg, drawHalf, ros * h, isDisc ? 36 : 18),
   }));
 
   const maxH = CONE_HOURS[CONE_HOURS.length - 1];
@@ -162,8 +220,11 @@ export function buildCone(
     spreadDeg,
     windKmh: Math.round(kmh),
     rings,
-    centerline: [[apexPt.lon, apexPt.lat], tip],
+    // Daire modunda merkez çizgisi yön iddiası taşımasın
+    centerline: isDisc ? [] : [[apexPt.lon, apexPt.lat], tip],
     windOnlyDeg,
     slopeShare: comb.slopeShare,
+    halfAngle: half,
+    isDisc,
   };
 }
