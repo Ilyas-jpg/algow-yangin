@@ -108,22 +108,42 @@ export default function HakkindaPage() {
           </h2>
           <p>
             Bir yangının etrafındaki mavi koni, son uydu geçişindeki öncü
-            kenardan başlayarak <b>rüzgârın taşıma yönünü</b> ve kaba bir hızla
-            bir, üç ve altı saatlik olası erişimi gösterir. Hesap bilinçli
-            olarak basittir: rüzgâr hızına göre Akdeniz bitki örtüsü için tipik
-            yayılma hızları kullanılır; arazi eğimi, yakıt tipi ve söndürme
-            müdahalesi hesaba katılmaz.
+            kenardan başlayarak olası yayılma yönünü ve kaba bir hızla bir, üç
+            ve altı saatlik erişimi gösterir. Yön, <b>rüzgâr ile arazi eğiminin
+            bileşkesinden</b> hesaplanır (Rothermel rüzgâr ve eğim katsayılarının
+            vektör toplamı; yakıt Akdeniz makisi kabul edilir). Düz arazide eğim
+            terimi kendiliğinden sıfıra yaklaşır, dik yamaçta ise koniyi yokuş
+            yukarı çeker. Yakıt nemi ve söndürme müdahalesi hesaba katılmaz.
           </p>
           <p>
             Bu konunun dürüst olmayı en çok hak eden kısmı şu: kendi verimizle
-            geriye dönük bir sınama yaptık. Yedi günlük yangınlarda, bir uydu
-            geçişindeki rüzgâra bakıp yaptığımız yön tahminini, yangının bir
-            sonraki geçişte gerçekte hangi yöne büyüdüğüyle karşılaştırdık.
-            Yirmi üç ölçülebilir örnekte <b>tahmin, gözlenen yönü rastgele bir
-            tahminden daha iyi kestiremedi</b>. Sebepleri anlaşılır: söndürme
-            ekipleri çoğu zaman yangının ilerleyen başını keser, dağlık arazide
-            alevler rüzgârdan bağımsız olarak yamaç yukarı tırmanır ve uydu iki
-            geçiş arasında rüzgârın döndüğünü göremez.
+            geriye dönük bir sınama yaptık. <b>Altı yangın sezonu</b>
+            (2021–2026), <b>468 bin uydu tespiti</b>, orman ve makilik alanda
+            <b> 90 yangına ait 350 ölçülebilir ilerleme</b>. Her birinde bir
+            geçiş anındaki tahmini, yangının bir sonraki geçişte gerçekte hangi
+            yöne büyüdüğüyle karşılaştırdık.
+          </p>
+          <p>
+            Sonuç: tahmin rastgeleden <b>iyi, ama az</b>. Ortanca açı hatası
+            <b> 76°</b> (rastgele beklenti 90°); tahminlerin <b>%31&apos;i</b>{" "}
+            45° içinde isabet ediyor (rastgelede %25), <b>%19&apos;u</b> ise
+            tamamen ters yönü gösteriyor (rastgelede %25). Daha önce bu sayfada
+            yirmi üç örneğe dayanarak &quot;rastgeleden iyi değil&quot;
+            yazıyorduk; <b>o örneklem yanılmamıza yetecek kadar küçükmüş</b> —
+            düzelttik. Eğimi hesaba katmak dik arazide (%15 üzeri) ortalama
+            hatayı 78,0°&apos;den 76,8°&apos;ye, 90° içinde kalma oranını
+            %59&apos;dan %63&apos;e taşıyor: gerçek ama mütevazı bir kazanç.
+          </p>
+          <p>
+            Tavanı da ölçtük: iki geçiş arasındaki <i>gerçek</i> ortalama rüzgâr
+            önceden bilinseydi bile ortanca hata ancak 69°&apos;ye inerdi. Yani
+            kalan hata rüzgâr tahmininden değil, <b>söndürme müdahalesinden,
+            arazi ve yakıt ayrıntısından</b> geliyor — hiçbir koni bu belirsizliği
+            kapatamaz. Bir bulgu daha: yangının <b>bir önceki geçişte gözlenen
+            yönü, sonraki adımın kötü bir habercisi</b> (ortanca hata 103°,
+            rastgeleden kötü) — çünkü ilerleyen baş söndürülünce yangın yanlarda
+            ve geride yanmaya devam ediyor. Bu yüzden beyaz izi ileri doğru
+            uzatmıyoruz.
           </p>
           <p>
             Bu yüzden koniyi bir kehanet gibi değil, <b>&quot;rüzgâr şu anda

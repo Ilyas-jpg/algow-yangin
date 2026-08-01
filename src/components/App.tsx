@@ -13,6 +13,7 @@ import type {
 } from "@/lib/types";
 import { clusterEvents, statusOf } from "@/lib/cluster";
 import { buildCone, type ConeGeom } from "@/lib/wind";
+import type { TerrainPoint } from "@/app/api/terrain/route";
 import { fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
 import { bearingDeg, compassTr, havKm } from "@/lib/geo";
 import { useGeolocation } from "./useGeolocation";
@@ -218,7 +219,7 @@ export default function App() {
     };
   }, [fires, pointEvent]);
 
-  const cones = useMemo<ConeGeom[]>(() => {
+  const coneCandidates = useMemo(() => {
     if (!windGrid || !live) return [];
     // Koni yurt dışı bayrağına göre kısıtlanmaz: sınır boyunda en yakın
     // yerleşim karşı tarafta kalabiliyor (Akçakale, Nusaybin, Silopi...),
@@ -231,13 +232,44 @@ export default function App() {
     ) {
       candidates.push(selectedEvent);
     }
+    return candidates;
+  }, [events, selectedEvent, windGrid, live]);
+
+  // Koni yönü rüzgâr + eğim bileşkesinden çiziliyor; eğim burada toplu çekilir.
+  // Anahtar 0,05°'ye yuvarlanmış ve sıralı → her tazelemede aynı, cache tutuyor.
+  const terrainKey = useMemo(() => {
+    if (!coneCandidates.length) return null;
+    const pts = [
+      ...new Set(
+        coneCandidates.map(
+          (e) =>
+            `${(Math.round(e.lon * 20) / 20).toFixed(2)},${(Math.round(e.lat * 20) / 20).toFixed(2)}`
+        )
+      ),
+    ].sort();
+    return `/api/terrain?pts=${pts.slice(0, 19).join("|")}`;
+  }, [coneCandidates]);
+
+  const { data: terrainData } = useSWR<{ points: TerrainPoint[] }>(
+    terrainKey,
+    fetcher,
+    { refreshInterval: 0, revalidateOnFocus: false, revalidateIfStale: false }
+  );
+
+  const cones = useMemo<ConeGeom[]>(() => {
+    if (!windGrid || !live) return [];
+    const terr = new Map(
+      (terrainData?.points ?? []).map((p) => [`${p.lon.toFixed(2)},${p.lat.toFixed(2)}`, p])
+    );
     const out: ConeGeom[] = [];
-    for (const ev of candidates) {
-      const cone = buildCone(ev, windGrid);
+    for (const ev of coneCandidates) {
+      const k = `${(Math.round(ev.lon * 20) / 20).toFixed(2)},${(Math.round(ev.lat * 20) / 20).toFixed(2)}`;
+      // Arazi düşerse koni yine çizilir — yalnız rüzgâra düşer.
+      const cone = buildCone(ev, windGrid, terr.get(k) ?? null);
       if (cone) out.push(cone);
     }
     return out;
-  }, [events, selectedEvent, windGrid, live]);
+  }, [coneCandidates, windGrid, live, terrainData]);
 
   const conesFC = useMemo<GeoJSON.FeatureCollection>(
     () => ({
