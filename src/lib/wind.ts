@@ -1,4 +1,4 @@
-import { destPoint, sectorRing } from "./geo";
+import { destPoint, reachShape } from "./geo";
 import type { FireEvent, WindGrid } from "./types";
 import { leadingEdge } from "./cluster";
 
@@ -116,10 +116,42 @@ export function coneHalfAngle(windKmh: number): number {
 }
 
 /**
- * Yarım açı bu eşiği aşarsa kama çizmek yanıltıcı: yön bilgisi neredeyse yok,
- * dürüst gösterim "her yöne bu kadar ulaşabilir" dairesidir.
+ * Yarım açı bu eşiği aşarsa yön bilgisi zayıf demektir — panelde belirtilir.
+ * (Geometri artık her durumda ölçülmüş erişim şeklini kullanıyor.)
  */
 export const DISC_THRESHOLD_DEG = 100;
+
+/**
+ * ERİŞİM ŞEKLİ — ölçüldü (2026-08-02, 256 doğal-yakıt ilerlemesi).
+ *
+ * "Tahmin edilen yönden θ° sapan yönlerde yangın ne kadar ilerledi?" sorusunun
+ * cevabı. Baş yönündeki erişime göre normalize edilmiş %90'lık dilim:
+ *
+ *   0–30° → 1,00 · 30–60° → 0,93 · 60–90° → 0,68
+ *   90–120° → 0,70 · 120–150° → 0,41 · 150–180° → 0,42
+ *
+ * Yani yangın başa doğru geriye göre **2,4 kat** uzağa gidiyor. Bu yüzden
+ * simetrik daire yön bilgisini çöpe atar, keskin kama ise olmayan bir kesinlik
+ * ima eder; doğru gösterim ikisinin arası olan bu damla şeklidir.
+ *
+ * Aşağıdaki değerler ölçülen kovaların hafifçe düzleştirilmiş hâli (60–120°
+ * arasındaki iniş-çıkış örneklem gürültüsü; monoton hâle getirildi).
+ */
+const SHAPE_ANCHORS = [
+  [0, 1.0],
+  [30, 0.97],
+  [60, 0.8],
+  [90, 0.69],
+  [120, 0.55],
+  [150, 0.43],
+  [180, 0.42],
+] as const;
+
+/** Baş yönüne göre θ° sapmadaki göreli erişim (0–1) */
+export function reachRatio(offsetDeg: number): number {
+  const a = Math.min(180, Math.abs(offsetDeg));
+  return interp(a, SHAPE_ANCHORS);
+}
 
 /**
  * Rüzgâr ve eğimin bileşik yayılma yönü — Rothermel (1972) rüzgâr/eğim
@@ -133,15 +165,28 @@ export const DISC_THRESHOLD_DEG = 100;
  * φs ∝ tan²(eğim) olduğu için düz arazide eğim terimi kendiliğinden sıfıra
  * yaklaşır — ayrıca eşik koymaya gerek yok.
  */
-const FUEL = { sigma: 1800, beta: 0.012, waf: 0.3 };
+const FUELS = {
+  ORMAN: { sigma: 1500, beta: 0.03, waf: 0.15 },
+  MAKI: { sigma: 1800, beta: 0.012, waf: 0.3 },
+  OT: { sigma: 3500, beta: 0.0015, waf: 0.4 },
+} as const;
+export type FuelKind = keyof typeof FUELS;
+
+/** CORINE sınıfı → Rothermel yakıt modeli; bilinmiyorsa maki (Akdeniz varsayılanı) */
+export function fuelParams(fuel?: string | null) {
+  if (fuel === "ORMAN") return FUELS.ORMAN;
+  if (fuel === "OT" || fuel === "TARIM") return FUELS.OT;
+  return FUELS.MAKI;
+}
 
 export function rothermelSpread(
   windKmh: number,
   windToDeg: number,
   slopePct: number,
-  upslopeDeg: number
+  upslopeDeg: number,
+  fuel?: string | null
 ): { spreadDeg: number; slopeShare: number } {
-  const { sigma, beta, waf } = FUEL;
+  const { sigma, beta, waf } = fuelParams(fuel);
   const betaOp = 3.348 * Math.pow(sigma, -0.8189);
   const C = 7.47 * Math.exp(-0.133 * Math.pow(sigma, 0.55));
   const B = 0.02526 * Math.pow(sigma, 0.54);
@@ -177,6 +222,16 @@ export interface ConeGeom {
   halfAngle: number;
   /** Açı çok genişse yön bilgisi yok demektir — kama yerine daire çizilir */
   isDisc: boolean;
+  /** Tahmin rüzgârına göre 6 saatte yönün ne kadar döndüğü (derece) */
+  driftDeg: number;
+}
+
+const toRad = (d: number) => (d * Math.PI) / 180;
+const toDeg = (r: number) => (r * 180) / Math.PI;
+/** iki yön arasındaki en kısa açı farkı */
+function angleGap(a: number, b: number): number {
+  const d = Math.abs(((a - b) % 360) + 360) % 360;
+  return d > 180 ? 360 - d : d;
 }
 
 export const CONE_HOURS = [1, 3, 6] as const;
@@ -188,43 +243,82 @@ export const CONE_HOURS = [1, 3, 6] as const;
 export function buildCone(
   ev: FireEvent,
   grid: WindGrid,
-  terrain?: { slopePct: number; upslopeDeg: number } | null
+  terrain?: { slopePct: number; upslopeDeg: number; fuel?: string | null } | null,
+  forecast?: { kmh: number[]; fromDeg: number[] } | null
 ): ConeGeom | null {
   const uv = sampleUV(grid, ev.lon, ev.lat);
   if (!uv) return null;
   const { kmh, fromDeg } = uvToSpeedDir(uv.u, uv.v);
   if (kmh < 2) return null; // durgun — yön anlamsız
-  const windOnlyDeg = (fromDeg + 180) % 360;
-  const comb =
-    terrain && terrain.slopePct >= 1
-      ? rothermelSpread(kmh, windOnlyDeg, terrain.slopePct, terrain.upslopeDeg)
-      : { spreadDeg: windOnlyDeg, slopeShare: 0 };
-  const spreadDeg = comb.spreadDeg;
-  const apexPt = leadingEdge(ev, spreadDeg);
-  const ros = headSpreadKmh(kmh);
-  const half = coneHalfAngle(kmh);
-  const isDisc = half >= DISC_THRESHOLD_DEG;
-  // Yön belirsizse daire çiz: kama, sahip olmadığımız bir kesinliği ima eder.
-  const drawHalf = isDisc ? 180 : half;
 
-  const rings = CONE_HOURS.map((h) => ({
-    hours: h,
-    ring: sectorRing(apexPt.lon, apexPt.lat, spreadDeg, drawHalf, ros * h, isDisc ? 36 : 18),
-  }));
-
+  // Saatlik rüzgâr serisi: tahmin varsa onu kullan, yoksa mevcut rüzgârı sabit
+  // kabul et (eski davranış). Seri her zaman "gittiği yön" cinsindendir.
   const maxH = CONE_HOURS[CONE_HOURS.length - 1];
-  const tip = destPoint(apexPt.lon, apexPt.lat, spreadDeg, ros * maxH);
+  const series: { kmh: number; toDeg: number }[] = [];
+  for (let h = 0; h < maxH; h++) {
+    const fk = forecast?.kmh[h];
+    const fd = forecast?.fromDeg[h];
+    series.push(
+      typeof fk === "number" && typeof fd === "number"
+        ? { kmh: fk, toDeg: (fd + 180) % 360 }
+        : { kmh, toDeg: (fromDeg + 180) % 360 }
+    );
+  }
+
+  /** 0..h saatleri arasının vektör-ortalama rüzgârı */
+  const avgTo = (h: number) => {
+    let x = 0, y = 0, s = 0;
+    const n = Math.max(1, h);
+    for (let i = 0; i < n; i++) {
+      const w = series[i];
+      x += w.kmh * Math.sin(toRad(w.toDeg));
+      y += w.kmh * Math.cos(toRad(w.toDeg));
+      s += w.kmh;
+    }
+    return { deg: (toDeg(Math.atan2(x, y)) + 360) % 360, kmh: s / n };
+  };
+
+  const w1 = avgTo(1);
+  const windOnlyDeg = w1.deg;
+  const dirFor = (avg: { deg: number; kmh: number }) =>
+    terrain && terrain.slopePct >= 1
+      ? rothermelSpread(avg.kmh, avg.deg, terrain.slopePct, terrain.upslopeDeg, terrain.fuel)
+      : { spreadDeg: avg.deg, slopeShare: 0 };
+
+  const first = dirFor(w1);
+  // Tepe, en yakın saatin yönüne göre sabitlenir; halkalar kendi yönlerini alır.
+  const apexPt = leadingEdge(ev, first.spreadDeg);
+  const half = coneHalfAngle(w1.kmh);
+  const isDisc = half >= DISC_THRESHOLD_DEG;
+
+  const rings = CONE_HOURS.map((h) => {
+    // Yarıçap saat saat integre edilir: her saat kendi rüzgâr hızıyla ilerler.
+    let km = 0;
+    for (let i = 0; i < h; i++) km += headSpreadKmh(series[i].kmh);
+    const avg = avgTo(h);
+    const d = dirFor(avg);
+    // Kapalı erişim zarfı: her yöne bir miktar, başa doğru 2,4 kat.
+    return { hours: h, ring: reachShape(apexPt.lon, apexPt.lat, d.spreadDeg, km, reachRatio) };
+  });
+
+  let tipKm = 0;
+  for (let i = 0; i < maxH; i++) tipKm += headSpreadKmh(series[i].kmh);
+  const last = dirFor(avgTo(maxH));
+  // Yön oku: şeklin baş ucuna kadar. Şekil artık her zaman yönlü olduğu için
+  // daire modunda da çizilir — insanlar nereye eğildiğini görebilmeli.
+  const tip = destPoint(apexPt.lon, apexPt.lat, last.spreadDeg, tipKm);
   return {
     eventId: ev.id,
     apex: [apexPt.lon, apexPt.lat],
-    spreadDeg,
-    windKmh: Math.round(kmh),
+    spreadDeg: first.spreadDeg,
+    windKmh: Math.round(w1.kmh),
     rings,
-    // Daire modunda merkez çizgisi yön iddiası taşımasın
-    centerline: isDisc ? [] : [[apexPt.lon, apexPt.lat], tip],
+    centerline: [[apexPt.lon, apexPt.lat], tip],
     windOnlyDeg,
-    slopeShare: comb.slopeShare,
+    slopeShare: first.slopeShare,
     halfAngle: half,
     isDisc,
+    /** tahmin rüzgârı kullanıldıysa 6 saatlik yön kayması, derece */
+    driftDeg: forecast ? angleGap(first.spreadDeg, last.spreadDeg) : 0,
   };
 }

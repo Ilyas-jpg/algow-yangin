@@ -227,6 +227,48 @@ export default function HakkindaPage() {
 
           <div className="space-y-4 text-sm">
             <div>
+              <p className="font-medium text-ink">2 Ağustos 2026 — ikinci tur</p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Erişim şekli ölçüldü: artık damla, daire değil.
+                  </b>{" "}
+                  &quot;Tahmin edilen yönden şu kadar sapan yönlerde yangın ne
+                  kadar ilerledi?&quot; sorusunu ölçtük. Yangınlar baş yönüne
+                  doğru geriye göre <b className="font-medium">2,4 kat</b> uzağa
+                  gidiyor. Simetrik daire bu bilgiyi çöpe atıyordu; şekil artık
+                  ölçülen zarfı çiziyor ve ucundaki okla nereye eğildiği
+                  okunuyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Halkalar saatlik tahmin rüzgârıyla çiziliyor.
+                  </b>{" "}
+                  Önceden &quot;mevcut rüzgâr altı saat sabit kalır&quot;
+                  varsayılıyordu. Artık her halka kendi saatinin rüzgârını
+                  kullanıyor; rüzgâr dönüyorsa uzak halkalar buna göre bükülüyor
+                  ve panelde kaç derece döndüğü yazıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Arazi örtüsü gösteriliyor.
+                  </b>{" "}
+                  Seçilen yangının CORINE arazi sınıfı yazılıyor. Özellikle
+                  güneydoğuda listenin büyük kısmı tarımsal anız yakma;
+                  bunlar artık &quot;orman yangını değil&quot; diye
+                  işaretleniyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Uydu kör aralığı uyarısı.
+                  </b>{" "}
+                  Geçiş pencereleri verinin kendisinden ölçülüyor. Kör aralıkta
+                  isek üst barda ve panelde yazıyor:{" "}
+                  <i>tespit gelmemesi yangının söndüğü anlamına gelmez</i>.
+                </li>
+              </ul>
+            </div>
+            <div>
               <p className="font-medium text-ink">2 Ağustos 2026</p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>

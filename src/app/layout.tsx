@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
+import { Analytics } from "@vercel/analytics/next";
 
 // Zayıf bağlantıda her KB önemli: tek aile, yalnız kullanılan ağırlıklar.
 // Veri okumalarının mono'su sistem yazı tipinden gelir (0 KB).
@@ -51,6 +52,10 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}
         <ServiceWorker />
+        {/* Trafik ölçümü. Script ve beacon aynı origin (/_vercel/insights/*),
+            bu yüzden mevcut sıkı CSP'yi gevşetmeye gerek yok. Çerez kullanmaz,
+            kişisel veri toplamaz. */}
+        <Analytics />
       </body>
     </html>
   );

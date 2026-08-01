@@ -4,6 +4,7 @@ import type { FireEvent, WindPoint } from "@/lib/types";
 import type { ConeGeom } from "@/lib/wind";
 import { compassTr } from "@/lib/geo";
 import { angDiff, fmtAgo, fmtDayTime, fmtNum } from "@/lib/format";
+import { fmtNext, type PassInfo } from "@/lib/passes";
 import Sparkline from "./Sparkline";
 
 const STATUS_LABEL: Record<FireEvent["status"], { text: string; cls: string }> = {
@@ -31,7 +32,25 @@ interface EventPanelProps {
   weatherLoading: boolean;
   weatherError: boolean;
   cones: ConeGeom[];
+  /** CORINE yakıt sınıfı — anız yangınını orman yangınından ayırmak için */
+  fuel?: string | null;
+  pass?: PassInfo;
 }
+
+/** Yakıt sınıfının insan diliyle karşılığı + neden önemli olduğu */
+const FUEL_LABEL: Record<string, { ad: string; not: string; uyari: boolean }> = {
+  ORMAN: { ad: "Ormanlık", not: "ağaçlık örtü", uyari: false },
+  MAKI: { ad: "Makilik", not: "sert yapraklı çalı", uyari: false },
+  OT: { ad: "Otlak", not: "çayır/bozkır", uyari: false },
+  TARIM: {
+    ad: "Tarım alanı",
+    not: "büyük olasılıkla anız yakma — orman yangını değil",
+    uyari: true,
+  },
+  YAPI: { ad: "Yerleşim/sanayi", not: "baca veya tesis ısısı olabilir", uyari: true },
+  CIPLAK: { ad: "Çıplak arazi", not: "seyrek bitki örtüsü", uyari: false },
+  SU: { ad: "Su yüzeyi", not: "büyük olasılıkla yanlış pozitif", uyari: true },
+};
 
 export default function EventPanel(props: EventPanelProps) {
   const { events, selectedId, onSelect, now } = props;
@@ -80,6 +99,8 @@ function EventCard({
   weatherLoading,
   weatherError,
   cones,
+  fuel,
+  pass,
 }: EventPanelProps & { ev: FireEvent; ago: string }) {
   const selected = ev.id === selectedId;
   const status = STATUS_LABEL[ev.status];
@@ -134,7 +155,14 @@ function EventCard({
             loading={weatherLoading}
             error={weatherError}
           />
-          <Assessment ev={ev} weather={weather} cone={cone} live={live} />
+          <Assessment
+            ev={ev}
+            weather={weather}
+            cone={cone}
+            live={live}
+            fuel={selected ? fuel : null}
+            pass={pass}
+          />
           {ev.passes.length >= 3 && ev.drift === null && (
             <p className="mt-2 rounded border border-line bg-obsidian-3/60 px-2 py-1.5 text-[10px] leading-relaxed text-ink-2">
               Bu nokta {ev.passes.length} uydu geçişi boyunca yerinden
@@ -301,13 +329,38 @@ function Assessment({
   weather,
   cone,
   live,
+  fuel,
+  pass,
 }: {
   ev: FireEvent;
   weather: WindPoint | undefined;
   cone: ConeGeom | undefined;
   live: boolean;
+  fuel?: string | null;
+  pass?: PassInfo;
 }) {
   const lines: React.ReactNode[] = [];
+
+  // Yakıt: kullanıcı en çok "bu orman yangını mı, anız mı" diye merak ediyor.
+  // Aktif listenin büyük kısmı güneydoğuda tarımsal anız yakma.
+  const f = fuel ? FUEL_LABEL[fuel] : null;
+  if (f) {
+    lines.push(
+      <span key="fuel" className={f.uyari ? "text-warn" : undefined}>
+        Arazi örtüsü: <b className="font-normal text-ink">{f.ad}</b> — {f.not}
+      </span>
+    );
+  }
+
+  // "Tespit yok" ≠ "yangın bitti": kullanıcı kör aralıkta olduğunu bilsin.
+  if (live && pass?.inGap && pass.nextH !== null) {
+    lines.push(
+      <span key="gap" className="text-warn">
+        Şu an uydu kör aralığında: yeni tespit {fmtNext(pass.nextH)} beklenir.
+        Tespit gelmemesi yangının söndüğü anlamına gelmez.
+      </span>
+    );
+  }
 
   // Geçmiş: nereden çıktı, ne kadar süredir yanıyor
   const yanmaSaati = Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000);
@@ -355,30 +408,41 @@ function Assessment({
         {/* 2026-08-02 doğrulama (6 sezon, 232 orman/maki ilerlemesi):
             rüzgâr+eğim bileşkesi rastgeleden iyi ama ortanca hata 68°.
             Yarım açı ve yarıçap artık gözlenen dağılımdan geliyor. */}
+        En olası yön:{" "}
+        <b className="font-mono font-normal text-ink">
+          {compassTr(cone.spreadDeg)}
+        </b>{" "}
+        · rüzgâr ve eğimin bileşkesi
         {cone.isDisc ? (
-          <>
-            Yön belirsiz (rüzgâr {cone.windKmh} km/sa):{" "}
-            <b className="font-normal text-ink">her yöne benzer erişim</b> —
-            daire, tek bir yön iddiası değil
-          </>
+          <span className="text-warn">
+            {" "}
+            — ama rüzgâr zayıf, yön kuvvetli değil
+          </span>
         ) : (
-          <>
-            Yayılma eğilimi:{" "}
-            <b className="font-mono font-normal text-ink">
-              {compassTr(cone.spreadDeg)}
-            </b>{" "}
-            · rüzgâr ve eğimin bileşkesi, ±{Math.round(cone.halfAngle)}°
-          </>
+          <> · sapma payı ±{Math.round(cone.halfAngle)}°</>
         )}
       </span>
     );
     lines.push(
       <span key="cone-mean" className="text-ink-3">
-        Halkalar 1·3·6 saatlik <b className="font-normal">%90&apos;lık erişim</b>:
-        ölçtüğümüz yangınların onda dokuzu bu sınır içinde kaldı. Söndürme
-        müdahalesi hesaba katılmaz.
+        Şekil 1·3·6 saatlik <b className="font-normal">%90&apos;lık erişim</b>:
+        ölçtüğümüz yangınların onda dokuzu bu sınır içinde kaldı. Baş yönüne
+        doğru geriye göre <b className="font-normal">2,4 kat</b> uzun — yangınlar
+        gerçekte böyle bir damla şekli çiziyor. Söndürme müdahalesi hesaba
+        katılmaz.
       </span>
     );
+    // Rüzgârın dönmesi, doğrulama testinde tahmin hatasının kalemlerinden
+    // biriydi; halkalar artık saatlik tahminle çiziliyor, kullanıcı görsün.
+    if (cone.driftDeg >= 30) {
+      lines.push(
+        <span key="drift" className="text-warn">
+          Rüzgâr önümüzdeki 6 saatte{" "}
+          <b className="font-normal">yaklaşık {Math.round(cone.driftDeg)}° dönüyor</b> —
+          uzak halkalar bu dönüşe göre çizildi
+        </span>
+      );
+    }
     if (ev.drift && cone.isDisc) {
       // Daire modunda ortada bir yön iddiası yok; en güvenilir sinyal gözlem.
       lines.push(

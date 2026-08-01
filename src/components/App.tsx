@@ -14,6 +14,8 @@ import type {
 import { clusterEvents, statusOf } from "@/lib/cluster";
 import { buildCone, type ConeGeom } from "@/lib/wind";
 import type { TerrainPoint } from "@/app/api/terrain/route";
+import type { WindForecastPoint } from "@/app/api/wind/forecast/route";
+import { nextPassEstimate } from "@/lib/passes";
 import { fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
 import { bearingDeg, compassTr, havKm } from "@/lib/geo";
 import { useGeolocation } from "./useGeolocation";
@@ -256,20 +258,61 @@ export default function App() {
     { refreshInterval: 0, revalidateOnFocus: false, revalidateIfStale: false }
   );
 
+  // Halkalar kendi saatlerinin rüzgârıyla çizilsin diye saatlik tahmin.
+  const forecastKey = useMemo(() => {
+    if (!coneCandidates.length) return null;
+    const pts = [
+      ...new Set(
+        coneCandidates.map(
+          (e) => `${(Math.round(e.lon * 10) / 10).toFixed(1)},${(Math.round(e.lat * 10) / 10).toFixed(1)}`
+        )
+      ),
+    ].sort();
+    return `/api/wind/forecast?pts=${pts.slice(0, 19).join("|")}`;
+  }, [coneCandidates]);
+
+  const { data: fcData } = useSWR<{ points: WindForecastPoint[] }>(
+    forecastKey,
+    fetcher,
+    { refreshInterval: 1_800_000, revalidateOnFocus: false }
+  );
+
   const cones = useMemo<ConeGeom[]>(() => {
     if (!windGrid || !live) return [];
     const terr = new Map(
       (terrainData?.points ?? []).map((p) => [`${p.lon.toFixed(2)},${p.lat.toFixed(2)}`, p])
     );
+    const fc = new Map(
+      (fcData?.points ?? []).map((p) => [`${p.lon.toFixed(1)},${p.lat.toFixed(1)}`, p])
+    );
     const out: ConeGeom[] = [];
     for (const ev of coneCandidates) {
-      const k = `${(Math.round(ev.lon * 20) / 20).toFixed(2)},${(Math.round(ev.lat * 20) / 20).toFixed(2)}`;
-      // Arazi düşerse koni yine çizilir — yalnız rüzgâra düşer.
-      const cone = buildCone(ev, windGrid, terr.get(k) ?? null);
+      const kT = `${(Math.round(ev.lon * 20) / 20).toFixed(2)},${(Math.round(ev.lat * 20) / 20).toFixed(2)}`;
+      const kF = `${(Math.round(ev.lon * 10) / 10).toFixed(1)},${(Math.round(ev.lat * 10) / 10).toFixed(1)}`;
+      // Arazi veya tahmin düşerse koni yine çizilir — eski davranışa döner.
+      const cone = buildCone(ev, windGrid, terr.get(kT) ?? null, fc.get(kF) ?? null);
       if (cone) out.push(cone);
     }
     return out;
-  }, [coneCandidates, windGrid, live, terrainData]);
+  }, [coneCandidates, windGrid, live, terrainData, fcData]);
+
+  /** Uydu geçiş pencereleri verinin kendisinden ölçülür (yörünge tablosu yok) */
+  const passInfo = useMemo(
+    () =>
+      nextPassEstimate(
+        (fires?.features ?? []).map((f) => f.properties.dt),
+        now,
+        fires?.meta?.newest ?? null
+      ),
+    [fires, now]
+  );
+
+  /** Seçili yangının yakıt sınıfı — panelde "anız mı orman mı" ayrımı için */
+  const selectedFuel = useMemo(() => {
+    if (!selectedEvent || !terrainData?.points) return null;
+    const k = `${(Math.round(selectedEvent.lon * 20) / 20).toFixed(2)},${(Math.round(selectedEvent.lat * 20) / 20).toFixed(2)}`;
+    return terrainData.points.find((p) => `${p.lon.toFixed(2)},${p.lat.toFixed(2)}` === k)?.fuel ?? null;
+  }, [selectedEvent, terrainData]);
 
   const conesFC = useMemo<GeoJSON.FeatureCollection>(
     () => ({
@@ -524,6 +567,8 @@ export default function App() {
       weatherLoading={weatherLoading}
       weatherError={Boolean(weatherError)}
       cones={cones}
+      fuel={selectedFuel}
+      pass={passInfo}
     />
   );
 
@@ -549,6 +594,7 @@ export default function App() {
         onGeoToggle={geo.toggle}
         alertCount={alerts.points.length}
         onAlertsToggle={() => setAlertsOpen((o) => !o)}
+        pass={passInfo}
       />
 
       {(offline ||

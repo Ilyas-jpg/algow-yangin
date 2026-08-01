@@ -60,6 +60,29 @@ export function destPoint(
  * Tepe noktasından bearing±half açısında, radius km'lik sektör poligonu.
  * İlk/son nokta tepe — kapalı ring döner.
  */
+/**
+ * Ölçülmüş erişim zarfı: baş yönünde uzun, geriye doğru kısa kapalı şekil.
+ * `ratio(θ)` baş yönünden θ° sapmadaki göreli erişimi verir (bkz. wind.ts).
+ */
+export function reachShape(
+  lon: number,
+  lat: number,
+  bearing: number,
+  headKm: number,
+  ratio: (offsetDeg: number) => number,
+  steps = 48
+): [number, number][] {
+  const ring: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const off = (360 * i) / steps;
+    const b = (bearing + off) % 360;
+    const km = headKm * ratio(off > 180 ? 360 - off : off);
+    ring.push(destPoint(lon, lat, b, Math.max(0.02, km)));
+  }
+  ring.push(ring[0]);
+  return ring;
+}
+
 export function sectorRing(
   lon: number,
   lat: number,

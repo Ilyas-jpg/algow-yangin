@@ -42,7 +42,7 @@ export default function Legend() {
           <path d="M1 6 L15 1 L15 11 Z" fill="#3d5bff" fillOpacity="0.35" stroke="#5872ff" strokeWidth="0.8" />
         </svg>
         <span className="text-[10px] leading-tight text-ink-2">
-          Olası erişim (1·3·6 sa · %90)
+          Olası erişim (1·3·6 sa · %90) — geniş ucu yangının gideceği yön
         </span>
       </div>
       <div className="mt-1.5 flex items-center gap-2">

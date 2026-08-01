@@ -118,6 +118,10 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
+  // Vercel Analytics'e hiç dokunma: script'i cache'lersek güncellemesi
+  // donar, beacon'ları da kendi akışında bırakmak gerekir.
+  if (url.pathname.startsWith("/_vercel/")) return;
+
   // Harita karoları, sprite, glyph (cross-origin) — kalıcı cache.
   // Tam host eşleşmesi: substring testi "cartocdn.com.saldirgan.net" gibi
   // adresleri de kabul edip kalıcı cache zehirlenmesine yol açardı.

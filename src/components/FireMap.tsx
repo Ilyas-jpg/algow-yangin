@@ -330,6 +330,32 @@ export default function FireMap({
         },
       }, labelTop);
 
+      // Yön oku: erişim şekli baş yönünde 2,4 kat uzun ama bu tek başına
+      // yeterince okunmuyordu — ucundaki ok "nereye gidebilir"i tartışmasız
+      // hale getiriyor. ">" ASCII: "▶" basemap glyph setinde yok (iz oklarında
+      // öğrenilen ders).
+      map.addLayer({
+        id: "cone-arrow",
+        type: "symbol",
+        source: "cone-lines",
+        layout: {
+          "symbol-placement": "line-center",
+          "text-field": ">",
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-size": 20,
+          "text-offset": [0.6, 0],
+          "text-rotation-alignment": "map",
+          "text-keep-upright": false,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-color": "#b9c6ff",
+          "text-halo-color": "#0a0a0b",
+          "text-halo-width": 1.4,
+        },
+      }, labelTop);
+
       // ── Seçili yangının GEÇMİŞİ
       // "Nereye gidecek" kadar "nereden geldi" de okunmalı. Katman sırası
       // arkadan öne: yanmış alan → yol → oklar → geçiş halkaları → başlangıç.

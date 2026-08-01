@@ -4,6 +4,7 @@
 import Link from "next/link";
 import type { FiresMeta, LayerToggles, WindowHours } from "@/lib/types";
 import { fmtAgo, fmtClock } from "@/lib/format";
+import { fmtNext, type PassInfo } from "@/lib/passes";
 
 // 5 gün, FIRMS'in bu bbox için verdiği en geniş aralık (daha fazlası 400)
 const WINDOWS: { value: WindowHours; label: string }[] = [
@@ -40,6 +41,7 @@ interface TopBarProps {
   onGeoToggle: () => void;
   alertCount: number;
   onAlertsToggle: () => void;
+  pass?: PassInfo;
 }
 
 export default function TopBar({
@@ -55,6 +57,7 @@ export default function TopBar({
   onGeoToggle,
   alertCount,
   onAlertsToggle,
+  pass,
 }: TopBarProps) {
   const newest = meta?.newest ?? null;
   const ageH = newest ? (now - newest) / 3600_000 : null;
@@ -196,6 +199,11 @@ export default function TopBar({
             />
             <span className="hidden sm:inline">
               {newest ? `son tespit ${fmtAgo(newest, now)}` : "veri bekleniyor"}
+              {/* Kör aralık uyarısı: "tespit yok" ile "yangın bitti" aynı şey
+                  değil. Geçiş pencereleri verinin kendisinden ölçülüyor. */}
+              {pass?.inGap && pass.nextH !== null && (
+                <span className="text-warn"> · kör aralık, sonraki geçiş {fmtNext(pass.nextH)}</span>
+              )}
             </span>
             <span className="sm:hidden">
               {newest ? fmtAgo(newest, now) : "—"}
