@@ -126,7 +126,7 @@ export interface WindPoint {
   time: number;
 }
 
-export type WindowHours = 24 | 48 | 168;
+export type WindowHours = 24 | 48 | 120;
 
 export interface UserLocation {
   lon: number;

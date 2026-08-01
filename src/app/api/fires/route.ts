@@ -3,10 +3,17 @@ import { FIRMS_SOURCES, firmsAreaUrl, parseFirmsCsv } from "@/lib/firms";
 import { genFixtureCsv } from "@/data/fixture";
 import type { FirePoint, FiresResponse } from "@/lib/types";
 
+/**
+ * FIRMS'in gerçek sınırı: bu bbox için dayRange en fazla 5.
+ * 6, 7, 8 ve 10 denendi — hepsi HTTP 400 döndü (2026-08-01). Belge 1-10
+ * diyor ama pratik sınır alan büyüklüğüne bağlı. Bu yüzden en geniş
+ * pencere 5 gün; arayüzde de "5g" yazıyor, kullanıcıya vermediğimiz
+ * bir aralık vaat edilmiyor.
+ */
 const WINDOW_TO_DAYRANGE: Record<string, { hours: number; dayRange: number }> = {
   "1": { hours: 24, dayRange: 2 },
   "2": { hours: 48, dayRange: 3 },
-  "7": { hours: 168, dayRange: 8 },
+  "5": { hours: 120, dayRange: 5 },
 };
 
 export async function GET(request: NextRequest) {

@@ -49,7 +49,15 @@ const fetcher = async (url: string) => {
   return { ...body, __offline: res.headers.get("x-algow-offline") === "1" };
 };
 
-/** Zayıf/ölçülü bağlantı: ağır katmanlar kapalı başlar. */
+/**
+ * Zayıf/ölçülü bağlantı: ağır katmanlar kapalı başlar.
+ *
+ * 3g bilinçli olarak DIŞARIDA: tarayıcı sayfa açılırken ölçüm henüz
+ * oturmadığı için sık sık "3g" raporluyor, sonra 4g'ye geçiyor. Bu yüzden
+ * rüzgâr ve ısı katmanları sebepsiz kapalı geliyor, kullanıcı da nedenini
+ * bilmiyordu. Artık yalnız gerçekten yavaş bağlantıda devreye giriyor
+ * ve devreye girdiğinde kullanıcıya söyleniyor.
+ */
 function isThinConnection(): boolean {
   if (typeof navigator === "undefined") return false;
   const c = (
@@ -61,12 +69,11 @@ function isThinConnection(): boolean {
   return (
     c.saveData === true ||
     c.effectiveType === "2g" ||
-    c.effectiveType === "slow-2g" ||
-    c.effectiveType === "3g"
+    c.effectiveType === "slow-2g"
   );
 }
 
-const DAYS_PARAM: Record<WindowHours, string> = { 24: "1", 48: "2", 168: "7" };
+const DAYS_PARAM: Record<WindowHours, string> = { 24: "1", 48: "2", 120: "5" };
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 export default function App() {
@@ -88,6 +95,7 @@ export default function App() {
   const userLoc = geo.state.status === "ready" ? geo.state.loc : null;
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState<{ lon: number; lat: number } | null>(null);
+  const [zoom, setZoom] = useState(5.35);
   const [now, setNow] = useState(() => Date.now());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -110,11 +118,13 @@ export default function App() {
     return () => mq.removeEventListener("change", cb);
   }, []);
 
-  // Zayıf bağlantıda rüzgar animasyonu ve ısı katmanı kapalı başlasın;
-  // kullanıcı isterse üst bardan açar.
+  // Zayıf bağlantıda rüzgar animasyonu ve ısı katmanı kapalı başlasın.
+  // Sessizce yapılmaz: kullanıcı hem bilgilendirilir hem tek tıkla geri açar.
+  const [thinMode, setThinMode] = useState(false);
   useEffect(() => {
     if (isThinConnection()) {
       setLayers((l) => ({ ...l, wind: false, heat: false }));
+      setThinMode(true);
     }
   }, []);
 
@@ -397,6 +407,39 @@ export default function App() {
   const staleData = Boolean(firesError && fires);
   const noData = Boolean(firesError && !fires);
 
+  /**
+   * Açık olup da ekranda karşılığı olmayan katmanlar için açıklama.
+   * "Toggle'a bastım, hiçbir şey olmadı" hissinin panzehiri.
+   */
+  const layerNotes = useMemo(() => {
+    const notes: string[] = [];
+    if (layers.heat && zoom > 10.5) {
+      notes.push(
+        "Isı katmanı yakın zumda kapanır — bu ölçekte tek tek tespitler zaten görünüyor."
+      );
+    }
+    if (layers.cones && !live) {
+      notes.push(
+        "Tahmin konisi yalnız canlı görünümde çizilir; geçmişe sardığın için gizli."
+      );
+    } else if (layers.cones && live && cones.length === 0 && events.length > 0) {
+      notes.push(
+        windGrid
+          ? "Tahmin konisi yok: aktif yangınların bulunduğu yerlerde rüzgâr çok durgun."
+          : "Tahmin konisi için rüzgâr verisi bekleniyor."
+      );
+    }
+    if (layers.wind && !windGrid) {
+      notes.push("Rüzgâr animasyonu için veri bekleniyor.");
+    }
+    if (layers.wind && reducedMotion) {
+      notes.push(
+        "Hareket azaltma açık olduğu için rüzgâr animasyonu çalışmıyor."
+      );
+    }
+    return notes;
+  }, [layers, zoom, live, cones.length, events.length, windGrid, reducedMotion]);
+
   const panel = (
     <EventPanel
       events={events}
@@ -472,13 +515,43 @@ export default function App() {
           gösterilmiyor.
         </div>
       )}
-      {msg?.meta && layers.msg && (
+      {thinMode && (
+        <div
+          role="status"
+          className="relative z-20 flex items-center gap-3 border-b border-line bg-obsidian-2 px-3 py-1.5 text-[11px] text-ink-2"
+        >
+          <span>
+            Bağlantın yavaş göründüğü için rüzgâr animasyonu ve ısı katmanı
+            kapalı başlatıldı.
+          </span>
+          <button
+            onClick={() => {
+              setLayers((l) => ({ ...l, wind: true, heat: true }));
+              setThinMode(false);
+            }}
+            className="ml-auto shrink-0 rounded border border-line px-2 py-0.5 text-[10px] text-ink hover:border-cobalt/60"
+          >
+            Yine de aç
+          </button>
+        </div>
+      )}
+      {layers.msg && msg?.meta && (
         <div className="relative z-20 border-b border-line bg-obsidian-2 px-3 py-1 text-[11px] text-ink-2">
           <span className="font-mono text-warn">MSG 15dk</span> · Meteosat{" "}
-          {fmtClock(msg.meta.slot)} taraması: {msg.meta.count} tespit ·{" "}
-          <span className="text-ink-3">
-            konum kabadır (turuncu halka pikselin gerçek alanıdır)
-          </span>
+          {fmtClock(msg.meta.slot)} taraması:{" "}
+          {msg.meta.count > 0 ? (
+            <>
+              {msg.meta.count} tespit ·{" "}
+              <span className="text-ink-3">
+                konum kabadır (turuncu halka pikselin gerçek alanıdır)
+              </span>
+            </>
+          ) : (
+            <span className="text-ink-3">
+              bu taramada Türkiye&apos;de tespit yok — Meteosat yalnız büyük
+              yangınları görür, hassas uydu katmanı açık kalsın
+            </span>
+          )}
         </div>
       )}
       {windError && (
@@ -491,9 +564,13 @@ export default function App() {
         </div>
       )}
       {staleData && fires && (
-        <div className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn">
-          Bağlantı sorunu — {fmtClock(fires.meta.fetchedAt)} itibarıyla alınan
-          son veri gösteriliyor.
+        <div
+          role="status"
+          className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
+        >
+          {fires.meta.windowHours !== windowHours
+            ? `Seçtiğin ${windowHours >= 120 ? "5 günlük" : windowHours + " saatlik"} aralık şu an alınamadı — ekranda hâlâ ${fires.meta.windowHours >= 120 ? "5 günlük" : fires.meta.windowHours + " saatlik"} veri var.`
+            : `Bağlantı sorunu — ${fmtClock(fires.meta.fetchedAt)} itibarıyla alınan son veri gösteriliyor.`}
         </div>
       )}
 
@@ -515,6 +592,7 @@ export default function App() {
           userLoc={userLoc}
           onSelect={handleSelect}
           onCenterChange={setMapCenter}
+          onZoomChange={setZoom}
         />
 
         {alertsOpen && (
@@ -615,6 +693,21 @@ export default function App() {
             onPlayToggle={() => setPlaying((p) => !p)}
           />
         </div>
+        {/* Açık ama görünür çıktısı olmayan katmanların sebebini söyle —
+            aksi hâlde toggle "bozuk" gibi hissettiriyor. */}
+        {layerNotes.length > 0 && (
+          <div className="pointer-events-none absolute bottom-4 left-3 z-10 hidden max-w-[300px] space-y-1 md:block">
+            {layerNotes.map((n) => (
+              <p
+                key={n}
+                className="rounded border border-line bg-obsidian-1/95 px-2 py-1 text-[10px] leading-relaxed text-ink-3"
+              >
+                {n}
+              </p>
+            ))}
+          </div>
+        )}
+
         <div className="absolute right-3 bottom-4 z-10 hidden md:block">
           <Legend />
         </div>

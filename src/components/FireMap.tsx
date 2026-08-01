@@ -72,6 +72,7 @@ interface FireMapProps {
   userLoc: UserLocation | null;
   onSelect: (id: string | null) => void;
   onCenterChange?: (c: { lon: number; lat: number }) => void;
+  onZoomChange?: (z: number) => void;
 }
 
 export default function FireMap({
@@ -91,6 +92,7 @@ export default function FireMap({
   userLoc,
   onSelect,
   onCenterChange,
+  onZoomChange,
 }: FireMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
@@ -99,9 +101,11 @@ export default function FireMap({
   const [styleFailed, setStyleFailed] = useState(false);
   const onSelectRef = useRef(onSelect);
   const onCenterRef = useRef(onCenterChange);
+  const onZoomRef = useRef(onZoomChange);
   useEffect(() => {
     onSelectRef.current = onSelect;
     onCenterRef.current = onCenterChange;
+    onZoomRef.current = onZoomChange;
   });
 
   // ── Harita kurulumu (bir kez)
@@ -117,6 +121,14 @@ export default function FireMap({
       attributionControl: { compact: true },
     });
     mapRef.current = map;
+    // Teşhis kancası: ?debug=1 ile harita nesnesi konsoldan incelenebilir.
+    // Katman görünürlüklerini dışarıdan doğrulamak için gerekiyor.
+    if (
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("debug")
+    ) {
+      (window as unknown as { __map?: MlMap }).__map = map;
+    }
 
     map.on("error", (e) => {
       // Altlık yüklenemezse "load" hiç ateşlenmez ve kullanıcı sebepsiz
@@ -426,6 +438,7 @@ export default function FireMap({
       const emitCenter = () => {
         const c = map.getCenter();
         onCenterRef.current?.({ lon: c.lng, lat: c.lat });
+        onZoomRef.current?.(map.getZoom());
       };
       emitCenter();
       map.on("moveend", emitCenter);

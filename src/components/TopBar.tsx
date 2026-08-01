@@ -5,10 +5,11 @@ import Link from "next/link";
 import type { FiresMeta, LayerToggles, WindowHours } from "@/lib/types";
 import { fmtAgo, fmtClock } from "@/lib/format";
 
+// 5 gün, FIRMS'in bu bbox için verdiği en geniş aralık (daha fazlası 400)
 const WINDOWS: { value: WindowHours; label: string }[] = [
   { value: 24, label: "24s" },
   { value: 48, label: "48s" },
-  { value: 168, label: "7g" },
+  { value: 120, label: "5g" },
 ];
 
 const TOGGLES: { key: keyof LayerToggles; label: string; title: string }[] = [
