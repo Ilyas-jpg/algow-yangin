@@ -15,6 +15,12 @@ const TOGGLES: { key: keyof LayerToggles; label: string; title: string }[] = [
   { key: "wind", label: "Rüzgar", title: "Rüzgâr akış animasyonu" },
   { key: "heat", label: "Isı", title: "Tespit yoğunluğu ısı haritası" },
   { key: "cones", label: "Tahmin", title: "Rüzgâra göre taşıma konisi" },
+  {
+    key: "msg",
+    label: "MSG 15dk",
+    title:
+      "Meteosat: 15 dakikada bir tarar, uydu geçişleri arasındaki boşluğu doldurur. Konum kabadır (piksel 15-25 km²), halka o belirsizliği gösterir.",
+  },
   { key: "burnt", label: "Yanan alan", title: "EFFIS yanan alan perimetreleri (Sentinel-2)" },
   { key: "danger", label: "Tehlike", title: "GWIS yangın hava indeksi tahmini" },
   { key: "satellite", label: "Uydu", title: "Uydu görüntüsü altlığı" },

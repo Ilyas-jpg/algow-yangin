@@ -60,6 +60,7 @@ interface FireMapProps {
   conesFC: GeoJSON.FeatureCollection;
   coneLinesFC: GeoJSON.FeatureCollection;
   trailFC: GeoJSON.FeatureCollection;
+  msgFC: GeoJSON.FeatureCollection;
   selectedId: string | null;
   effT: number;
   windowHours: number;
@@ -78,6 +79,7 @@ export default function FireMap({
   conesFC,
   coneLinesFC,
   trailFC,
+  msgFC,
   selectedId,
   effT,
   windowHours,
@@ -226,6 +228,44 @@ export default function FireMap({
       map.addSource("cone-lines", { type: "geojson", data: EMPTY_FC });
       map.addSource("trail", { type: "geojson", data: EMPTY_FC });
       map.addSource("me", { type: "geojson", data: EMPTY_FC });
+      map.addSource("msg", { type: "geojson", data: EMPTY_FC });
+
+      // Meteosat: pikseli 15-25 km² olduğu için nokta değil ALAN olarak
+      // çizilir — kullanıcı konumun kaba olduğunu görsel olarak anlamalı.
+      map.addLayer(
+        {
+          id: "msg-area",
+          type: "circle",
+          source: "msg",
+          paint: {
+            "circle-radius": [
+              "interpolate", ["exponential", 2], ["zoom"],
+              5, ["*", 1.1, ["sqrt", ["get", "pixelKm2"]]],
+              10, ["*", 26, ["sqrt", ["get", "pixelKm2"]]],
+            ],
+            "circle-color": "#f59e0b",
+            "circle-opacity": 0.12,
+            "circle-stroke-color": "#f59e0b",
+            "circle-stroke-width": 1,
+            "circle-stroke-opacity": 0.5,
+          },
+        },
+        labelTop
+      );
+      map.addLayer(
+        {
+          id: "msg-dot",
+          type: "circle",
+          source: "msg",
+          paint: {
+            "circle-radius": 3,
+            "circle-color": "#fbbf24",
+            "circle-stroke-color": "#0a0a0b",
+            "circle-stroke-width": 1,
+          },
+        },
+        labelTop
+      );
 
       map.addLayer({
         id: "fires-heat",
@@ -426,6 +466,14 @@ export default function FireMap({
     if (!ready || !map) return;
     (map.getSource("trail") as GeoJSONSource | undefined)?.setData(trailFC);
   }, [ready, trailFC]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("msg") as GeoJSONSource | undefined)?.setData(
+      layers.msg && live ? msgFC : EMPTY_FC
+    );
+  }, [ready, msgFC, layers.msg, live]);
 
   // ── Zaman filtresi + yaş soldurması (kaydırıcı)
   useEffect(() => {

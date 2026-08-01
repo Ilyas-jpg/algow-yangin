@@ -152,4 +152,19 @@ export interface LayerToggles {
   burnt: boolean;
   /** GWIS yangın tehlike tahmini (FWI) */
   danger: boolean;
+  /** Meteosat 15 dakikalık tespitler (kaba çözünürlük, kör aralığı doldurur) */
+  msg: boolean;
+}
+
+export interface MsgResponse {
+  type: "FeatureCollection";
+  features: GeoJSON.Feature<GeoJSON.Point, {
+    id: string;
+    frp: number;
+    conf: number;
+    pixelKm2: number;
+    dt: number;
+  }>[];
+  meta: { slot: number; count: number; source: string } | null;
+  error?: string;
 }

@@ -48,10 +48,27 @@ export default function HakkindaPage() {
             olmadığını garanti etmez.
           </p>
           <p>
+            Bu boşluğu kısmen kapatmak için ikinci bir kaynak daha kullanıyoruz:
+            Avrupa&apos;nın hava uydusu <b>Meteosat</b>. Bu uydu dünyayla
+            birlikte döndüğü için Türkiye&apos;yi sürekli görüyor ve{" "}
+            <b>on beş dakikada bir</b> tarıyor; veri bize yaklaşık yarım saat
+            içinde ulaşıyor. Bedeli çözünürlük: 36 bin kilometreden bakıldığı
+            için tek bir piksel ülkemiz üzerinde on beş ila yirmi beş
+            kilometrekarelik bir alana denk geliyor. Bu yüzden Meteosat
+            tespitlerini nokta olarak değil, o pikselin gerçek büyüklüğünü
+            gösteren turuncu bir halka olarak çiziyoruz — yangın o halkanın
+            içinde bir yerdedir, tam merkezinde değil. Küçük yangınları da
+            göremez. Kısacası Meteosat, hassas uyduların yerini almaz;
+            aralarındaki kör saatleri doldurur.
+          </p>
+          <p>
             Rüzgâr, nem, sıcaklık ve buhar basıncı açığı (VPD) değerleri
             Open-Meteo&apos;nun açık hava tahmin modellerinden gelir. Haritada
             akan partiküller o anki rüzgâr alanını gösterir; bir yangına
-            tıkladığında açılan panel, o bölgenin yangın meteorolojisini özetler.
+            tıkladığında açılan panel, o bölgenin yangın meteorolojisini
+            özetler. Aynı panelde yakıtın ne kadar kurumuş olduğunu anlatan
+            Yangın Hava İndeksi, dumanın havadaki izini gösteren partikül
+            ölçümü ve alevlerin tırmanabileceği yamaç bilgisi de yer alır.
           </p>
 
           <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">

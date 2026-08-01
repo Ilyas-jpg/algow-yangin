@@ -6,6 +6,7 @@ import type {
   FirePoint,
   FiresResponse,
   LayerToggles,
+  MsgResponse,
   WindGrid,
   WindPoint,
   WindowHours,
@@ -80,6 +81,7 @@ export default function App() {
     satellite: false,
     burnt: false,
     danger: false,
+    msg: true,
   });
   const [offline, setOffline] = useState(false);
   const geo = useGeolocation();
@@ -134,6 +136,13 @@ export default function App() {
     isLoading: firesLoading,
   } = useSWR<FiresResponse>(`/api/fires?days=${DAYS_PARAM[windowHours]}`, fetcher, {
     refreshInterval: 600_000,
+    keepPreviousData: true,
+    revalidateOnFocus: true,
+  });
+
+  // Meteosat: 15 dakikada bir yenilenir, VIIRS'in kör aralığını doldurur
+  const { data: msg } = useSWR<MsgResponse>("/api/meteosat", fetcher, {
+    refreshInterval: 420_000,
     keepPreviousData: true,
     revalidateOnFocus: true,
   });
@@ -291,6 +300,14 @@ export default function App() {
       dir: compassTr(bearingDeg(userLoc.lon, userLoc.lat, best.lon, best.lat)),
     };
   }, [userLoc, events]);
+
+  const msgFC = useMemo<GeoJSON.FeatureCollection>(
+    () =>
+      msg?.features?.length
+        ? { type: "FeatureCollection", features: msg.features }
+        : EMPTY_FC,
+    [msg]
+  );
 
   const ticks = useMemo(() => {
     const q = new Set<number>();
@@ -455,6 +472,15 @@ export default function App() {
           gösterilmiyor.
         </div>
       )}
+      {msg?.meta && layers.msg && (
+        <div className="relative z-20 border-b border-line bg-obsidian-2 px-3 py-1 text-[11px] text-ink-2">
+          <span className="font-mono text-warn">MSG 15dk</span> · Meteosat{" "}
+          {fmtClock(msg.meta.slot)} taraması: {msg.meta.count} tespit ·{" "}
+          <span className="text-ink-3">
+            konum kabadır (turuncu halka pikselin gerçek alanıdır)
+          </span>
+        </div>
+      )}
       {windError && (
         <div
           role="status"
@@ -477,6 +503,7 @@ export default function App() {
           conesFC={conesFC}
           coneLinesFC={coneLinesFC}
           trailFC={trailFC}
+          msgFC={msgFC}
           selectedId={selectedId}
           effT={effT}
           windowHours={windowHours}
