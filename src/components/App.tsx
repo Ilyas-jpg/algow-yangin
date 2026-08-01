@@ -13,7 +13,7 @@ import type {
 } from "@/lib/types";
 import { clusterEvents, statusOf } from "@/lib/cluster";
 import { buildCone, type ConeGeom } from "@/lib/wind";
-import { fmtClock, fmtNum } from "@/lib/format";
+import { fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
 import { bearingDeg, compassTr, havKm } from "@/lib/geo";
 import { useGeolocation } from "./useGeolocation";
 import { useAlerts } from "./useAlerts";
@@ -265,18 +265,26 @@ export default function App() {
     [cones]
   );
 
+  /**
+   * Seçili yangının geçmişi: nereden çıktı, hangi yolu izledi.
+   * Başlangıç noktası ve geçiş saatleri ayrı işaretlenir — "gideceği yer
+   * kadar geldiği yer de önemli".
+   */
   const trailFC = useMemo<GeoJSON.FeatureCollection>(() => {
     if (!selectedEvent) return EMPTY_FC;
     const passes = selectedEvent.passes.filter((p) => p.t <= effT);
     if (passes.length === 0) return EMPTY_FC;
+
     const features: GeoJSON.Feature[] = passes.map((p, i) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: {
         kind: "pass",
         order: passes.length === 1 ? 1 : i / (passes.length - 1),
+        label: fmtClock(p.t),
       },
     }));
+
     if (passes.length >= 2) {
       features.push({
         type: "Feature",
@@ -287,8 +295,37 @@ export default function App() {
         properties: { kind: "line" },
       });
     }
+
+    // İlk görüldüğü nokta — yangının çıkış yeri
+    const ilk = passes[0];
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [ilk.lon, ilk.lat] },
+      properties: {
+        kind: "start",
+        label: `İLK GÖRÜLEN · ${fmtDayTime(ilk.t)}`,
+      },
+    });
+
     return { type: "FeatureCollection", features };
   }, [selectedEvent, effT]);
+
+  /** Seçili yangının o ana kadar yaktığı alan (tüm geçmiş tespitleri). */
+  const burnedFC = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!selectedEvent || !fires) return EMPTY_FC;
+    const ids = new Set(
+      Object.entries(pointEvent)
+        .filter(([, ev]) => ev === selectedEvent.id)
+        .map(([pid]) => pid)
+    );
+    if (!ids.size) return EMPTY_FC;
+    return {
+      type: "FeatureCollection",
+      features: fires.features.filter(
+        (f) => ids.has(f.properties.id) && f.properties.dt <= effT
+      ),
+    };
+  }, [selectedEvent, fires, pointEvent, effT]);
 
   /** Konum açıkken: sana en yakın yangın ne kadar uzakta, hangi yönde. */
   const nearestToMe = useMemo(() => {
@@ -580,6 +617,7 @@ export default function App() {
           conesFC={conesFC}
           coneLinesFC={coneLinesFC}
           trailFC={trailFC}
+          burnedFC={burnedFC}
           msgFC={msgFC}
           selectedId={selectedId}
           effT={effT}

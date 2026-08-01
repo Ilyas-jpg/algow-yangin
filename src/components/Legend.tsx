@@ -20,6 +20,25 @@ export default function Legend() {
 
       <div className="mt-2.5 flex items-center gap-2">
         <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden className="shrink-0">
+          <circle cx="3" cy="6" r="2.6" fill="none" stroke="#fde68a" strokeWidth="1.4" />
+          <path d="M6 6 H13" stroke="#fde68a" strokeWidth="1.2" />
+          <path d="M11 3.6 L14 6 L11 8.4 Z" fill="#fde68a" />
+        </svg>
+        <span className="text-[10px] leading-tight text-ink-2">
+          Geldiği yol — halka ilk görüldüğü yer
+        </span>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden className="shrink-0">
+          <circle cx="5" cy="6" r="3.4" fill="#7f1d1d" fillOpacity="0.6" />
+          <circle cx="10" cy="6" r="3.4" fill="#7f1d1d" fillOpacity="0.6" />
+        </svg>
+        <span className="text-[10px] leading-tight text-ink-2">
+          Yanmış alan (seçili yangının geçmişi)
+        </span>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden className="shrink-0">
           <path d="M1 6 L15 1 L15 11 Z" fill="#3d5bff" fillOpacity="0.35" stroke="#5872ff" strokeWidth="0.8" />
         </svg>
         <span className="text-[10px] leading-tight text-ink-2">

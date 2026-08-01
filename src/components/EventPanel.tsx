@@ -3,7 +3,7 @@
 import type { FireEvent, WindPoint } from "@/lib/types";
 import type { ConeGeom } from "@/lib/wind";
 import { compassTr } from "@/lib/geo";
-import { angDiff, fmtAgo, fmtNum } from "@/lib/format";
+import { angDiff, fmtAgo, fmtDayTime, fmtNum } from "@/lib/format";
 import Sparkline from "./Sparkline";
 
 const STATUS_LABEL: Record<FireEvent["status"], { text: string; cls: string }> = {
@@ -309,15 +309,42 @@ function Assessment({
 }) {
   const lines: React.ReactNode[] = [];
 
+  // Geçmiş: nereden çıktı, ne kadar süredir yanıyor
+  const yanmaSaati = Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000);
+  lines.push(
+    <span key="gecmis">
+      İlk görülme:{" "}
+      <b className="font-mono font-normal text-ink">
+        {fmtDayTime(ev.firstSeen)}
+      </b>{" "}
+      · {ev.passes.length} uydu geçişi boyunca{" "}
+      {yanmaSaati < 24
+        ? `${fmtNum(yanmaSaati)} saattir`
+        : `${fmtNum(yanmaSaati / 24, 1)} gündür`}{" "}
+      izleniyor
+    </span>
+  );
+
   if (ev.drift) {
     const hours = Math.max(0.5, ev.drift.spanMs / 3600_000);
     lines.push(
       <span key="drift">
-        Gözlenen ilerleme:{" "}
+        Geldiği yön:{" "}
+        <b className="font-mono font-normal text-ink">
+          {compassTr((ev.drift.bearingDeg + 180) % 360)}&apos;dan
+        </b>{" "}
+        →{" "}
         <b className="font-mono font-normal text-ink">
           {compassTr(ev.drift.bearingDeg)} yönüne
         </b>{" "}
         {fmtNum(ev.drift.km, 1)} km / {fmtNum(hours)} sa
+      </span>
+    );
+  } else if (ev.passes.length >= 2) {
+    // Sürüklenme eşiğin altında kaldı — sessiz kalmak yerine sebebini söyle
+    lines.push(
+      <span key="nodrift" className="text-ink-3">
+        Belirgin bir yer değişimi yok: yangın ilk çıktığı bölgede genişliyor.
       </span>
     );
   }

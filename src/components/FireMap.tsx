@@ -60,6 +60,7 @@ interface FireMapProps {
   conesFC: GeoJSON.FeatureCollection;
   coneLinesFC: GeoJSON.FeatureCollection;
   trailFC: GeoJSON.FeatureCollection;
+  burnedFC: GeoJSON.FeatureCollection;
   msgFC: GeoJSON.FeatureCollection;
   selectedId: string | null;
   effT: number;
@@ -80,6 +81,7 @@ export default function FireMap({
   conesFC,
   coneLinesFC,
   trailFC,
+  burnedFC,
   msgFC,
   selectedId,
   effT,
@@ -239,6 +241,7 @@ export default function FireMap({
       map.addSource("cones", { type: "geojson", data: EMPTY_FC });
       map.addSource("cone-lines", { type: "geojson", data: EMPTY_FC });
       map.addSource("trail", { type: "geojson", data: EMPTY_FC });
+      map.addSource("burned", { type: "geojson", data: EMPTY_FC });
       map.addSource("me", { type: "geojson", data: EMPTY_FC });
       map.addSource("msg", { type: "geojson", data: EMPTY_FC });
 
@@ -327,24 +330,132 @@ export default function FireMap({
         },
       }, labelTop);
 
+      // ── Seçili yangının GEÇMİŞİ
+      // "Nereye gidecek" kadar "nereden geldi" de okunmalı. Katman sırası
+      // arkadan öne: yanmış alan → yol → oklar → geçiş halkaları → başlangıç.
+
+      // Yanmış alan: olayın o ana kadarki tüm tespitleri, kor rengi
+      map.addLayer({
+        id: "burned-area",
+        type: "circle",
+        source: "burned",
+        paint: {
+          "circle-radius": [
+            "interpolate", ["linear"], ["zoom"],
+            5, 3.5,
+            9, 9,
+            12, 20,
+          ],
+          "circle-color": "#7f1d1d",
+          "circle-opacity": 0.5,
+          "circle-blur": 0.45,
+        },
+      }, labelTop);
+
       map.addLayer({
         id: "trail-line",
         type: "line",
         source: "trail",
         filter: ["==", ["get", "kind"], "line"],
-        paint: { "line-color": "#fafafa", "line-width": 1.4, "line-opacity": 0.75 },
+        paint: {
+          "line-color": "#fde68a",
+          "line-width": 2,
+          "line-opacity": 0.85,
+        },
       }, labelTop);
+
+      // Yol üzerinde yön okları — hangi yöne yürüdüğü tek bakışta
+      map.addLayer({
+        id: "trail-arrows",
+        type: "symbol",
+        source: "trail",
+        filter: ["==", ["get", "kind"], "line"],
+        layout: {
+          "symbol-placement": "line",
+          "symbol-spacing": 60,
+          // "▶" basemap glyph setinde yok — hiç çizilmiyordu.
+          // ASCII ">" her fontta var ve aynı işi görüyor.
+          "text-field": ">",
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-size": 16,
+          "text-rotation-alignment": "map",
+          "text-keep-upright": false,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-color": "#fde68a",
+          "text-halo-color": "#0a0a0b",
+          "text-halo-width": 1.2,
+        },
+      }, labelTop);
+
       map.addLayer({
         id: "trail-passes",
         type: "circle",
         source: "trail",
         filter: ["==", ["get", "kind"], "pass"],
         paint: {
-          "circle-radius": ["+", 2.2, ["*", 3.4, ["get", "order"]]],
-          "circle-color": "#fafafa",
-          "circle-opacity": ["+", 0.35, ["*", 0.6, ["get", "order"]]],
-          "circle-stroke-color": "#0a0a0b",
-          "circle-stroke-width": 1,
+          "circle-radius": ["+", 3, ["*", 4, ["get", "order"]]],
+          "circle-color": "rgba(0,0,0,0)",
+          "circle-stroke-color": "#fde68a",
+          "circle-stroke-width": 1.6,
+          "circle-stroke-opacity": ["+", 0.4, ["*", 0.6, ["get", "order"]]],
+        },
+      }, labelTop);
+
+      // Geçiş saatleri — ilerlemenin ne kadar sürdüğü okunsun
+      map.addLayer({
+        id: "trail-times",
+        type: "symbol",
+        source: "trail",
+        filter: ["==", ["get", "kind"], "pass"],
+        minzoom: 7.5,
+        layout: {
+          "text-field": ["get", "label"],
+          "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+          "text-size": 10,
+          "text-offset": [0, -1.4],
+          "text-anchor": "bottom",
+          "text-allow-overlap": false,
+        },
+        paint: {
+          "text-color": "#fde68a",
+          "text-halo-color": "#0a0a0b",
+          "text-halo-width": 1.4,
+        },
+      }, labelTop);
+
+      // Başlangıç noktası — yangının çıktığı yer
+      map.addLayer({
+        id: "trail-start",
+        type: "circle",
+        source: "trail",
+        filter: ["==", ["get", "kind"], "start"],
+        paint: {
+          "circle-radius": 7,
+          "circle-color": "#0a0a0b",
+          "circle-stroke-color": "#fde68a",
+          "circle-stroke-width": 2.5,
+        },
+      }, labelTop);
+      map.addLayer({
+        id: "trail-start-label",
+        type: "symbol",
+        source: "trail",
+        filter: ["==", ["get", "kind"], "start"],
+        layout: {
+          "text-field": ["get", "label"],
+          "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+          "text-size": 10,
+          "text-offset": [0, 1.5],
+          "text-anchor": "top",
+          "text-allow-overlap": true,
+        },
+        paint: {
+          "text-color": "#fde68a",
+          "text-halo-color": "#0a0a0b",
+          "text-halo-width": 1.4,
         },
       }, labelTop);
 
@@ -478,7 +589,8 @@ export default function FireMap({
     const map = mapRef.current;
     if (!ready || !map) return;
     (map.getSource("trail") as GeoJSONSource | undefined)?.setData(trailFC);
-  }, [ready, trailFC]);
+    (map.getSource("burned") as GeoJSONSource | undefined)?.setData(burnedFC);
+  }, [ready, trailFC, burnedFC]);
 
   useEffect(() => {
     const map = mapRef.current;
