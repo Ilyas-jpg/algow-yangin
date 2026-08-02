@@ -203,8 +203,13 @@ export default function TopBar({
               {newest ? `son tespit ${fmtAgo(newest, now)}` : "veri bekleniyor"}
               {/* Kör aralık uyarısı: "tespit yok" ile "yangın bitti" aynı şey
                   değil. Geçiş pencereleri verinin kendisinden ölçülüyor. */}
+              {/* Yalnız geniş ekranda: dar ekranda başlığı sıkıştırıp
+                  üç satıra kırıyordu. Bilgi panelde de veriliyor. */}
               {pass?.inGap && pass.nextH !== null && (
-                <span className="text-warn"> · kör aralık, sonraki geçiş {fmtNext(pass.nextH)}</span>
+                <span className="hidden text-warn xl:inline">
+                  {" "}
+                  · kör aralık, sonraki geçiş {fmtNext(pass.nextH)}
+                </span>
               )}
             </span>
             <span className="sm:hidden">

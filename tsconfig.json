@@ -11,6 +11,9 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // Testler Node'un yerel koşucusuyla çalışıyor; Node ESM açık uzantı
+    // istediği için test dosyaları "./wind.ts" diye import ediyor.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

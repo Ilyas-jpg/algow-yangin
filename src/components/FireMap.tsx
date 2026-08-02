@@ -198,6 +198,13 @@ export default function FireMap({
       for (const id of ["place_city_r5", "place_city_dot_r7", "place_city_dot_z7"]) {
         if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
       }
+
+      // Altlığın il sınırları eksik ve kopuk (z6'da Sivas–Erzincan arasında
+      // hiç çizilmiyor). "Hangi ilde yanıyor" bu üründe birincil soru olduğu
+      // için sınırları kendi verimizden çiziyoruz; altlığınki kapatılıyor.
+      if (map.getLayer("boundary_state")) {
+        map.setLayoutProperty("boundary_state", "visibility", "none");
+      }
       for (const layer of map.getStyle().layers) {
         if (layer.type !== "symbol" || !layer.id.startsWith("place_")) continue;
         map.setPaintProperty(layer.id, "text-color", "#e7e7ea");
@@ -211,6 +218,33 @@ export default function FireMap({
       const labelTop = map
         .getStyle()
         .layers.find((l) => l.type === "symbol")?.id;
+
+      // ── İL SINIRLARI (Natural Earth 10m, kamu malı, sadeleştirilmiş ~119 KB)
+      // İlk boyamayı geciktirmemesi için harita oturduktan SONRA yükleniyor:
+      // sınırlar yönelim bilgisi, ilk kare için gerekli değil.
+      const ilSinirlariYukle = () => {
+        if (map.getSource("iller")) return;
+        map.addSource("iller", { type: "geojson", data: "/tr-iller.json" });
+        map.addLayer(
+          {
+            id: "iller",
+            type: "line",
+            source: "iller",
+            paint: {
+              "line-color": "#5b6472",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.5, 8, 0.9, 11, 1.3],
+              "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0, 5.5, 0.5, 9, 0.7],
+              "line-dasharray": [3, 2.5],
+            },
+          },
+          labelTop
+        );
+      };
+      const idle = (
+        window as unknown as { requestIdleCallback?: (cb: () => void) => void }
+      ).requestIdleCallback;
+      if (idle) idle(ilSinirlariYukle);
+      else setTimeout(ilSinirlariYukle, 1200);
 
       // ── TOPOĞRAFYA: Terrarium DEM'den tepe gölgeleme.
       // Yangın davranışının yarısı arazi; kullanıcı vadiyi ve sırtı görebilmeli.

@@ -235,6 +235,25 @@ export default function HakkindaPage() {
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
                   <b className="font-medium text-ink">
+                    İl sınırları artık eksiksiz.
+                  </b>{" "}
+                  Harita altlığının il sınırları kopuk geliyordu; bazı
+                  bölgelerde hiç çizilmiyordu. Sınırları kendi verimizden
+                  (Natural Earth, kamu malı) çiziyoruz — 81 il, her zumda
+                  tam. İlk açılışı geciktirmemesi için harita oturduktan
+                  sonra yükleniyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Yön hesabına regresyon testleri eklendi.
+                  </b>{" "}
+                  Koninin yönü artık çok katmanlı bir hesap; oradaki bir işaret
+                  hatası ekranda hiçbir şeyi kırmadan koniyi ters çevirebilirdi.
+                  25 test eklendi ve testlerin gerçekten yakaladığı, kasıtlı
+                  hata enjekte edilerek doğrulandı.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Kendi iddiamızı sınadık ve yanlış çıktı; düzelttik.
                   </b>{" "}
                   Halkaların &quot;%90&quot; eşiğini, ölçtüğümüz aynı veriyle
