@@ -227,6 +227,26 @@ export default function FireMap({
         map.setPaintProperty(layer.id, "text-halo-color", "#08090b");
         map.setPaintProperty(layer.id, "text-halo-width", 1.4);
         map.setPaintProperty(layer.id, "text-halo-blur", 0.4);
+        // Türkçe adlar: karo verisi name:tr taşıyor. Varsayılan "name" alanı
+        // yerel dili veriyordu — Kıbrıs'ta Yunanca (Λευκωσία), Yunanistan'da
+        // Yunanca, ülke adında İngilizce ("TURKEY"). Türkçe bir üründe
+        // Lefkoşa, Girne, Gazimağusa ve Türkiye yazmalı.
+        map.setLayoutProperty(layer.id, "text-field", [
+          "coalesce",
+          ["get", "name:tr"],
+          ["get", "name:latin"],
+          ["get", "name"],
+        ]);
+      }
+      // Ülke/eyalet etiketleri de aynı şekilde
+      for (const id of ["place_country_1", "place_country_2", "place_state", "place_continent"]) {
+        if (!map.getLayer(id)) continue;
+        map.setLayoutProperty(id, "text-field", [
+          "coalesce",
+          ["get", "name:tr"],
+          ["get", "name:latin"],
+          ["get", "name"],
+        ]);
       }
 
       // Veri katmanları basemap etiketlerinin ALTINA girer; yer adları
@@ -240,17 +260,39 @@ export default function FireMap({
       // sınırlar yönelim bilgisi, ilk kare için gerekli değil.
       const ilSinirlariYukle = () => {
         if (map.getSource("iller")) return;
-        map.addSource("iller", { type: "geojson", data: "/tr-iller.json" });
+        // ?v= ZORUNLU: service worker aynı-köken varlıkları kalıcı cache'liyor.
+        // Sürüm artmazsa dosyayı güncellediğimizde kullanıcı eskisini görür
+        // (KKTC sınırı eklendiğinde tam bunu yaşadık).
+        map.addSource("iller", { type: "geojson", data: "/tr-iller.json?v=2" });
         map.addLayer(
           {
             id: "iller",
             type: "line",
             source: "iller",
+            filter: ["!=", ["get", "tur"], "kktc"],
             paint: {
               "line-color": "#5b6472",
               "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.5, 8, 0.9, 11, 1.3],
               "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0, 5.5, 0.5, 9, 0.7],
               "line-dasharray": [3, 2.5],
+            },
+          },
+          labelTop
+        );
+        // KKTC kara sınırı — il sınırından farklı bir şey olduğu için ayrı
+        // çiziliyor: daha belirgin ve düşük zoom'dan itibaren görünür.
+        // Kaynak: Natural Earth (kamu malı), "Northern Cyprus" harita birimi.
+        map.addLayer(
+          {
+            id: "kktc-sinir",
+            type: "line",
+            source: "iller",
+            filter: ["==", ["get", "tur"], "kktc"],
+            paint: {
+              "line-color": "#8b94a3",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.9, 9, 1.6],
+              "line-opacity": 0.85,
+              "line-dasharray": [2.5, 1.8],
             },
           },
           labelTop
