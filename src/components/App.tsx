@@ -937,8 +937,10 @@ export default function App({ focus, embed = false }: AppProps = {}) {
       )}
       {layers.msg && msg?.meta && (
         <div className="relative z-20 border-b border-line bg-obsidian-2 px-3 py-1 text-[11px] text-ink-2">
-          <span className="font-mono text-warn">MSG 15dk</span> · Meteosat{" "}
-          {fmtClock(msg.meta.slot)} taraması:{" "}
+          <span className="font-mono text-warn">
+            {msg.meta.kaynak ?? "MSG"} {msg.meta.araDk ?? 15}dk
+          </span>{" "}
+          · Meteosat {fmtClock(msg.meta.slot)} taraması:{" "}
           {msg.meta.count > 0 ? (
             <>
               {msg.meta.count} tespit ·{" "}

@@ -51,15 +51,18 @@ export default function HakkindaPage() {
             Bu boşluğu kısmen kapatmak için ikinci bir kaynak daha kullanıyoruz:
             Avrupa&apos;nın hava uydusu <b>Meteosat</b>. Bu uydu dünyayla
             birlikte döndüğü için Türkiye&apos;yi sürekli görüyor ve{" "}
-            <b>on beş dakikada bir</b> tarıyor; veri bize yaklaşık yarım saat
-            içinde ulaşıyor. Bedeli çözünürlük: 36 bin kilometreden bakıldığı
-            için tek bir piksel ülkemiz üzerinde on beş ila yirmi beş
-            kilometrekarelik bir alana denk geliyor. Bu yüzden Meteosat
-            tespitlerini nokta olarak değil, o pikselin gerçek büyüklüğünü
-            gösteren turuncu bir halka olarak çiziyoruz — yangın o halkanın
-            içinde bir yerdedir, tam merkezinde değil. Küçük yangınları da
-            göremez. Kısacası Meteosat, hassas uyduların yerini almaz;
-            aralarındaki kör saatleri doldurur.
+            <b>on dakikada bir</b> tarıyor; veri bize yaklaşık yarım saat içinde
+            ulaşıyor. Ağustos 2026&apos;dan itibaren yeni nesil{" "}
+            <b>Meteosat Üçüncü Nesil</b> ürününü kullanıyoruz: ölçtüğümüzde tek
+            bir pikselin ülkemiz üzerindeki alanı{" "}
+            <b>yaklaşık iki kilometrekare</b> çıktı. Önceki nesilde bu on beş
+            ila yirmi beş kilometrekareydi; yani yangının yeri artık kabaca on
+            kat daha kesin. Yine de bu bir nokta değil bir alan olduğu için
+            tespitleri, pikselin gerçek büyüklüğünü gösteren turuncu bir halka
+            olarak çiziyoruz — yangın o halkanın içinde bir yerdedir, tam
+            merkezinde değil. Küçük yangınları hâlâ göremez. Kısacası Meteosat,
+            hassas uyduların yerini almaz; aralarındaki kör saatleri doldurur.
+            Yeni ürüne ulaşılamazsa kendiliğinden önceki nesle düşülür.
           </p>
           <p>
             Rüzgâr, nem, sıcaklık ve buhar basıncı açığı (VPD) değerleri

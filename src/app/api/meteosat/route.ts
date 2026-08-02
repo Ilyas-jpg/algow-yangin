@@ -43,7 +43,13 @@ export async function GET() {
     meta: {
       slot: latest.slot,
       count: latest.fires.length,
-      source: "EUMETSAT LSA SAF · MSG SEVIRI FRP-PIXEL",
+      kaynak: latest.kaynak,
+      /** dilim aralığı (dk) — MTG 10, MSG 15 */
+      araDk: latest.kaynak === "MTG" ? 10 : 15,
+      source:
+        latest.kaynak === "MTG"
+          ? "EUMETSAT LSA SAF · MTG FCI FRP-PIXEL"
+          : "EUMETSAT LSA SAF · MSG SEVIRI FRP-PIXEL",
     },
   };
 

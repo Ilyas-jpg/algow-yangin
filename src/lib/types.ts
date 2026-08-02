@@ -186,6 +186,13 @@ export interface MsgResponse {
     pixelKm2: number;
     dt: number;
   }>[];
-  meta: { slot: number; count: number; source: string } | null;
+  meta: {
+    slot: number;
+    count: number;
+    source: string;
+    /** MTG (piksel ~2 km², 10 dk) ya da yedek MSG (~20 km², 15 dk) */
+    kaynak?: "MTG" | "MSG";
+    araDk?: number;
+  } | null;
   error?: string;
 }

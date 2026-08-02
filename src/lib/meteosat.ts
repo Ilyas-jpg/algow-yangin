@@ -1,4 +1,5 @@
 import * as hdf5 from "jsfive";
+import { gunzipSync } from "node:zlib";
 
 /**
  * EUMETSAT LSA SAF — Meteosat (MSG/SEVIRI) FRP-PIXEL ürünü.
@@ -24,7 +25,12 @@ export interface MsgFire {
   dt: number;
 }
 
+/** Hangi uydu kuşağından geldi — arayüzde ayrı etiketleniyor */
+export type MeteosatKaynak = "MTG" | "MSG";
+
 const BASE = "https://datalsasaf.lsasvcs.ipma.pt/PRODUCTS/MSG/FRP-PIXEL/HDF5";
+const MTG_BASE =
+  "https://datalsasaf.lsasvcs.ipma.pt/PRODUCTS/MTG/MTFRPPixel/NATIVE";
 
 /** Türkiye ve yakın çevresi (FIRMS ile aynı kutu) */
 const TR = { west: 25.0, south: 34.8, east: 45.5, north: 42.6 };
@@ -121,19 +127,107 @@ export async function fetchSlot(d: Date): Promise<MsgFire[] | null> {
   return out;
 }
 
+/* ── MTG (Meteosat Üçüncü Nesil) ─────────────────────────────────────────
+ *
+ * ÖLÇÜLDÜ (2026-08-02, tek dilim, canlı veri):
+ *   Türkiye kutusunda piksel alanı → ortanca 2,05 km² (1,89–2,13)
+ *   MSG'nin aynı bölgedeki pikseli  → 14–25 km²
+ * Yani konum belirsizliği yaklaşık 8-10 kat küçülüyor. Üstelik dilim 10
+ * dakikada bir (MSG 15) ve ürün düz CSV.gz — MSG'nin HDF5'i için jsfive'a
+ * muhtaçtık, burada gerek yok.
+ *
+ * "NATIVE" klasör adı yanıltıcı: içerik EUMETSAT ikili formatı değil,
+ * gzip'li CSV.
+ */
+
+/** MTG dilimleri 10 dakikada bir */
+export function mtgSlotUrl(d: Date): string {
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const da = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mi = String(Math.floor(d.getUTCMinutes() / 10) * 10).padStart(2, "0");
+  return `${MTG_BASE}/${y}/${mo}/${da}/LSA-509_MTG_MTFRPPIXEL-ListProduct_MTG-FD_${y}${mo}${da}${hh}${mi}.csv.gz`;
+}
+
+export async function fetchMtgSlot(d: Date): Promise<MsgFire[] | null> {
+  const auth = authHeader();
+  if (!auth) return null;
+
+  let csv: string;
+  try {
+    const res = await fetch(mtgSlotUrl(d), {
+      headers: { Authorization: auth },
+      next: { revalidate: 420 },
+    });
+    if (!res.ok) return null;
+    csv = gunzipSync(Buffer.from(await res.arrayBuffer())).toString("utf8");
+  } catch {
+    return null;
+  }
+
+  const lines = csv.trim().split(/\r?\n/);
+  if (lines.length < 2) return null;
+  const h = lines[0].split(",");
+  const iLon = h.indexOf("LONGITUDE");
+  const iLat = h.indexOf("LATITUDE");
+  const iFrp = h.indexOf("FRP");
+  const iConf = h.indexOf("FIRE_CONFIDENCE");
+  const iPx = h.indexOf("PIXEL_SIZE");
+  const iAcq = h.indexOf("ACQTIME");
+  if (iLon < 0 || iLat < 0) return null;
+
+  const out: MsgFire[] = [];
+  let dt = d.getTime();
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split(",");
+    const lon = +c[iLon];
+    const lat = +c[iLat];
+    if (!isFinite(lon) || !isFinite(lat)) continue;
+    if (lat < TR.south || lat > TR.north || lon < TR.west || lon > TR.east) continue;
+
+    // ACQTIME: YYYYMMDDhhmmss
+    const a = c[iAcq];
+    if (a && a.length >= 12) {
+      const p = Date.parse(
+        `${a.slice(0, 4)}-${a.slice(4, 6)}-${a.slice(6, 8)}T${a.slice(8, 10)}:${a.slice(10, 12)}:00Z`
+      );
+      if (Number.isFinite(p)) dt = p;
+    }
+    out.push({
+      lon: Math.round(lon * 1e4) / 1e4,
+      lat: Math.round(lat * 1e4) / 1e4,
+      frp: Math.round((+c[iFrp] || 0) * 10) / 10,
+      // MTG güveni 0-1 aralığında; MSG yüzde veriyor, arayüz için eşitliyoruz
+      conf: Math.round((+c[iConf] || 0) * 100),
+      pixelKm2: Math.round((+c[iPx] || 0) * 10) / 10,
+      dt,
+    });
+  }
+  return out;
+}
+
 /**
- * Son yayınlanmış dilimi bulur. Ürün ~17 dakika gecikmeli geldiği için
- * geriye doğru birkaç dilim denenir.
+ * Son yayınlanmış dilimi bulur.
+ *
+ * Önce MTG denenir (piksel ~2 km², 10 dk), bulunamazsa MSG'ye düşülür
+ * (~20 km², 15 dk). MTG demonstration ürünü olduğu için yedek şart.
  */
 export async function fetchLatest(maxBack = 6): Promise<{
   fires: MsgFire[];
   slot: number;
+  kaynak: MeteosatKaynak;
 } | null> {
   const now = Date.now();
   for (let i = 1; i <= maxBack; i++) {
+    const d = new Date(now - i * 10 * 60_000);
+    const fires = await fetchMtgSlot(d);
+    if (fires) return { fires, slot: fires[0]?.dt ?? d.getTime(), kaynak: "MTG" };
+  }
+  for (let i = 1; i <= maxBack; i++) {
     const d = new Date(now - i * 15 * 60_000);
     const fires = await fetchSlot(d);
-    if (fires) return { fires, slot: fires[0]?.dt ?? d.getTime() };
+    if (fires) return { fires, slot: fires[0]?.dt ?? d.getTime(), kaynak: "MSG" };
   }
   return null;
 }
