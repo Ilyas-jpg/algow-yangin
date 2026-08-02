@@ -179,24 +179,40 @@ export default function FireMap({
       // Yerleşim adları: dark-matter bunları geç zoom'da açar (ilçe z8, köy z10).
       // Yangın haritasında "neresi yanıyor" okunabilmeli → erken göster ve
       // koyu zeminde okunur hale getir (halo + parlak metin).
-      // ⚠️ Eskiden şehir katmanlarının HEPSİ (r6, r5, dot_r7, dot_z7) aynı anda
-      // erken zoom'a çekiliyordu. Bunlar dark-matter'da birbirini DIŞLAYAN zoom
-      // aralıklarında; hepsi açılınca aynı şehir iki kez yazılıyordu
-      // ("Bursa/Bursa", "İzmir/İzmir"). Tek bir şehir katmanı öne alınır,
-      // diğer varyantlar kapatılır.
-      const PLACE_MINZOOM: Record<string, number> = {
-        place_capital_dot_z7: 4,
-        place_city_r6: 4.5,
-        place_town: 6,
-        place_villages: 8,
-        place_hamlet: 10,
-        place_suburbs: 11,
+      // ⚠️ Buradaki katman düzeni iki kez yanlış kuruldu, notu bırakıyorum:
+      //
+      // dark-matter'ın şehir katmanları İKİ farklı mantıkla ayrılıyor:
+      //   • RANK'a göre tamamlayıcı: place_city_r5 = rank 0–5 (büyük şehirler:
+      //     İzmir, Ankara), place_city_r6 = rank ≥6 (küçükler). Bunlar
+      //     ÇAKIŞMAZ — biri kapatılırsa o boydaki şehirlerin adı tamamen yok
+      //     olur. (r5 kapatılınca İzmir haritadan silinmişti.)
+      //   • Düşük zoom "dot" katmanları İÇ İÇE: dot_r2 (rank≤2) ⊂ dot_r4
+      //     (rank≤4) ⊂ dot_r7 (rank≤7). Zoom aralıkları örtüştüğü için aynı
+      //     şehir iki–üç kez yazılıyordu ("Bursa/Bursa"). Asıl çakışma buydu.
+      //
+      // Çözüm: dot katmanlarına ÖRTÜŞMEYEN aralıklar ver, rank katmanlarını
+      // erken zoom'a çek ama ikisini de aç.
+      const PLACE_ZOOM: Record<string, [number, number]> = {
+        // Açılış zoom'u 5.35 — ilk görünen ekranda şehir adı olmalı, o yüzden
+        // aralıklar dar tutuldu ve rank sırayla genişletiliyor.
+        place_city_dot_r2: [4, 4.6],     // yalnız en büyükler
+        place_city_dot_r4: [4.6, 5.2],   // biraz daha fazlası
+        place_city_dot_r7: [5.2, 6],     // açılış zoom'unda geniş kapsama
+        place_capital_dot_z7: [4, 6],    // başkent
+        place_city_r5: [6, 24],          // büyük şehirler (İzmir, Ankara…)
+        place_city_r6: [6.5, 24],        // küçük şehirler
+        place_town: [7, 24],
+        place_villages: [9, 24],
+        place_hamlet: [11, 24],
+        place_suburbs: [11, 24],
       };
-      for (const [id, mz] of Object.entries(PLACE_MINZOOM)) {
-        if (map.getLayer(id)) map.setLayerZoomRange(id, mz, 24);
+      for (const [id, [mn, mx]] of Object.entries(PLACE_ZOOM)) {
+        if (map.getLayer(id)) map.setLayerZoomRange(id, mn, mx);
       }
-      for (const id of ["place_city_r5", "place_city_dot_r7", "place_city_dot_z7"]) {
-        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
+      // dot_z7 (z7–8) filtresi "başkent olmayan her yer" — rank katmanlarıyla
+      // aynı şehirleri ikinci kez yazıyordu.
+      if (map.getLayer("place_city_dot_z7")) {
+        map.setLayoutProperty("place_city_dot_z7", "visibility", "none");
       }
 
       // Altlığın il sınırları eksik ve kopuk (z6'da Sivas–Erzincan arasında
