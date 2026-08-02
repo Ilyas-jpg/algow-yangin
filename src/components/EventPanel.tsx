@@ -13,13 +13,26 @@ const STATUS_LABEL: Record<FireEvent["status"], { text: string; cls: string }> =
   old: { text: "ESKİ", cls: "border-line text-ink-3" },
 };
 
+/**
+ * FRP eğilimi — GEÇMİŞİ anlatır, geleceği DEĞİL.
+ *
+ * Eskiden "büyüyor / geriliyor" yazıyordu ve bu bir tahmin gibi okunuyordu.
+ * 820 vaka / 210 yangınla sınandı (2026-08-02): rozetin ayırt etme gücü
+ * AUC 0,502 — yani yazı tura. "Büyüyor" etiketli yangın, "geriliyor"
+ * etiketliden daha fazla ilerlemiyor (ortanca 0,76 km vs 0,93 km); üstelik
+ * "büyüyor" diyenin FRP'si sonraki geçişte düşüyor (0,67×), "geriliyor"
+ * diyeninki yükseliyor (1,64×) — klasik ortalamaya dönüş.
+ *
+ * Bu yüzden etiket, olduğu şeye çevrildi: ölçülen ısının nasıl değiştiğinin
+ * TARİFİ. Alternatif kural (son iki geçişin oranı) da denendi, o da ayırmadı.
+ */
 function trendOf(ev: FireEvent): { text: string; cls: string } | null {
   if (ev.passes.length < 2) return null;
   const a = ev.passes[0].frp;
   const b = ev.passes[ev.passes.length - 1].frp;
-  if (b > a * 1.25) return { text: "büyüyor", cls: "text-danger" };
-  if (b < a * 0.75) return { text: "geriliyor", cls: "text-ok" };
-  return { text: "yatay", cls: "text-ink-2" };
+  if (b > a * 1.25) return { text: "ısı arttı", cls: "text-danger" };
+  if (b < a * 0.75) return { text: "ısı azaldı", cls: "text-ok" };
+  return { text: "ısı yatay", cls: "text-ink-2" };
 }
 
 interface EventPanelProps {
@@ -348,6 +361,19 @@ function Assessment({
     lines.push(
       <span key="fuel" className={f.uyari ? "text-warn" : undefined}>
         Arazi örtüsü: <b className="font-normal text-ink">{f.ad}</b> — {f.not}
+      </span>
+    );
+  }
+
+  // Isı eğilimi geleceği haber vermiyor (AUC 0,502); kullanıcı bunu
+  // büyüme tahmini sanmasın diye açıkça yazıyoruz.
+  const trend = ev.passes.length >= 2 ? trendOf(ev) : null;
+  if (trend && trend.text === "ısı arttı") {
+    lines.push(
+      <span key="isi" className="text-ink-3">
+        Isının artması yangının büyümeye devam edeceği anlamına gelmiyor:
+        ölçtüğümüzde bu işaret, sonraki ilerlemeyi <b className="font-normal">
+        yazı turadan iyi kestiremedi</b> ve yükselen ısı çoğu zaman geri düştü.
       </span>
     );
   }

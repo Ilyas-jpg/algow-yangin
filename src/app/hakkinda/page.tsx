@@ -245,6 +245,20 @@ export default function HakkindaPage() {
                 </li>
                 <li>
                   <b className="font-medium text-ink">
+                    &quot;Büyüyor&quot; etiketi sınandı, çürüdü, dili
+                    düzeltildi.
+                  </b>{" "}
+                  Yangın kartındaki eğilim etiketi bir tahmin gibi okunuyordu.
+                  820 ilerleme üzerinde ölçtük:{" "}
+                  <b className="font-medium">ayırt etme gücü yazı tura</b>{" "}
+                  (AUC 0,502). &quot;Büyüyor&quot; denen yangın,
+                  &quot;geriliyor&quot; denenden daha fazla ilerlemiyor; üstelik
+                  yükselen ısı çoğunlukla geri düşüyor. Etiket artık olduğu
+                  şeyi söylüyor: <b className="font-medium">ısı arttı / azaldı</b>{" "}
+                  — geçmişin tarifi, geleceğin tahmini değil.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Tanıtım görselleri yenilendi.
                   </b>{" "}
                   algow.net&apos;teki proje sayfasının ekran görüntüleri bu
