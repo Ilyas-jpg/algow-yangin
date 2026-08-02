@@ -385,6 +385,11 @@ export const en: Dict = {
       " The cover of {n} events could not be queried (CORINE does not cover the eastern provinces) — those are still in the list.",
   },
 
+  intro: {
+    alt: "What your hands set alight, your tears cannot put out. — Algow",
+    skip: "Skip",
+  },
+
   timeline: {
     play: "Play the time sequence",
     pause: "Pause",

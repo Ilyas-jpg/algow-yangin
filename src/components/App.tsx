@@ -28,6 +28,7 @@ import {
   havKm,
   metersPerPixel,
 } from "@/lib/geo";
+import Intro from "./Intro";
 import { useLocale, useT } from "./LocaleProvider";
 import MapLoading from "./MapLoading";
 import Rich from "./Rich";
@@ -830,6 +831,9 @@ export default function App({ focus, embed = false }: AppProps = {}) {
 
   return (
     <main className="fixed inset-0 flex flex-col bg-obsidian-1">
+      {/* Gömme görünümünde YOK: haber sitesinin sayfasında açılış perdesi
+          açmak misafirlikte perde çekmek olurdu. */}
+      {!embed && <Intro />}
       <h1 className="sr-only">
         {focus
           ? fill(t.province.srH1, { ad: focus.ad })

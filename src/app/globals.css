@@ -122,6 +122,131 @@ body {
   z-index: 5;
 }
 
+/* ── Açılış perdesi ──────────────────────────────────────────────
+   Netflix jeneriği grameri: ARKAPLAN SABİT, yazı kayarak öne gelir,
+   yerine oturur, sonra perde yavaşça silinip altındaki harita açılır.
+   Işıma/parlama YOK — hareketi tek başına yazı taşıyor.
+
+   Harita perdenin ALTINDA aynı anda kuruluyor: perde yalnızca görsel,
+   hiçbir şeyi geciktirmiyor. Süreler tek yerde (--intro-*) tanımlı ki
+   JS'teki kaldırma zamanlayıcısıyla ayrışmasın.                        */
+.intro {
+  --intro-in: 1.15s;
+  --intro-hold: 1.95s;
+  --intro-out: 0.9s;
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  background: #000;
+  animation: intro-out var(--intro-out) cubic-bezier(0.4, 0, 0.2, 1)
+    var(--intro-hold) forwards;
+}
+
+/* Arkaplan kımıldamıyor — kadraj kaymasın diye bilerek animasyonsuz. */
+.intro__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.intro__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Kenarları koyultur: hem söz okunur kalır hem perde silinirken
+   haritanın koyu zeminine dikişsiz geçer. */
+.intro__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(78% 62% at 50% 44%, transparent 0%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, transparent 26%);
+}
+
+/* Çıkışta yazı bir tık daha öne süzülür: perde silinirken hareket
+   durmadığı için harita "arkasından açılıyor" gibi okunuyor. */
+.intro__icerik {
+  position: absolute;
+  inset: 0;
+  animation: intro-suzul var(--intro-out) cubic-bezier(0.4, 0, 0.2, 1)
+    var(--intro-hold) forwards;
+  will-change: transform;
+}
+
+/* Yerleşim orijinal kompozisyondan: 1920×1080 karede söz dikey %46'da,
+   wordmark en altta (%92) duruyordu. Tam kareyi tek görsel olarak
+   basmak yerine iki öğe oransal yerleştiriliyor — çünkü telefonda
+   (trafiğin %87'si) `cover` sözün kenarlarını kesiyor, `contain` ise
+   okunamayacak kadar küçültüyordu. Tasarım korunuyor, ölçek uyuyor. */
+.intro__soz,
+.intro__mark {
+  position: absolute;
+  left: 50%;
+  height: auto;
+  opacity: 0;
+  animation: intro-gir var(--intro-in) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.intro__soz {
+  top: 46%;
+  width: min(80vw, 660px);
+  translate: -50% -50%;
+  animation-delay: 0.16s;
+}
+.intro__mark {
+  bottom: 8%;
+  width: clamp(92px, 11vw, 124px);
+  translate: -50% 0;
+  animation-delay: 0.52s;
+}
+
+.intro__gec {
+  position: absolute;
+  right: clamp(14px, 3vw, 26px);
+  bottom: clamp(14px, 3vh, 24px);
+  padding: 6px 12px;
+  border: 1px solid rgba(250, 250, 250, 0.28);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e8e8ea;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  animation: intro-gir 0.5s ease 0.9s forwards;
+}
+.intro__gec:hover {
+  border-color: rgba(250, 250, 250, 0.6);
+}
+
+/* Kayarak öne gelme: aşağıdan yukarı süzülür ve hafifçe büyür.
+   Ortalama `translate` ile yapıldığı için hareket `transform`da —
+   ikisi ayrı özellik, birbirini ezmiyor. */
+@keyframes intro-gir {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes intro-suzul {
+  to {
+    transform: translateY(-14px) scale(1.05);
+  }
+}
+@keyframes intro-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
 /* Zaman çizgisi kaydırıcı */
 input[type="range"].scrub {
   -webkit-appearance: none;

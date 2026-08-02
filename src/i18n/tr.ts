@@ -373,6 +373,12 @@ export const tr = {
       " {n} olayın örtüsü sorulamadı (CORINE doğu illerini kapsamıyor) — onlar listede duruyor.",
   },
 
+  intro: {
+    /** Türkçe söz dizilmiş görselden geliyor; bu metin onun karşılığı */
+    alt: "Ellerinle yaktığını, gözyaşlarınla söndüremezsin. — Algow",
+    skip: "Geç",
+  },
+
   timeline: {
     play: "Zaman akışını oynat",
     pause: "Durdur",
