@@ -231,6 +231,30 @@ export default function HakkindaPage() {
 
           <div className="space-y-4 text-sm">
             <div>
+              <p className="font-medium text-ink">2 Ağustos 2026 — Kıbrıs ve görseller</p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Yer adları Türkçeleştirildi, KKTC sınırı eklendi.
+                  </b>{" "}
+                  Harita Türkçe bir ürün olduğu hâlde adları yerel dilde
+                  gösteriyordu — Kıbrıs&apos;ta Yunanca, ülke adında İngilizce.
+                  Artık Lefkoşa, Girne, Gazimağusa, Larnaka, Baf ve Türkiye
+                  yazıyor. KKTC kara sınırı da çizilmeye başlandı; ada tek parça
+                  görünüyordu.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Tanıtım görselleri yenilendi.
+                  </b>{" "}
+                  algow.net&apos;teki proje sayfasının ekran görüntüleri bu
+                  sürüme göre değiştirildi; yeni erişim şekli, arazi katmanı ve
+                  dürüstlük uyarıları görünüyor. Önceki sürümün görselleri
+                  silinmedi, arşivde erişilebilir duruyor.
+                </li>
+              </ul>
+            </div>
+            <div>
               <p className="font-medium text-ink">2 Ağustos 2026 — denetim</p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
