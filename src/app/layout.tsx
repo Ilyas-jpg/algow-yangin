@@ -27,11 +27,20 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Algow Yangın", statusBarStyle: "black-translucent" },
+  /**
+   * Google arama sonucunda ikon çıkması için iki şart var ve ikisi de eksikti:
+   * ① `/favicon.ico` erişilebilir olmalı (404 veriyordu — artık app/favicon.ico)
+   * ② ikon 48px'in katı olmalı; 32/48 sınırdaydı, 96/192 eklendi.
+   * Google faviconu uzun süre önbellekliyor, düzelme bir sonraki taramada görünür.
+   */
   icons: {
     icon: [
-      { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/brand/favicon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/brand/favicon-96.png", sizes: "96x96", type: "image/png" },
+      { url: "/brand/favicon-192.png", sizes: "192x192", type: "image/png" },
     ],
+    shortcut: "/favicon.ico",
     apple: "/brand/apple-touch-icon.png",
   },
 };
