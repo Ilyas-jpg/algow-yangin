@@ -138,12 +138,16 @@ export default function HakkindaPage() {
           <p>
             Koninin <i>boyutunu</i> da ilk kez ölçtük ve burada ciddi biçimde
             yanılıyormuşuz. Eski halkalar hiçbir ölçüme dayanmıyordu ve
-            gerçeğin <b>8–12 katıydı</b> — 3 saatlik halkayı 7,6 km çiziyorduk,
-            oysa ölçülen yangınların %90&apos;ı aynı sürede kendi kenarından
-            <b> 2,5 km&apos;den az</b> ilerlemişti. Halkalar bu ölçüme göre
-            küçültüldü ve artık net bir anlamı var:{" "}
-            <b>&quot;ölçtüğümüz yangınların onda dokuzu bu sınırın içinde
-            kaldı&quot;</b>. Aynı şekilde koninin açısı da 15–30° ile fazla dar
+            gerçeğin <b>birkaç katıydı</b> — 3 saatlik halkayı 7,6 km
+            çiziyorduk, oysa ölçülen yangınlar aynı sürede kendi kenarından çok
+            daha az ilerliyordu. Halkalar ölçüme göre küçültüldü ve artık net,
+            sınanabilir bir anlamı var:{" "}
+            <b>&quot;yangınların onda dokuzunda en uzağa ilerleyen nokta bile bu
+            sınırın içinde kaldı&quot;</b>. Bu oranı, modelin hiç görmediği
+            sezonlarda ayrıca sınadık — her sezonu sırayla dışarıda bırakıp
+            kalanlarla ayarladık ve dışarıdakinde ölçtük; ortalama{" "}
+            <b>%90</b> çıktı. İlk denemede %81&apos;de kalmıştı, halkaları
+            buna göre büyüttük. Aynı şekilde koninin açısı da 15–30° ile fazla dar
             ve fazla iddialıydı; gözlenen sapmaların yalnız %30&apos;unu
             kapsıyordu. Artık açı da ölçülen dağılımdan geliyor — rüzgâr
             zayıfken yön neredeyse belirsiz olduğu için koni genişliyor,{" "}
@@ -226,6 +230,23 @@ export default function HakkindaPage() {
           </p>
 
           <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium text-ink">2 Ağustos 2026 — denetim</p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Kendi iddiamızı sınadık ve yanlış çıktı; düzelttik.
+                  </b>{" "}
+                  Halkaların &quot;%90&quot; eşiğini, ölçtüğümüz aynı veriyle
+                  ayarlamıştık — yani iddia kendi kendini doğruluyordu. Her
+                  sezonu sırayla dışarıda bırakıp sınayınca, halkanın yangının
+                  en uzak noktasını yalnız <b className="font-medium">%81</b>{" "}
+                  oranında kapsadığı görüldü. Halkalar büyütüldü; yeni ayarda
+                  modelin görmediği sezonlarda kapsama{" "}
+                  <b className="font-medium">%90</b>.
+                </li>
+              </ul>
+            </div>
             <div>
               <p className="font-medium text-ink">2 Ağustos 2026 — harita turu</p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">

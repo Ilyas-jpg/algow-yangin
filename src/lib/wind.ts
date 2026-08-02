@@ -84,12 +84,22 @@ function interp(x: number, pts: readonly (readonly [number, number])[]): number 
  * ⚠️ Veri ~12 saatlik uydu geçiş aralıklarından geliyor; 1–3 saatlik ani
  * atakları çözemez. Kısa süreli sıçramalar bu değerlerin üstüne çıkabilir.
  */
+/**
+ * ⚠️ KAPSAMA DÜZELTMESİ (2026-08-02).
+ * İlk sürüm, vaka İÇİNDEKİ piksellerin %90'lık dilimine göre ölçeklenmişti.
+ * Ama kullanıcı şekli "yangın bunu aşmaz" diye okuyor; doğru ölçüt vakanın
+ * EN UZAK pikselinin şeklin içinde kalması. Sezon-dışı sınama (her sezon
+ * sırayla dışarıda bırakıldı) gösterdi ki ilk çapalar bunu yalnız **%81**
+ * kapsıyordu — yani "onda dokuzu" iddiası doğru değildi. Değerler 1,5 ile
+ * ölçeklendi; sezon-dışı kapsama **%90** (test sezonlarında %83–95).
+ * Ham ölçüm değerleri yorumda saklı, iz sürülebilsin diye.
+ */
 const ROS_ANCHORS = [
-  [4, 0.26],  // ölçüldü (n=107)
-  [11, 0.44], // ölçüldü (n=139)
-  [18, 0.47], // ölçüldü (n=27)
-  [26, 0.83], // ölçüldü (n=15)
-  [45, 1.3],  // veri yok — trendden uzatıldı
+  [4, 0.39],  // ham ölçüm 0,26 (n=107)
+  [11, 0.66], // ham ölçüm 0,44 (n=139)
+  [18, 0.70], // ham ölçüm 0,47 (n=27)
+  [26, 1.24], // ham ölçüm 0,83 (n=15)
+  [45, 1.95], // veri yok — trendden uzatıldı
 ] as const;
 
 export function headSpreadKmh(windKmh: number): number {

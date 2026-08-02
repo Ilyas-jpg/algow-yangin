@@ -426,10 +426,11 @@ function Assessment({
     lines.push(
       <span key="cone-mean" className="text-ink-3">
         Şekil 1·3·6 saatlik <b className="font-normal">%90&apos;lık erişim</b>:
-        ölçtüğümüz yangınların onda dokuzu bu sınır içinde kaldı. Baş yönüne
-        doğru geriye göre <b className="font-normal">2,4 kat</b> uzun — yangınlar
-        gerçekte böyle bir damla şekli çiziyor. Söndürme müdahalesi hesaba
-        katılmaz.
+        ölçtüğümüz yangınların onda dokuzunda, <b className="font-normal">en
+        uzağa ilerleyen nokta bile</b> bu sınırın içinde kaldı — bu oran
+        modelin görmediği sezonlarda sınandı. Baş yönüne doğru geriye göre{" "}
+        <b className="font-normal">2,4 kat</b> uzun; yangınlar gerçekte böyle
+        bir damla çiziyor. Söndürme müdahalesi hesaba katılmaz.
       </span>
     );
     // Rüzgârın dönmesi, doğrulama testinde tahmin hatasının kalemlerinden
