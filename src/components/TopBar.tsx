@@ -82,9 +82,11 @@ export default function TopBar({
             className="h-[17px] w-auto shrink-0"
           />
           <span className="h-4 w-px shrink-0 bg-line" aria-hidden />
-          <span className="text-[15px] font-medium tracking-tight">Yangın</span>
-          <span className="hidden text-xs text-ink-3 lg:inline">
-            Türkiye yangın izleme ve yön tahmini
+          {/* Alt başlık kaldırıldı: katman sayısı artınca üst barı sıkıştırıp
+              başlığı üç satıra kırıyordu. Bilgi zaten sayfa başlığında ve
+              /hakkinda'da var. */}
+          <span className="whitespace-nowrap text-[15px] font-medium tracking-tight">
+            Yangın
           </span>
         </div>
 
