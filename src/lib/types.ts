@@ -62,6 +62,11 @@ export interface FireEvent {
   place: string;
   /** En yakın merkezin ili — il sayfası filtresi ve arama için */
   il: string;
+  /**
+   * Burada sürekli bir ısı kaynağı var (rafineri, çelik, santral, gaz bacası).
+   * Yangın değil — "aktif yangın" sayısından düşülür ama haritada kalır.
+   */
+  fixedSource: { days: number; certain: boolean } | null;
   /** Türkiye dışında (komşu ülke) — listede geri sıraya alınır */
   abroad: boolean;
   firstSeen: number;

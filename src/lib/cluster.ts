@@ -1,5 +1,6 @@
 import { bearingDeg, havKm, toRad } from "./geo";
 import { nearestPlace } from "./places";
+import { fixedSourceAt } from "./fixed-sources";
 import type { FirePoint, FireEvent, PassGroup } from "./types";
 
 const EPS_KM = 3;
@@ -164,6 +165,7 @@ export function clusterEvents(points: FirePoint[]): ClusterResult {
       lat: last.lat,
       place: where.label,
       il: where.il,
+      fixedSource: fixedSourceAt(last.lon, last.lat),
       abroad: where.abroad,
       firstSeen: first.t,
       lastSeen: pts[pts.length - 1].dt,

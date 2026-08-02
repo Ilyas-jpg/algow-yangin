@@ -130,6 +130,7 @@ function sahteOlay(): FireEvent {
     lat: 39,
     place: "test",
     il: "Eskişehir",
+    fixedSource: null,
     abroad: false,
     firstSeen: t - 3600_000,
     lastSeen: t,

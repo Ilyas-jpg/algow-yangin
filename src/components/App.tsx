@@ -34,6 +34,7 @@ import AlertPanel from "./AlertPanel";
 import dynamic from "next/dynamic";
 import TopBar from "./TopBar";
 import EmbedBar from "./EmbedBar";
+import ProvinceSummary from "./ProvinceSummary";
 import EventPanel from "./EventPanel";
 import TimelineBar from "./TimelineBar";
 import Legend from "./Legend";
@@ -90,9 +91,24 @@ function isThinConnection(): boolean {
 const DAYS_PARAM: Record<WindowHours, string> = { 24: "1", 48: "2", 120: "5" };
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
+export interface ProvinceOzet {
+  /** sabit ısı kaynakları düşülmüş tespit sayısı */
+  yanginTespit: number;
+  gecmisOrtalama: number;
+  sabitTespit: number;
+  enYuksek: { frp: number; tarih: string; yer: string } | null;
+  yil: number;
+}
+
 export interface AppProps {
   /** İl sayfasından gelindiğinde harita bu ile odaklanır. */
-  focus?: { ad: string; lat: number; lon: number };
+  focus?: {
+    ad: string;
+    lat: number;
+    lon: number;
+    /** o ilin sezon özeti — panelde görünür, sayfada da metin olarak var */
+    ozet?: ProvinceOzet | null;
+  };
   /**
    * Gömme görünümü: yan panel, zaman çizgisi, uyarılar ve konum kapalı.
    * Haber sitesine iframe ile alınan sade harita.
@@ -305,12 +321,14 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     // Koni yurt dışı bayrağına göre kısıtlanmaz: sınır boyunda en yakın
     // yerleşim karşı tarafta kalabiliyor (Akçakale, Nusaybin, Silopi...),
     // o yüzden gerçek bir TR yangını yanlışlıkla konisiz kalmasın.
+    // Sabit ısı kaynağına koni çizilmez: yayılacak bir yangın yok.
     const candidates = shownEvents
-      .filter((e) => e.status === "active")
+      .filter((e) => e.status === "active" && !e.fixedSource)
       .slice(0, 14);
     if (
       selectedEvent &&
       selectedEvent.status !== "old" &&
+      !selectedEvent.fixedSource &&
       !candidates.some((c) => c.id === selectedEvent.id)
     ) {
       candidates.push(selectedEvent);
@@ -1036,8 +1054,11 @@ export default function App({ focus, embed = false }: AppProps = {}) {
 
         {/* Masaüstü sol panel */}
         {!embed && (
-          <aside className="absolute top-0 bottom-0 left-0 z-10 hidden w-[340px] border-r border-line bg-obsidian-1/95 md:block">
-            {panel}
+          <aside className="absolute top-0 bottom-0 left-0 z-10 hidden w-[340px] flex-col border-r border-line bg-obsidian-1/95 md:flex">
+            {focus?.ozet && (
+              <ProvinceSummary ad={focus.ad} ozet={focus.ozet} />
+            )}
+            <div className="min-h-0 flex-1">{panel}</div>
           </aside>
         )}
 
@@ -1116,7 +1137,8 @@ export default function App({ focus, embed = false }: AppProps = {}) {
                 <span className="font-mono text-danger">
                   {
                     shownEvents.filter(
-                      (e) => e.status === "active" && !e.abroad
+                      (e) =>
+                        e.status === "active" && !e.abroad && !e.fixedSource
                     ).length
                   }
                 </span>{" "}

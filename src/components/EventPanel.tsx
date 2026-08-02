@@ -83,9 +83,12 @@ export default function EventPanel(props: EventPanelProps) {
   const { events, now, hideFarm, onHideFarm, hiddenFarmCount, fuelLoading } =
     props;
   const [q, setQ] = useState("");
+  // Sabit ısı kaynakları (rafineri, çelik, santral) yangın değil — sayacı
+  // şişiriyorlardı. Haritada kalıyorlar ama "aktif yangın" sayılmıyorlar.
   const activeCount = events.filter(
-    (e) => e.status === "active" && !e.abroad
+    (e) => e.status === "active" && !e.abroad && !e.fixedSource
   ).length;
+  const fixedCount = events.filter((e) => e.fixedSource && !e.abroad).length;
   const abroadCount = events.filter((e) => e.abroad).length;
 
   /**
@@ -111,6 +114,7 @@ export default function EventPanel(props: EventPanelProps) {
         >
           <span className="text-danger">{activeCount}</span> aktif ·{" "}
           {events.length - abroadCount} olay
+          {fixedCount > 0 && ` · ${fixedCount} sabit kaynak`}
           {abroadCount > 0 && ` · +${abroadCount} sınır ötesi`}
         </span>
       </div>
@@ -217,9 +221,11 @@ function EventCard({
             </span>
           )}
           <span
-            className={`shrink-0 rounded border px-1.5 py-px font-mono text-[9px] tracking-wide ${status.cls}`}
+            className={`shrink-0 rounded border px-1.5 py-px font-mono text-[9px] tracking-wide ${
+              ev.fixedSource ? "border-ink-3/50 text-ink-3" : status.cls
+            }`}
           >
-            {status.text}
+            {ev.fixedSource ? "SABİT KAYNAK" : status.text}
           </span>
         </div>
         <div className="mt-1 font-mono text-[11px] text-ink-2">
@@ -438,6 +444,29 @@ function Assessment({
   pass?: PassInfo;
 }) {
   const lines: React.ReactNode[] = [];
+
+  /**
+   * Sabit ısı kaynağı — gizlemiyoruz, açıklıyoruz.
+   * Kullanıcı haritada her gün aynı yerde duran sarı noktayı görüyor ve
+   * "burası neden hep yanıyor" diye soruyor. Cevabı burada veriyoruz.
+   */
+  if (ev.fixedSource) {
+    lines.push(
+      <span key="sabit" className="text-ink-3">
+        <b className="font-normal text-ink">Bu bir yangın değil.</b> Bu nokta bu
+        sezon{" "}
+        <b className="font-mono font-normal text-ink">
+          {ev.fixedSource.days} ayrı günde
+        </b>{" "}
+        sıcak göründü. Uydu alev değil <b className="font-normal">ısı</b>{" "}
+        görür;
+        rafineri, demir-çelik tesisi, enerji santrali ve gaz bacası her gün
+        sıcaktır. Karşılaştırma için: Türkiye&apos;nin ölçülmüş en uzun orman
+        yangını 16,5 gün sürdü. Bu kayıtlar haritada duruyor ama{" "}
+        <b className="font-normal">aktif yangın sayısına katılmıyor</b>.
+      </span>
+    );
+  }
 
   // "Kaç hektar yandı" haberin ilk sorusu. Ölçebildiğimiz şey yanan alan
   // değil, uydunun ısı gördüğü alan — adı da öyle konuyor.
