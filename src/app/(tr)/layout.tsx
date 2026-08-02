@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
 import { Analytics } from "@vercel/analytics/next";
+import { getDict } from "@/i18n";
+import { HTML_LANG, OG_LOCALE } from "@/lib/i18n";
 
-// Zayıf bağlantıda her KB önemli: tek aile, yalnız kullanılan ağırlıklar.
-// Veri okumalarının mono'su sistem yazı tipinden gelir (0 KB).
+/**
+ * Türkçe kök düzeni.
+ *
+ * İki ayrı kök düzen var ((tr) ve (en)) çünkü `<html lang>` sunucudan doğru
+ * gelmek zorunda: ekran okuyucu telaffuzu ve arama motoru dil sinyali buna
+ * bakıyor. Route grubu adresi değiştirmez — Türkçe yollar kökte kalır.
+ */
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500"],
@@ -13,20 +20,24 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const t = getDict("tr");
+
 export const metadata: Metadata = {
-  title: "Algow Yangın — Türkiye canlı yangın haritası ve yön tahmini",
-  description:
-    "NASA FIRMS uydu tespitleri ve Open-Meteo rüzgar verisiyle Türkiye'deki orman yangınlarını harita üzerinde izleyin; geçmiş ilerleyişi ve rüzgara göre tahmini yönelimi görün. Uydu ısı anomalisi tespit eder, her nokta yangın olmayabilir. Toplum ve doğa yararına, ücretsiz.",
+  title: t.meta.homeTitle,
+  description: t.meta.homeDescription,
   metadataBase: new URL("https://yangin.algow.net"),
   openGraph: {
-    title: "Algow Yangın — Türkiye canlı yangın haritası",
-    description:
-      "Uydu tespitleri, rüzgar akışı ve yön tahmini tek haritada. NASA FIRMS + Open-Meteo açık verisiyle.",
-    locale: "tr_TR",
+    title: t.meta.homeOgTitle,
+    description: t.meta.homeOgDescription,
+    locale: OG_LOCALE.tr,
     type: "website",
   },
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Algow Yangın", statusBarStyle: "black-translucent" },
+  appleWebApp: {
+    capable: true,
+    title: t.meta.appTitle,
+    statusBarStyle: "black-translucent",
+  },
   /**
    * Google arama sonucunda ikon çıkması için iki şart var ve ikisi de eksikti:
    * ① `/favicon.ico` erişilebilir olmalı (404 veriyordu — artık app/favicon.ico)
@@ -53,11 +64,11 @@ export const viewport: Viewport = {
   // (WCAG 1.4.4). Harita kendi jestlerini zaten yönetiyor.
 };
 
-export default function RootLayout({
+export default function TrRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="tr">
+    <html lang={HTML_LANG.tr}>
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}
         <ServiceWorker />

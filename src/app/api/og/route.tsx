@@ -2,8 +2,11 @@ import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { lookupEvent, normalizeDays } from "@/lib/event-lookup";
 import { EV_PARAM, WIN_PARAM } from "@/lib/share";
+import { LANG_PARAM } from "@/lib/share-metadata";
 import { fmtNum } from "@/lib/format";
-import { compassTr } from "@/lib/geo";
+import { compass } from "@/lib/geo";
+import { fill, type Locale } from "@/lib/i18n";
+import { getDict } from "@/i18n";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -29,18 +32,22 @@ export async function GET(request: NextRequest) {
   const days = normalizeDays(sp.get(WIN_PARAM) ?? undefined);
   const ev = id ? await lookupEvent(id, days) : null;
 
+  // Kart dili paylaşan sayfadan gelir; bilinmeyen değer Türkçeye düşer.
+  const locale: Locale = sp.get(LANG_PARAM) === "en" ? "en" : "tr";
+  const t = getDict(locale);
+
   const durum =
     ev?.status === "active"
-      ? { t: "AKTİF", c: DANGER }
+      ? { t: t.og.status.active, c: DANGER }
       : ev?.status === "waning"
-        ? { t: "SÖNÜYOR", c: "#d9a441" }
-        : { t: "ESKİ", c: INK_3 };
+        ? { t: t.og.status.waning, c: "#d9a441" }
+        : { t: t.og.status.old, c: INK_3 };
 
   const saat = ev ? Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000) : 0;
   const sure = ev
     ? saat < 24
-      ? `${fmtNum(saat)} saattir izleniyor`
-      : `${fmtNum(saat / 24, 1)} gündür izleniyor`
+      ? fill(t.shareMeta.spanHours, { n: fmtNum(saat, 0, locale) })
+      : fill(t.shareMeta.spanDays, { n: fmtNum(saat / 24, 1, locale) })
     : "";
 
   return new ImageResponse(
@@ -77,7 +84,7 @@ export async function GET(request: NextRequest) {
             }}
           />
           <div style={{ display: "flex", fontSize: 26, color: INK_2 }}>
-            Yangın
+            {t.common.brand}
           </div>
           {ev && (
             <div
@@ -105,25 +112,28 @@ export async function GET(request: NextRequest) {
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 20 }}>
               <div style={{ display: "flex", fontSize: 60, color: DANGER }}>
-                {fmtNum(ev.frpLast)} MW
+                {fmtNum(ev.frpLast, 0, locale)} MW
               </div>
               <div style={{ display: "flex", fontSize: 30, color: INK_2 }}>
-                {`${ev.count} uydu tespiti · ${sure}`}
+                {fill(t.og.detections, { n: ev.count, span: sure })}
               </div>
             </div>
             {ev.drift && (
               <div style={{ display: "flex", fontSize: 30, color: INK_2 }}>
-                {`Gözlenen ilerleme: ${compassTr(ev.drift.bearingDeg)} yönüne ${fmtNum(ev.drift.km, 1)} km`}
+                {fill(t.og.drift, {
+                  dir: compass(ev.drift.bearingDeg, locale),
+                  km: fmtNum(ev.drift.km, 1, locale),
+                })}
               </div>
             )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", fontSize: 68, lineHeight: 1.1 }}>
-              Türkiye canlı yangın haritası
+              {t.og.fallbackTitle}
             </div>
             <div style={{ display: "flex", fontSize: 32, color: INK_2 }}>
-              Uydu tespitleri, rüzgâr akışı ve yön tahmini tek haritada
+              {t.og.fallbackSub}
             </div>
           </div>
         )}
@@ -141,7 +151,7 @@ export async function GET(request: NextRequest) {
         >
           <div style={{ display: "flex", color: COBALT }}>yangin.algow.net</div>
           <div style={{ display: "flex", marginLeft: "auto" }}>
-            NASA FIRMS · resmi uyarı değildir · 112 / 177
+            {t.og.footer}
           </div>
         </div>
       </div>

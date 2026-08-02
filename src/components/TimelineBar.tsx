@@ -1,6 +1,7 @@
 "use client";
 
 import { fmtDayTime } from "@/lib/format";
+import { useLocale, useT } from "./LocaleProvider";
 
 interface TimelineBarProps {
   /**
@@ -31,6 +32,8 @@ export default function TimelineBar({
   onPlayToggle,
   className = "",
 }: TimelineBarProps) {
+  const t = useT();
+  const locale = useLocale();
   const min = now - windowHours * 3600_000;
   const span = now - min;
 
@@ -40,7 +43,7 @@ export default function TimelineBar({
     >
       <button
         onClick={onPlayToggle}
-        aria-label={playing ? "Durdur" : "Zaman akışını oynat"}
+        aria-label={playing ? t.timeline.pause : t.timeline.play}
         className="grid h-6 w-6 shrink-0 place-items-center rounded border border-line text-ink-2 transition-colors hover:text-ink active:scale-[0.96]"
       >
         {playing ? (
@@ -56,7 +59,7 @@ export default function TimelineBar({
       </button>
 
       <span className="w-[86px] shrink-0 font-mono text-[10px] text-ink-2">
-        {fmtDayTime(effT)}
+        {fmtDayTime(effT, locale)}
       </span>
 
       <div className="relative min-w-0 flex-1">
@@ -77,8 +80,8 @@ export default function TimelineBar({
           step={60_000}
           value={effT}
           onChange={(e) => onScrub(Number(e.target.value))}
-          aria-label="Zaman kaydırıcısı"
-          aria-valuetext={fmtDayTime(effT)}
+          aria-label={t.timeline.scrubAria}
+          aria-valuetext={fmtDayTime(effT, locale)}
         />
       </div>
 
@@ -90,7 +93,7 @@ export default function TimelineBar({
             : "border-line text-ink-3 hover:text-ink"
         }`}
       >
-        {live ? "CANLI" : "ŞİMDİ"}
+        {live ? t.timeline.live : t.timeline.now}
       </button>
     </div>
   );

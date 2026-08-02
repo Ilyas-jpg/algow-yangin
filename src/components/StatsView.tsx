@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { ilStats, trTarih } from "@/lib/il-stats";
+import { ilStats, fmtDate } from "@/lib/il-stats";
 import { slugifyTr } from "@/lib/slug";
-
-export const metadata: Metadata = {
-  title: "Türkiye yangın sezonu istatistikleri — uydu tespitleri",
-  description:
-    "Türkiye'de bu yangın sezonunda uydunun gördüğü ısı tespitleri, geçmiş sezonlarla karşılaştırmalı. İllere göre dağılım, sezon eğrisi ve verinin sınırları.",
-  alternates: { canonical: "/istatistik" },
-};
+import { fmtNum } from "@/lib/format";
+import { fill, provinceHref, type Locale } from "@/lib/i18n";
+import { getDict } from "@/i18n";
+import type { Dict } from "@/i18n/tr";
+import PageNav from "./PageNav";
+import Rich from "./Rich";
 
 const YIL_RENK: Record<string, string> = {
   "2021": "#7f8ea3",
@@ -23,10 +21,14 @@ function Egri({
   gunluk,
   guncelYil,
   gunSayisi,
+  t,
+  locale,
 }: {
   gunluk: Record<string, number[]>;
   guncelYil: number;
   gunSayisi: number;
+  t: Dict;
+  locale: Locale;
 }) {
   const W = 660;
   const H = 220;
@@ -44,13 +46,10 @@ function Egri({
 
   const x = (i: number) => P.l + (i / (gunSayisi - 1)) * (W - P.l - P.r);
   const y = (v: number) => H - P.b - (v / max) * (H - P.t - P.b);
-  const yol = (veri: number[], kes: boolean) => {
-    const n = kes ? veri.length : veri.length;
-    return veri
-      .slice(0, n)
+  const yol = (veri: number[]) =>
+    veri
       .map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`)
       .join(" ");
-  };
 
   // Güncel sezonun verisi bugüne kadar; sonrası çizilmesin
   const bugunIdx =
@@ -67,7 +66,7 @@ function Egri({
         viewBox={`0 0 ${W} ${H}`}
         className="w-full"
         role="img"
-        aria-label={`Sezon başından bugüne birikimli uydu tespiti eğrisi; ${guncelYil} ve önceki sezonlar`}
+        aria-label={fill(t.stats.curveAria, { yil: guncelYil })}
       >
         {eksenler.map((v) => (
           <g key={v}>
@@ -86,7 +85,7 @@ function Egri({
               className="fill-[#7e7e88] font-mono"
               fontSize="9"
             >
-              {v.toLocaleString("tr-TR")}
+              {fmtNum(v, 0, locale)}
             </text>
           </g>
         ))}
@@ -95,7 +94,7 @@ function Egri({
           .map((s) => (
             <path
               key={s.yil}
-              d={yol(s.veri, false)}
+              d={yol(s.veri)}
               fill="none"
               stroke={YIL_RENK[s.yil] ?? "#4a5563"}
               strokeWidth="1.2"
@@ -107,7 +106,7 @@ function Egri({
           .map((s) => (
             <path
               key={s.yil}
-              d={yol(s.veri.slice(0, bugunIdx), true)}
+              d={yol(s.veri.slice(0, bugunIdx))}
               fill="none"
               stroke="#e8563f"
               strokeWidth="2.2"
@@ -119,7 +118,7 @@ function Egri({
           className="fill-[#7e7e88] font-mono"
           fontSize="9"
         >
-          1 Mayıs
+          {t.stats.curveStart}
         </text>
         <text
           x={W - P.r}
@@ -128,7 +127,7 @@ function Egri({
           className="fill-[#7e7e88] font-mono"
           fontSize="9"
         >
-          bugün
+          {t.stats.curveEnd}
         </text>
       </svg>
       <figcaption className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] text-ink-3">
@@ -144,18 +143,20 @@ function Egri({
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-4 bg-[#63707f]" /> 2022–2024
         </span>
-        <span>birikimli tespit · 1 Mayıs&apos;tan itibaren</span>
+        <span>{t.stats.curveLegend}</span>
       </figcaption>
     </figure>
   );
 }
 
-export default function IstatistikPage() {
+/** Sezon istatistikleri sayfası — iki dil de aynı sayıları gösterir. */
+export default function StatsView({ locale }: { locale: Locale }) {
+  const t = getDict(locale);
   const veri = ilStats();
   if (!veri?.ulke) {
     return (
       <main className="mx-auto min-h-dvh max-w-[720px] px-5 py-10">
-        <p className="text-sm text-ink-2">İstatistik verisi henüz hazırlanmadı.</p>
+        <p className="text-sm text-ink-2">{t.stats.notReady}</p>
       </main>
     );
   }
@@ -179,62 +180,56 @@ export default function IstatistikPage() {
 
   return (
     <main className="mx-auto min-h-dvh max-w-[760px] px-5 py-10">
-      <nav className="mb-8 flex items-center gap-3 text-[11px] text-ink-3">
-        <Link href="/" className="hover:text-ink">
-          ← Canlı harita
-        </Link>
-        <Link href="/arsiv" className="hover:text-ink">
-          Arşiv
-        </Link>
-        <Link href="/hakkinda" className="hover:text-ink">
-          Hakkında
-        </Link>
-      </nav>
+      <PageNav locale={locale} current="stats" />
 
       <h1 className="text-[28px] leading-tight font-medium">
-        {guncelYil} yangın sezonu — uydu ne gördü?
+        {fill(t.stats.h1, { yil: guncelYil })}
       </h1>
       <p className="mt-3 text-[13px] leading-relaxed text-ink-2">
-        1 Mayıs&apos;tan bugüne Türkiye üzerinde NASA FIRMS uydularının kaydettiği
-        ısı tespitleri, geçmiş beş sezonun aynı dönemiyle karşılaştırmalı. Sabit
-        ısı kaynakları (rafineri, demir-çelik tesisi, enerji santrali) bu
-        sayıların dışında tutuldu.
+        {t.stats.intro}
       </p>
 
       <div className="mt-7 grid gap-3 sm:grid-cols-3">
         <div className="rounded-md border border-line bg-obsidian-2/40 px-4 py-3">
-          <p className="font-mono text-[10px] text-ink-3">bu sezon</p>
+          <p className="font-mono text-[10px] text-ink-3">{t.stats.thisSeason}</p>
           <p className="mt-0.5 font-mono text-[22px] text-danger">
-            {bu.toLocaleString("tr-TR")}
+            {fmtNum(bu, 0, locale)}
           </p>
-          <p className="text-[11px] text-ink-3">ısı tespiti</p>
+          <p className="text-[11px] text-ink-3">{t.stats.detections}</p>
         </div>
         <div className="rounded-md border border-line bg-obsidian-2/40 px-4 py-3">
-          <p className="font-mono text-[10px] text-ink-3">geçmiş 5 sezon ort.</p>
+          <p className="font-mono text-[10px] text-ink-3">{t.stats.pastAvg}</p>
           <p className="mt-0.5 font-mono text-[22px]">
-            {gecmisOrt.toLocaleString("tr-TR")}
+            {fmtNum(gecmisOrt, 0, locale)}
           </p>
           <p className={`text-[11px] ${fark > 0 ? "text-warn" : "text-ok"}`}>
-            bu sezon %{Math.abs(fark)} {fark > 0 ? "üstünde" : "altında"}
+            {fill(t.stats.vsPast, {
+              n: Math.abs(fark),
+              dir: fark > 0 ? t.stats.above : t.stats.below,
+            })}
           </p>
         </div>
         <div className="rounded-md border border-line bg-obsidian-2/40 px-4 py-3">
-          <p className="font-mono text-[10px] text-ink-3">en yüksek sezon</p>
+          <p className="font-mono text-[10px] text-ink-3">{t.stats.peakSeason}</p>
           <p className="mt-0.5 font-mono text-[22px]">{enYuksekYil}</p>
           <p className="text-[11px] text-ink-3">
-            {ulke.yillar[enYuksekYil].toLocaleString("tr-TR")} tespit
+            {fill(t.stats.peakDetections, {
+              n: fmtNum(ulke.yillar[enYuksekYil], 0, locale),
+            })}
           </p>
         </div>
       </div>
 
-      <h2 className="mt-10 text-[18px] font-medium">Sezon nasıl gidiyor</h2>
+      <h2 className="mt-10 text-[18px] font-medium">{t.stats.h2Curve}</h2>
       <Egri
         gunluk={ulke.gunluk}
         guncelYil={guncelYil}
         gunSayisi={ulke.gunSayisi}
+        t={t}
+        locale={locale}
       />
 
-      <h2 className="mt-10 text-[18px] font-medium">Sezonlara göre toplam</h2>
+      <h2 className="mt-10 text-[18px] font-medium">{t.stats.h2Totals}</h2>
       <ul className="mt-3 space-y-1.5">
         {yillar.map((y) => {
           const n = ulke.yillar[y];
@@ -251,33 +246,32 @@ export default function IstatistikPage() {
                 />
               </span>
               <span className="w-16 shrink-0 text-right font-mono text-[11px]">
-                {n.toLocaleString("tr-TR")}
+                {fmtNum(n, 0, locale)}
               </span>
             </li>
           );
         })}
       </ul>
       <p className="mt-2 text-[11px] text-ink-3">
-        {guncelYil} sezonu henüz sürüyor; diğer yıllar da aynı takvim
-        penceresine (1 Mayıs&nbsp;–&nbsp;bugün) kırpıldı, karşılaştırma bu yüzden
-        adil.
+        {fill(t.stats.totalsNote, { yil: guncelYil })}
       </p>
 
-      <h2 className="mt-10 text-[18px] font-medium">İllere göre</h2>
+      <h2 className="mt-10 text-[18px] font-medium">{t.stats.h2Provinces}</h2>
       <p className="mt-2 text-[12px] leading-relaxed text-ink-2">
-        Aşağıdaki sayılar arazi örtüsüne göre ayrıştırılmamıştır: tarım
-        alanlarındaki ısı tespitleri de bu toplamlara dahildir ve bunlar orman
-        yangını değildir. Bu yüzden liste bir &quot;en çok yanan iller&quot;
-        sıralaması olarak okunmamalıdır.
+        {t.stats.provincesNote}
       </p>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-[12px]">
           <thead>
             <tr className="border-b border-line text-left font-mono text-[10px] text-ink-3">
-              <th className="py-1.5 pr-3 font-normal">il</th>
-              <th className="py-1.5 pr-3 text-right font-normal">bu sezon</th>
-              <th className="py-1.5 pr-3 text-right font-normal">geçmiş ort.</th>
-              <th className="py-1.5 text-right font-normal">en yüksek ısı</th>
+              <th className="py-1.5 pr-3 font-normal">{t.stats.thProvince}</th>
+              <th className="py-1.5 pr-3 text-right font-normal">
+                {t.stats.thThis}
+              </th>
+              <th className="py-1.5 pr-3 text-right font-normal">
+                {t.stats.thPast}
+              </th>
+              <th className="py-1.5 text-right font-normal">{t.stats.thPeak}</th>
             </tr>
           </thead>
           <tbody>
@@ -285,21 +279,21 @@ export default function IstatistikPage() {
               <tr key={x.ad} className="border-b border-line/50">
                 <td className="py-1.5 pr-3">
                   <Link
-                    href={`/yangin/${slugifyTr(x.ad)}`}
+                    href={provinceHref(slugifyTr(x.ad), locale)}
                     className="hover:text-cobalt"
                   >
                     {x.ad}
                   </Link>
                 </td>
                 <td className="py-1.5 pr-3 text-right font-mono">
-                  {x.yanginTespit.toLocaleString("tr-TR")}
+                  {fmtNum(x.yanginTespit, 0, locale)}
                 </td>
                 <td className="py-1.5 pr-3 text-right font-mono text-ink-3">
-                  {x.gecmisOrtalama.toLocaleString("tr-TR")}
+                  {fmtNum(x.gecmisOrtalama, 0, locale)}
                 </td>
                 <td className="py-1.5 text-right font-mono text-ink-3">
                   {x.enYuksekFrp
-                    ? `${x.enYuksekFrp.frp} MW · ${trTarih(x.enYuksekFrp.tarih)}`
+                    ? `${x.enYuksekFrp.frp} MW · ${fmtDate(x.enYuksekFrp.tarih, locale)}`
                     : "—"}
                 </td>
               </tr>
@@ -308,38 +302,17 @@ export default function IstatistikPage() {
         </table>
       </div>
 
-      <h2 className="mt-10 text-[18px] font-medium">Bu sayılar ne değildir</h2>
+      <h2 className="mt-10 text-[18px] font-medium">{t.stats.h2NotWhat}</h2>
       <ul className="mt-3 space-y-2 text-[12px] leading-relaxed text-ink-2 [&>li]:list-disc [&>li]:ml-4">
-        <li>
-          <b className="font-medium text-ink">Yangın sayısı değildir.</b> Tek bir
-          yangın günlerce sürerse yüzlerce tespit üretir; küçük ve kısa süreli
-          bir yangın hiç görünmeyebilir.
-        </li>
-        <li>
-          <b className="font-medium text-ink">Yanan alan değildir.</b> Tespit
-          sayısı ile hektar arasında sabit bir oran yoktur.
-        </li>
-        <li>
-          <b className="font-medium text-ink">Eksiktir.</b> Bulut altında kalan,
-          kanopi altında ilerleyen ya da iki uydu geçişi arasında sönen yangınlar
-          kayda girmez.
-        </li>
-        <li>
-          <b className="font-medium text-ink">Kaynak farkı taşır.</b> Güncel
-          sezon yakın-gerçek-zamanlı beslemeden, geçmiş sezonlar yeniden işlenmiş
-          arşivden geliyor. İkisinin çakıştığı bir gün olmadığı için aradaki farkı
-          ölçemedik; karşılaştırma yaklaşıktır.
-        </li>
-        <li>
-          Kaynak seti bilerek sabit tutuldu (Suomi-NPP ve NOAA-20). NOAA-21 dahil
-          edilseydi 2021–2022 sezonları yapay olarak düşük görünürdü.
-        </li>
+        {t.stats.notWhat.map((segs, i) => (
+          <li key={i}>
+            <Rich segs={segs} />
+          </li>
+        ))}
       </ul>
 
       <p className="mt-8 border-t border-line pt-4 text-[11px] leading-relaxed text-ink-3">
-        Veri: NASA FIRMS (VIIRS 375 m). Bu sayfa uydu kayıtlarından otomatik
-        üretilir ve sezon ilerledikçe güncellenir; resmi istatistik yerine
-        geçmez.
+        {t.stats.footer}
       </p>
     </main>
   );

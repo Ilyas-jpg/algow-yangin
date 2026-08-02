@@ -64,6 +64,9 @@ const YANGINLAR = [
     gun: 8,
     ozet:
       "29 Temmuz 2026'da Seydikemer çevresinde başlayan yangın, bu sezonun uydudan en yoğun görülen orman yangını oldu.",
+    adEn: "Seydikemer fire",
+    ozetEn:
+      "The fire that began around Seydikemer on 29 July 2026 became this season's most intensely observed forest fire from orbit.",
   },
   {
     slug: "burhaniye-ayvalik-2026",
@@ -74,6 +77,9 @@ const YANGINLAR = [
     gun: 14,
     ozet:
       "Temmuz 2026'nın ikinci yarısında Burhaniye ve Ayvalık çevresinde birden çok noktada süren yangınlar.",
+    adEn: "Burhaniye – Ayvalık fires",
+    ozetEn:
+      "Fires burning at several points around Burhaniye and Ayvalık through the second half of July 2026.",
   },
   {
     slug: "manavgat-2021",
@@ -84,6 +90,9 @@ const YANGINLAR = [
     gun: 17,
     ozet:
       "28 Temmuz 2021'de Manavgat'ta başlayan ve günlerce süren yangın, Türkiye'nin ölçülmüş en büyük orman yangınlarından biri oldu.",
+    adEn: "Manavgat fire",
+    ozetEn:
+      "Starting in Manavgat on 28 July 2021 and burning for days, this became one of the largest measured forest fires in Türkiye.",
   },
   {
     slug: "marmaris-2021",
@@ -94,6 +103,9 @@ const YANGINLAR = [
     gun: 14,
     ozet:
       "Marmaris ve çevresinde Temmuz sonunda başlayan yangın, kıyı yerleşimlerinin tahliyesine yol açtı.",
+    adEn: "Marmaris fire",
+    ozetEn:
+      "The fire that broke out in and around Marmaris in late July led to the evacuation of coastal settlements.",
   },
   {
     slug: "milas-2021",
@@ -104,8 +116,14 @@ const YANGINLAR = [
     gun: 12,
     ozet:
       "Milas'taki yangın, Kemerköy Termik Santrali'nin çevresine ulaşarak ülke gündemine oturdu.",
+    adEn: "Milas fire",
+    ozetEn:
+      "The Milas fire reached the grounds of the Kemerköy thermal power plant and dominated the national news.",
   },
 ];
+
+// ⚠️ Yeni kayıt eklerken `adEn` ve `ozetEn` de yaz: İngilizce arşiv sayfası
+// bunları index.json'dan okuyor, eksikse o kayıt Türkçe görünür.
 
 function gunEkle(tarih, n) {
   const d = new Date(tarih + "T00:00:00Z");
@@ -220,8 +238,10 @@ for (const y of YANGINLAR) {
   indeks.push({
     slug: y.slug,
     ad: y.ad,
+    adEn: y.adEn,
     il: y.il,
     ozet: y.ozet,
+    ozetEn: y.ozetEn,
     ilk,
     son,
     tespit: pts.length,

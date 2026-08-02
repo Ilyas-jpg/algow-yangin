@@ -1,7 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { Dict } from "@/i18n/tr";
+import type { Locale } from "@/lib/i18n";
 import type { AppProps } from "./App";
+import { LocaleProvider } from "./LocaleProvider";
+import MapLoading from "./MapLoading";
 
 /**
  * Harita uygulaması tamamen tarayıcı-tarafı (Date.now, canvas, WebGL) —
@@ -9,14 +13,23 @@ import type { AppProps } from "./App";
  */
 const App = dynamic(() => import("./App"), {
   ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 grid place-items-center bg-obsidian-1">
-      <span className="font-mono text-xs text-ink-3">harita yükleniyor…</span>
-    </div>
-  ),
+  loading: () => <MapLoading className="fixed inset-0" />,
 });
 
-/** İl sayfası haritayı o ile odaklamak için `focus` geçirir. */
-export default function ClientApp(props: AppProps) {
-  return <App {...props} />;
+/**
+ * İl sayfası haritayı o ile odaklamak için `focus` geçirir.
+ *
+ * Sözlük sunucudan prop olarak iniyor: böylece tarayıcıya yalnız açık olan
+ * dilin metinleri gidiyor, iki dil birden paketlenmiyor.
+ */
+export default function ClientApp({
+  locale,
+  dict,
+  ...props
+}: AppProps & { locale: Locale; dict: Dict }) {
+  return (
+    <LocaleProvider locale={locale} dict={dict}>
+      <App {...props} />
+    </LocaleProvider>
+  );
 }

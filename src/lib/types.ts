@@ -126,7 +126,7 @@ export interface WindPoint {
     isi: number;
     bui: number;
     fwi: number;
-    label: string;
+    /** EFFIS sınıfı — adı arayüz kendi dilinde yazar (bkz. i18n `fwiLevels`) */
     level: 0 | 1 | 2 | 3 | 4 | 5;
     days: number;
   } | null;

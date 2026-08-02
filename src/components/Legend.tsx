@@ -1,9 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { path } from "@/lib/i18n";
+import { useLocale, useT } from "./LocaleProvider";
+import Rich from "./Rich";
 
 export default function Legend() {
+  const t = useT();
+  const locale = useLocale();
+
   return (
     <div className="w-[212px] rounded-md border border-line bg-obsidian-1/95 p-2.5">
-      <p className="text-[10px] text-ink-3">Tespit şiddeti (FRP, MW)</p>
+      <p className="text-[10px] text-ink-3">{t.legend.intensity}</p>
       <div
         className="mt-1.5 h-1.5 rounded-sm"
         style={{
@@ -25,7 +33,7 @@ export default function Legend() {
           <path d="M11 3.6 L14 6 L11 8.4 Z" fill="#fde68a" />
         </svg>
         <span className="text-[10px] leading-tight text-ink-2">
-          Geldiği yol — halka ilk görüldüğü yer
+          {t.legend.trail}
         </span>
       </div>
       <div className="mt-1.5 flex items-center gap-2">
@@ -34,7 +42,7 @@ export default function Legend() {
           <circle cx="10" cy="6" r="3.4" fill="#7f1d1d" fillOpacity="0.6" />
         </svg>
         <span className="text-[10px] leading-tight text-ink-2">
-          Yanmış alan (seçili yangının geçmişi)
+          {t.legend.burned}
         </span>
       </div>
       <div className="mt-1.5 flex items-center gap-2">
@@ -42,7 +50,7 @@ export default function Legend() {
           <path d="M1 6 L15 1 L15 11 Z" fill="#3d5bff" fillOpacity="0.35" stroke="#5872ff" strokeWidth="0.8" />
         </svg>
         <span className="text-[10px] leading-tight text-ink-2">
-          Olası erişim (1·3·6 sa · %90) — geniş ucu yangının gideceği yön
+          {t.legend.reach}
         </span>
       </div>
       <div className="mt-1.5 flex items-center gap-2">
@@ -51,7 +59,7 @@ export default function Legend() {
           <rect x="7" y="2" width="6" height="8" fill="#c05a8a" fillOpacity="0.5" />
         </svg>
         <span className="text-[10px] leading-tight text-ink-2">
-          Duman (PM2.5) — koyulaştıkça yoğun; alan CAMS modelinden, ızgara kaba
+          {t.legend.smoke}
         </span>
       </div>
       <div className="mt-1.5 flex items-center gap-2">
@@ -60,20 +68,18 @@ export default function Legend() {
           <circle cx="8" cy="6" r="4.6" fill="none" stroke="#fdba74" strokeOpacity="0.7" strokeWidth="1" />
         </svg>
         <span className="text-[10px] leading-tight text-ink-2">
-          Son 6 saatte görülen tespit
+          {t.legend.recent}
         </span>
       </div>
 
       <p className="mt-2.5 border-t border-line pt-2 text-[10px] leading-relaxed text-ink-3">
-        Uydu alev değil <span className="text-ink-2">ısı</span> görür: bacalar,
-        santraller ve anız yakma da nokta olarak düşer. Her gün aynı yerde
-        beliren nokta genelde sabit bir ısı kaynağıdır.
+        <Rich segs={t.legend.note} />
       </p>
       <Link
-        href="/hakkinda"
+        href={path("about", locale)}
         className="mt-1.5 block text-[10px] text-ink-3 transition-colors hover:text-ink"
       >
-        Hatalar ve sınırlamalar →
+        {t.legend.limits}
       </Link>
     </div>
   );

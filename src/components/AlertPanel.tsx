@@ -4,6 +4,9 @@ import { useState } from "react";
 import type { WatchPoint } from "./useAlerts";
 import type { UserLocation } from "@/lib/types";
 import { fmtNum } from "@/lib/format";
+import { fill } from "@/lib/i18n";
+import { useLocale, useT } from "./LocaleProvider";
+import Rich from "./Rich";
 
 interface AlertPanelProps {
   points: WatchPoint[];
@@ -28,6 +31,8 @@ export default function AlertPanel({
   mapCenter,
   onClose,
 }: AlertPanelProps) {
+  const t = useT();
+  const locale = useLocale();
   const [name, setName] = useState("");
   const [radius, setRadius] = useState(25);
   const [source, setSource] = useState<"konum" | "harita">(
@@ -40,21 +45,18 @@ export default function AlertPanel({
   return (
     <div className="absolute inset-x-0 top-0 z-30 mx-auto w-[min(94vw,420px)] rounded-b-md border border-t-0 border-line bg-obsidian-1 p-3 shadow-xl md:left-[340px] md:mx-0 md:mt-0">
       <div className="flex items-center justify-between">
-        <h2 className="text-[13px] font-medium">Yakınımda yangın uyarısı</h2>
+        <h2 className="text-[13px] font-medium">{t.alerts.heading}</h2>
         <button
           onClick={onClose}
-          aria-label="Kapat"
+          aria-label={t.common.close}
           className="rounded border border-line px-2 py-0.5 text-[11px] text-ink-3 hover:text-ink"
         >
-          Kapat
+          {t.common.close}
         </button>
       </div>
 
       <p className="mt-2 text-[11px] leading-relaxed text-ink-2">
-        İzlemek istediğin yerleri kaydet; o çevrede yeni bir yangın tespit
-        edilince cihazın seni uyarsın. Kaydettiğin konumlar{" "}
-        <b className="font-medium">yalnızca bu cihazda</b> saklanır, hiçbir
-        sunucuya gitmez.
+        <Rich segs={t.alerts.intro} />
       </p>
 
       {permission !== "granted" && (
@@ -63,8 +65,8 @@ export default function AlertPanel({
           className="mt-2 w-full rounded border border-cobalt/60 bg-cobalt/10 px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-cobalt/20"
         >
           {permission === "denied"
-            ? "Bildirim izni reddedilmiş — tarayıcı ayarlarından açman gerekiyor"
-            : "Bildirimlere izin ver"}
+            ? t.alerts.permissionDenied
+            : t.alerts.permissionAsk}
         </button>
       )}
 
@@ -73,14 +75,14 @@ export default function AlertPanel({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Yer adı (ev, tarla, iş...)"
+            placeholder={t.alerts.namePlaceholder}
             maxLength={24}
             className="min-w-0 flex-1 rounded border border-line bg-obsidian-2 px-2 py-1 text-[12px] text-ink placeholder:text-ink-3"
           />
           <select
             value={radius}
             onChange={(e) => setRadius(Number(e.target.value))}
-            aria-label="Uyarı yarıçapı"
+            aria-label={t.alerts.radiusAria}
             className="rounded border border-line bg-obsidian-2 px-2 py-1 font-mono text-[11px] text-ink"
           >
             {RADII.map((r) => (
@@ -102,7 +104,7 @@ export default function AlertPanel({
                 : "border-line text-ink-3"
             }`}
           >
-            Bulunduğum yer
+            {t.alerts.fromLocation}
           </button>
           <button
             onClick={() => setSource("harita")}
@@ -113,13 +115,13 @@ export default function AlertPanel({
                 : "border-line text-ink-3"
             }`}
           >
-            Haritanın ortası
+            {t.alerts.fromMap}
           </button>
         </div>
 
         {coord && (
           <p className="font-mono text-[10px] text-ink-3">
-            {fmtNum(coord.lat, 3)}, {fmtNum(coord.lon, 3)}
+            {fmtNum(coord.lat, 3, locale)}, {fmtNum(coord.lon, 3, locale)}
           </p>
         )}
 
@@ -132,7 +134,7 @@ export default function AlertPanel({
           disabled={!canAdd}
           className="w-full rounded border border-line bg-obsidian-3 px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-obsidian-2 disabled:opacity-40"
         >
-          Bu yeri izlemeye ekle
+          {t.alerts.add}
         </button>
       </div>
 
@@ -146,10 +148,10 @@ export default function AlertPanel({
               </span>
               <button
                 onClick={() => onRemove(p.id)}
-                aria-label={`${p.name} izlemesini kaldır`}
+                aria-label={fill(t.alerts.removeAria, { name: p.name })}
                 className="shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] text-ink-3 hover:text-danger"
               >
-                Kaldır
+                {t.alerts.remove}
               </button>
             </li>
           ))}
@@ -157,9 +159,7 @@ export default function AlertPanel({
       )}
 
       <p className="mt-2 border-t border-line pt-2 text-[10px] leading-relaxed text-ink-3">
-        Uygulama tamamen kapalıyken bildirim her cihazda gelmeyebilir; en
-        güvenilir yol uygulamayı ana ekrana eklemek. Uyarılar uydu geçişine
-        bağlıdır — küçük yangınlar görünmeyebilir. Acil durumda 112 / 177.
+        {t.alerts.footer}
       </p>
     </div>
   );

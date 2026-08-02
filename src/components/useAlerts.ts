@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { havKm } from "@/lib/geo";
+import { fill } from "@/lib/i18n";
 import type { FireEvent } from "@/lib/types";
+import { useT } from "./LocaleProvider";
 
 export interface WatchPoint {
   id: string;
@@ -46,6 +48,7 @@ function loadSeen(): Set<string> {
  * destekleyen cihazlarda (kurulu PWA, Android/Chrome) gelir.
  */
 export function useAlerts(events: FireEvent[]) {
+  const t = useT();
   const [points, setPoints] = useState<WatchPoint[]>([]);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const seenRef = useRef<Set<string>>(new Set());
@@ -125,8 +128,15 @@ export function useAlerts(events: FireEvent[]) {
     (async () => {
       const reg = await navigator.serviceWorker?.ready.catch(() => null);
       for (const { ev, wp, km } of fresh.slice(0, 3)) {
-        const title = `${wp.name}: ${Math.round(km)} km yakında yangın`;
-        const body = `${ev.place} · ${Math.round(ev.frpLast)} MW · ${ev.count} uydu tespiti`;
+        const title = fill(t.alerts.notifyTitle, {
+          name: wp.name,
+          km: Math.round(km),
+        });
+        const body = fill(t.alerts.notifyBody, {
+          place: ev.place,
+          mw: Math.round(ev.frpLast),
+          count: ev.count,
+        });
         const opts: NotificationOptions = {
           body,
           icon: "/brand/algow-icon.png",
@@ -138,7 +148,7 @@ export function useAlerts(events: FireEvent[]) {
         else new Notification(title, opts);
       }
     })();
-  }, [events, points, permission]);
+  }, [events, points, permission, t]);
 
   return { points, add, remove, permission, requestPermission };
 }

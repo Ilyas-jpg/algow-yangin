@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { WindPoint } from "@/lib/types";
-import { runFwiSeries, fwiClass, type FwiDay } from "@/lib/fwi";
+import { runFwiSeries, fwiLevel, type FwiDay } from "@/lib/fwi";
 import { fetchJson } from "@/lib/fetch-retry";
 
 /**
@@ -145,8 +145,7 @@ export async function GET(request: NextRequest) {
     }
     const codes = runFwiSeries(days);
     if (codes) {
-      const cls = fwiClass(codes.fwi);
-      fwi = { ...codes, label: cls.label, level: cls.level, days: days.length };
+      fwi = { ...codes, level: fwiLevel(codes.fwi), days: days.length };
     }
   }
 

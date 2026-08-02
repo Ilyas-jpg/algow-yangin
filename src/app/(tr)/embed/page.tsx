@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import ClientApp from "@/components/ClientApp";
 import { provinceBySlug } from "@/lib/provinces";
+import { getDict } from "@/i18n";
+
+const LOCALE = "tr" as const;
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -14,7 +17,7 @@ type Props = {
  */
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
-  title: "Algow Yangın — gömülebilir harita",
+  title: getDict(LOCALE).meta.embedTitle,
 };
 
 export default async function EmbedPage({ searchParams }: Props) {
@@ -25,6 +28,8 @@ export default async function EmbedPage({ searchParams }: Props) {
 
   return (
     <ClientApp
+      locale={LOCALE}
+      dict={getDict(LOCALE)}
       embed
       focus={p ? { ad: p.ad, lat: p.lat, lon: p.lon } : undefined}
     />

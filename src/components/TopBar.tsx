@@ -5,39 +5,32 @@ import Link from "next/link";
 import type { FiresMeta, LayerToggles, WindowHours } from "@/lib/types";
 import { fmtAgo, fmtClock } from "@/lib/format";
 import { fmtNext, type PassInfo } from "@/lib/passes";
+import { fill, path } from "@/lib/i18n";
+import { useLocale, useT } from "./LocaleProvider";
+import LangSwitch from "./LangSwitch";
 
 // 5 gün, FIRMS'in bu bbox için verdiği en geniş aralık (daha fazlası 400)
-const WINDOWS: { value: WindowHours; label: string }[] = [
-  { value: 24, label: "24s" },
-  { value: 48, label: "48s" },
-  { value: 120, label: "5g" },
+const WINDOWS: { value: WindowHours; key: "h24" | "h48" | "h120" }[] = [
+  { value: 24, key: "h24" },
+  { value: 48, key: "h48" },
+  { value: 120, key: "h120" },
 ];
 
-const TOGGLES: { key: keyof LayerToggles; label: string; title: string }[] = [
-  { key: "wind", label: "Rüzgar", title: "Rüzgâr akış animasyonu" },
-  { key: "heat", label: "Isı", title: "Tespit yoğunluğu ısı haritası" },
-  { key: "cones", label: "Tahmin", title: "Rüzgâra göre taşıma konisi" },
-  {
-    key: "smoke",
-    label: "Duman",
-    title:
-      "Yüzeydeki ince partikül (PM2.5) alanı. Dağılımı ECMWF/CAMS hesaplar; ızgara kaba çünkü modelin kendi çözünürlüğü de kaba. Yangın dışı kaynakları (trafik, sanayi, toz) da içerir.",
-  },
-  // "Anız gizle" bilerek burada DEĞİL: o bir katman değil süzgeç ve yeri
-  // liste başlığı. Üst şeride 10. düğme olarak konduğunda bar taşıp sağdaki
-  // durum metniyle çakışıyordu (aynı sorun 9 toggle'da da yaşanmıştı).
-  {
-    key: "msg",
-    label: "MSG 15dk",
-    title:
-      "Meteosat: 15 dakikada bir tarar, uydu geçişleri arasındaki boşluğu doldurur. Konum kabadır (piksel 15-25 km²), halka o belirsizliği gösterir.",
-  },
-  { key: "burnt", label: "Yanan alan", title: "EFFIS yanan alan perimetreleri (Sentinel-2)" },
-  { key: "danger", label: "Tehlike", title: "GWIS yangın hava indeksi tahmini" },
-  { key: "satellite", label: "Uydu", title: "Sentinel-2 bulutsuz mozaik (10 m)" },
-  { key: "today", label: "Bugün", title: "NASA GIBS günlük gerçek renk — büyük yangınların dumanı görünür (250 m)" },
-  { key: "terrain", label: "Arazi", title: "Tepe gölgeleme — vadi ve sırtları gösterir" },
-];
+// "Anız gizle" bilerek burada DEĞİL: o bir katman değil süzgeç ve yeri
+// liste başlığı. Üst şeride 10. düğme olarak konduğunda bar taşıp sağdaki
+// durum metniyle çakışıyordu (aynı sorun 9 toggle'da da yaşanmıştı).
+const TOGGLE_KEYS = [
+  "wind",
+  "heat",
+  "cones",
+  "smoke",
+  "msg",
+  "burnt",
+  "danger",
+  "satellite",
+  "today",
+  "terrain",
+] as const satisfies readonly (keyof LayerToggles)[];
 
 interface TopBarProps {
   windowHours: WindowHours;
@@ -70,6 +63,8 @@ export default function TopBar({
   onAlertsToggle,
   pass,
 }: TopBarProps) {
+  const t = useT();
+  const locale = useLocale();
   const newest = meta?.newest ?? null;
   const ageH = newest ? (now - newest) / 3600_000 : null;
   const dotClass =
@@ -95,7 +90,7 @@ export default function TopBar({
               başlığı üç satıra kırıyordu. Bilgi zaten sayfa başlığında ve
               /hakkinda'da var. */}
           <span className="whitespace-nowrap text-[15px] font-medium tracking-tight">
-            Yangın
+            {t.common.brand}
           </span>
         </div>
 
@@ -114,28 +109,28 @@ export default function TopBar({
                     : "text-ink-3 hover:text-ink-2"
                 }`}
               >
-                {w.label}
+                {t.top.windows[w.key]}
               </button>
             ))}
           </div>
-          {TOGGLES.map((t) => (
+          {TOGGLE_KEYS.map((k) => (
             <button
-              key={t.key}
-              onClick={() => onToggle(t.key)}
-              aria-pressed={layers[t.key]}
-              title={t.title}
+              key={k}
+              onClick={() => onToggle(k)}
+              aria-pressed={layers[k]}
+              title={t.top.toggles[k].title}
               className={`tap-target shrink-0 rounded border px-2.5 py-1 text-[11px] transition-colors active:scale-[0.98] ${
-                layers[t.key]
+                layers[k]
                   ? "border-cobalt/60 bg-cobalt/10 text-ink"
                   : "border-line text-ink-3 hover:text-ink-2"
               }`}
             >
-              {t.label}
+              {t.top.toggles[k].label}
             </button>
           ))}
           {meta?.demo && (
             <span className="shrink-0 rounded border border-warn/50 px-2 py-1 text-[10px] text-warn">
-              Demo veri
+              {t.top.demoData}
             </span>
           )}
         </div>
@@ -146,7 +141,7 @@ export default function TopBar({
           <button
             onClick={onGeoToggle}
             aria-pressed={geoActive}
-            title="Kendi konumunu haritada göster (konum cihazından çıkmaz)"
+            title={t.top.myLocationTitle}
             className={`flex shrink-0 items-center gap-1.5 rounded border px-2.5 py-1 text-[11px] transition-colors active:scale-[0.98] ${
               geoActive
                 ? "border-cobalt/60 bg-cobalt/10 text-ink"
@@ -181,11 +176,11 @@ export default function TopBar({
                 strokeWidth="1"
               />
             </svg>
-            Konumum
+            {t.top.myLocation}
           </button>
           <button
             onClick={onAlertsToggle}
-            title="Bir yeri izlemeye al, yakınında yangın çıkarsa haber ver"
+            title={t.top.alertsTitle}
             className={`tap-target flex shrink-0 items-center gap-1.5 rounded border px-2.5 py-1 text-[11px] transition-colors active:scale-[0.98] ${
               alertCount > 0
                 ? "border-cobalt/60 bg-cobalt/10 text-ink"
@@ -201,7 +196,8 @@ export default function TopBar({
                 strokeLinejoin="round"
               />
             </svg>
-            Uyarı{alertCount > 0 ? ` (${alertCount})` : ""}
+            {t.top.alerts}
+            {alertCount > 0 ? ` (${alertCount})` : ""}
           </button>
         </div>
 
@@ -210,36 +206,45 @@ export default function TopBar({
             className="flex items-center gap-1.5 font-mono text-[11px] text-ink-2"
             title={
               newest
-                ? `En yeni uydu tespiti ${fmtClock(newest)} · veri ${meta ? fmtClock(meta.fetchedAt) : "-"} itibarıyla`
-                : "Veri bekleniyor"
+                ? fill(t.top.freshTitle, {
+                    clock: fmtClock(newest, locale),
+                    fetched: meta ? fmtClock(meta.fetchedAt, locale) : "-",
+                  })
+                : t.top.waitingTitle
             }
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${dotClass} ${loading ? "animate-pulse" : ""}`}
             />
             <span className="hidden sm:inline">
-              {newest ? `son tespit ${fmtAgo(newest, now)}` : "veri bekleniyor"}
+              {newest
+                ? fill(t.top.lastDetection, { ago: fmtAgo(newest, now, locale) })
+                : t.top.waitingData}
               {/* Kör aralık uyarısı: "tespit yok" ile "yangın bitti" aynı şey
                   değil. Geçiş pencereleri verinin kendisinden ölçülüyor. */}
               {/* Yalnız geniş ekranda: dar ekranda başlığı sıkıştırıp
                   üç satıra kırıyordu. Bilgi panelde de veriliyor. */}
               {pass?.inGap && pass.nextH !== null && (
                 <span className="hidden text-warn xl:inline">
-                  {" "}
-                  · kör aralık, sonraki geçiş {fmtNext(pass.nextH)}
+                  {fill(t.top.blindGap, { next: fmtNext(pass.nextH, locale) })}
                 </span>
               )}
             </span>
             <span className="sm:hidden">
-              {newest ? fmtAgo(newest, now) : "—"}
+              {newest ? fmtAgo(newest, now, locale) : "—"}
             </span>
           </div>
           <Link
-            href="/hakkinda"
+            href={path("about", locale)}
             className="text-xs text-ink-3 transition-colors hover:text-ink"
           >
-            Hakkında
+            {t.common.about}
           </Link>
+          <LangSwitch
+            locale={locale}
+            label={t.common.otherLang}
+            title={t.common.otherLangTitle}
+          />
         </div>
       </div>
     </header>

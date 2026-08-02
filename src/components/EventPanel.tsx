@@ -5,17 +5,21 @@ import type { FireEvent, WindPoint } from "@/lib/types";
 import { foldTr } from "@/lib/slug";
 import type { ConeGeom } from "@/lib/wind";
 import type { Footprint } from "@/lib/footprint";
-import { compassTr } from "@/lib/geo";
+import { compass } from "@/lib/geo";
 import { angDiff, fmtAgo, fmtDayTime, fmtNum } from "@/lib/format";
 import { fmtNext, type PassInfo } from "@/lib/passes";
+import { fill, type Locale } from "@/lib/i18n";
+import type { Dict } from "@/i18n/tr";
+import { useLocale, useT } from "./LocaleProvider";
+import Rich from "./Rich";
 import Sparkline from "./Sparkline";
 import ShareButton from "./ShareButton";
 import SmokeForecast from "./SmokeForecast";
 
-const STATUS_LABEL: Record<FireEvent["status"], { text: string; cls: string }> = {
-  active: { text: "AKTİF", cls: "border-danger/50 text-danger" },
-  waning: { text: "SÖNÜYOR", cls: "border-warn/50 text-warn" },
-  old: { text: "ESKİ", cls: "border-line text-ink-3" },
+const STATUS_CLS: Record<FireEvent["status"], string> = {
+  active: "border-danger/50 text-danger",
+  waning: "border-warn/50 text-warn",
+  old: "border-line text-ink-3",
 };
 
 /**
@@ -31,13 +35,15 @@ const STATUS_LABEL: Record<FireEvent["status"], { text: string; cls: string }> =
  * Bu yüzden etiket, olduğu şeye çevrildi: ölçülen ısının nasıl değiştiğinin
  * TARİFİ. Alternatif kural (son iki geçişin oranı) da denendi, o da ayırmadı.
  */
-function trendOf(ev: FireEvent): { text: string; cls: string } | null {
+function trendOf(
+  ev: FireEvent
+): { key: "up" | "down" | "flat"; cls: string } | null {
   if (ev.passes.length < 2) return null;
   const a = ev.passes[0].frp;
   const b = ev.passes[ev.passes.length - 1].frp;
-  if (b > a * 1.25) return { text: "ısı arttı", cls: "text-danger" };
-  if (b < a * 0.75) return { text: "ısı azaldı", cls: "text-ok" };
-  return { text: "ısı yatay", cls: "text-ink-2" };
+  if (b > a * 1.25) return { key: "up", cls: "text-danger" };
+  if (b < a * 0.75) return { key: "down", cls: "text-ok" };
+  return { key: "flat", cls: "text-ink-2" };
 }
 
 interface EventPanelProps {
@@ -64,22 +70,20 @@ interface EventPanelProps {
   fuelLoading: boolean;
 }
 
-/** Yakıt sınıfının insan diliyle karşılığı + neden önemli olduğu */
-const FUEL_LABEL: Record<string, { ad: string; not: string; uyari: boolean }> = {
-  ORMAN: { ad: "Ormanlık", not: "ağaçlık örtü", uyari: false },
-  MAKI: { ad: "Makilik", not: "sert yapraklı çalı", uyari: false },
-  OT: { ad: "Otlak", not: "çayır/bozkır", uyari: false },
-  TARIM: {
-    ad: "Tarım alanı",
-    not: "büyük olasılıkla anız yakma — orman yangını değil",
-    uyari: true,
-  },
-  YAPI: { ad: "Yerleşim/sanayi", not: "baca veya tesis ısısı olabilir", uyari: true },
-  CIPLAK: { ad: "Çıplak arazi", not: "seyrek bitki örtüsü", uyari: false },
-  SU: { ad: "Su yüzeyi", not: "büyük olasılıkla yanlış pozitif", uyari: true },
+/** Yakıt sınıfının uyarı gerektirip gerektirmediği — metin sözlükte. */
+const FUEL_WARN: Record<string, boolean> = {
+  ORMAN: false,
+  MAKI: false,
+  OT: false,
+  TARIM: true,
+  YAPI: true,
+  CIPLAK: false,
+  SU: true,
 };
 
 export default function EventPanel(props: EventPanelProps) {
+  const t = useT();
+  const locale = useLocale();
   const { events, now, hideFarm, onHideFarm, hiddenFarmCount, fuelLoading } =
     props;
   const [q, setQ] = useState("");
@@ -94,7 +98,8 @@ export default function EventPanel(props: EventPanelProps) {
   /**
    * İl/ilçe araması. Yüzlerce olay arasında kendi bölgesini arayan kullanıcı
    * listeyi tek tek tarayamıyordu. Katlama Türkçe'ye duyarlı: "cine" → "Çine",
-   * "IZMIR" → "İzmir" (bkz. lib/slug).
+   * "IZMIR" → "İzmir" (bkz. lib/slug). Yer adları iki dilde de Türkçe
+   * olduğu için katlama İngilizce arayüzde de aynı çalışıyor.
    */
   const filtered = useMemo(() => {
     const k = foldTr(q.trim());
@@ -107,15 +112,15 @@ export default function EventPanel(props: EventPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-baseline justify-between border-b border-line px-3 py-2.5">
-        <span className="text-xs text-ink-2">Türkiye&apos;de aktif</span>
+        <span className="text-xs text-ink-2">{t.panel.activeHere}</span>
         <span
           className="font-mono text-[11px] text-ink-3"
-          title={`${abroadCount} olay komşu ülkelerde (uydu görüş alanı sınırla bitmiyor)`}
+          title={fill(t.panel.abroadTitle, { n: abroadCount })}
         >
-          <span className="text-danger">{activeCount}</span> aktif ·{" "}
-          {events.length - abroadCount} olay
-          {fixedCount > 0 && ` · ${fixedCount} sabit kaynak`}
-          {abroadCount > 0 && ` · +${abroadCount} sınır ötesi`}
+          <span className="text-danger">{activeCount}</span>
+          {fill(t.panel.counts, { events: events.length - abroadCount })}
+          {fixedCount > 0 && fill(t.panel.fixedCount, { n: fixedCount })}
+          {abroadCount > 0 && fill(t.panel.abroadCount, { n: abroadCount })}
         </span>
       </div>
 
@@ -125,34 +130,34 @@ export default function EventPanel(props: EventPanelProps) {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="İl veya ilçe ara — Muğla, Çine…"
-            aria-label="Yangınları il veya ilçe adına göre ara"
+            placeholder={t.panel.searchPlaceholder}
+            aria-label={t.panel.searchAria}
             className="w-full rounded border border-line bg-obsidian-2 px-2.5 py-1.5 text-[12px] text-ink placeholder:text-ink-3 focus-visible:border-cobalt/60"
           />
           <div className="mt-1.5 flex items-center gap-2">
             <button
               onClick={onHideFarm}
               aria-pressed={hideFarm}
-              title="Tarım alanlarındaki ateşleri (anız yakma) listeden ve haritadan çıkarır. Sınıflandırma CORINE arazi örtüsünden gelir; doğu illerinde kapsam olmadığı için oradaki olaylar gizlenmez."
+              title={t.panel.hideFarmTitle}
               className={`shrink-0 rounded border px-2 py-0.5 text-[10px] transition-colors active:scale-[0.98] ${
                 hideFarm
                   ? "border-cobalt/60 bg-cobalt/10 text-ink"
                   : "border-line text-ink-3 hover:text-ink-2"
               }`}
             >
-              Anız gizle
+              {t.panel.hideFarm}
               {hideFarm && !fuelLoading && hiddenFarmCount > 0
                 ? ` · ${hiddenFarmCount}`
                 : ""}
             </button>
             {hideFarm && fuelLoading && (
               <span className="font-mono text-[10px] text-ink-3">
-                arazi örtüsü sorgulanıyor…
+                {t.panel.fuelLoading}
               </span>
             )}
             {q.trim() !== "" && (
               <span className="ml-auto font-mono text-[10px] text-ink-3">
-                {filtered.length} eşleşme
+                {fill(t.panel.matches, { n: filtered.length })}
               </span>
             )}
           </div>
@@ -161,19 +166,21 @@ export default function EventPanel(props: EventPanelProps) {
 
       {events.length === 0 ? (
         <div className="px-3 py-6 text-xs leading-relaxed text-ink-3">
-          Seçili zaman penceresinde uydu tespiti yok. Pencereyi genişletmeyi
-          deneyebilirsin; uydular her bölgeyi günde birkaç kez tarar.
+          {t.panel.empty}
         </div>
       ) : filtered.length === 0 ? (
         <div className="px-3 py-6 text-xs leading-relaxed text-ink-3">
-          <b className="font-normal text-ink-2">{q.trim()}</b> için tespit yok.
-          Bu, orada yangın olmadığı anlamına gelmez: uydu küçük ve kısa süreli
-          yangınları kaçırabilir.
+          <Rich segs={t.panel.noMatch} vars={{ q: q.trim() }} />
         </div>
       ) : (
         <ul className="scroll-slim min-h-0 flex-1 divide-y divide-line/70 overflow-y-auto">
           {filtered.map((ev) => (
-            <EventCard key={ev.id} ev={ev} {...props} ago={fmtAgo(ev.lastSeen, now)} />
+            <EventCard
+              key={ev.id}
+              ev={ev}
+              {...props}
+              ago={fmtAgo(ev.lastSeen, now, locale)}
+            />
           ))}
         </ul>
       )}
@@ -196,8 +203,9 @@ function EventCard({
   pass,
   days,
 }: EventPanelProps & { ev: FireEvent; ago: string }) {
+  const t = useT();
+  const locale = useLocale();
   const selected = ev.id === selectedId;
-  const status = STATUS_LABEL[ev.status];
   const trend = trendOf(ev);
   const cone = cones.find((c) => c.eventId === ev.id);
 
@@ -217,28 +225,37 @@ function EventCard({
           </span>
           {ev.abroad && (
             <span className="shrink-0 rounded border border-line px-1.5 py-px font-mono text-[9px] tracking-wide text-ink-3">
-              YURT DIŞI
+              {t.card.abroad}
             </span>
           )}
           <span
             className={`shrink-0 rounded border px-1.5 py-px font-mono text-[9px] tracking-wide ${
-              ev.fixedSource ? "border-ink-3/50 text-ink-3" : status.cls
+              ev.fixedSource ? "border-ink-3/50 text-ink-3" : STATUS_CLS[ev.status]
             }`}
           >
-            {ev.fixedSource ? "SABİT KAYNAK" : status.text}
+            {ev.fixedSource ? t.card.fixedSource : t.card.status[ev.status]}
           </span>
         </div>
         <div className="mt-1 font-mono text-[11px] text-ink-2">
-          {ev.count} tespit · {fmtNum(ev.frpLast)} MW · {ago}
+          {fill(t.card.meta, {
+            count: ev.count,
+            mw: fmtNum(ev.frpLast, 0, locale),
+            ago,
+          })}
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <Sparkline passes={ev.passes} />
           {trend && (
-            <span className={`font-mono text-[10px] ${trend.cls}`}>{trend.text}</span>
+            <span className={`font-mono text-[10px] ${trend.cls}`}>
+              {t.card.trend[trend.key]}
+            </span>
           )}
           {ev.drift && (
             <span className="ml-auto font-mono text-[10px] text-ink-2">
-              {compassTr(ev.drift.bearingDeg)} yönünde {fmtNum(ev.drift.km, 1)} km
+              {fill(t.card.drift, {
+                dir: compass(ev.drift.bearingDeg, locale),
+                km: fmtNum(ev.drift.km, 1, locale),
+              })}
             </span>
           )}
         </div>
@@ -261,22 +278,19 @@ function EventCard({
             fuel={selected ? fuel : null}
             footprint={selected ? footprint : null}
             pass={pass}
+            t={t}
+            locale={locale}
           />
           {ev.passes.length >= 3 && ev.drift === null && (
             <p className="mt-2 rounded border border-line bg-obsidian-3/60 px-2 py-1.5 text-[10px] leading-relaxed text-ink-2">
-              Bu nokta {ev.passes.length} uydu geçişi boyunca yerinden
-              kıpırdamadı. Sabit bir ısı kaynağı (baca, santral, sanayi tesisi)
-              olabilir.
+              {fill(t.card.stationary, { n: ev.passes.length })}
             </p>
           )}
           <div className="mt-2 flex justify-end">
             <ShareButton ev={ev} days={days} />
           </div>
           <p className="mt-2 border-t border-line/60 pt-2 text-[10px] leading-relaxed text-ink-3">
-            Uydu ısı görür; her tespit yangın olmayabilir. Yönelim
-            göstergesidir, resmi uyarı yerine geçmez. Acil durumda{" "}
-            <span className="font-mono text-ink-2">112</span> · Orman Yangını İhbar{" "}
-            <span className="font-mono text-ink-2">177</span>
+            <Rich segs={t.card.disclaimer} />
           </p>
         </div>
       )}
@@ -293,6 +307,9 @@ function FireWeather({
   loading: boolean;
   error: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -303,11 +320,7 @@ function FireWeather({
     );
   }
   if (error || !weather) {
-    return (
-      <p className="text-[11px] text-ink-3">
-        Bölge hava verisi şu an alınamıyor.
-      </p>
-    );
+    return <p className="text-[11px] text-ink-3">{t.weather.unavailable}</p>;
   }
   const FWI_CLS = [
     "text-ok",
@@ -328,30 +341,45 @@ function FireWeather({
 
   const rows: { k: string; v: string; cls?: string }[] = [
     {
-      // "-dan" eki kritik: hemen altındaki tahmin yangının GİDECEĞİ yönü
+      // Yön eki kritik: hemen altındaki tahmin yangının GİDECEĞİ yönü
       // veriyor. Ek olmadan iki zıt pusula yan yana okunup ters anlaşılıyordu.
-      k: "Rüzgar",
+      k: t.weather.wind,
       v:
         weather.windKmh !== null && weather.windDirDeg !== null
-          ? `${compassTr(weather.windDirDeg)}'dan ${fmtNum(weather.windKmh)} km/sa`
+          ? fill(t.weather.windValue, {
+              dir: compass(weather.windDirDeg, locale),
+              n: fmtNum(weather.windKmh, 0, locale),
+            })
           : "—",
     },
     {
-      k: "Hamle",
-      v: weather.gustKmh !== null ? `${fmtNum(weather.gustKmh)} km/sa` : "—",
+      k: t.weather.gust,
+      v:
+        weather.gustKmh !== null
+          ? fill(t.weather.gustValue, { n: fmtNum(weather.gustKmh, 0, locale) })
+          : "—",
     },
     {
-      k: "Nem",
-      v: weather.rh !== null ? `%${fmtNum(weather.rh)}` : "—",
+      k: t.weather.humidity,
+      v:
+        weather.rh !== null
+          ? fill(t.weather.humidityValue, { n: fmtNum(weather.rh, 0, locale) })
+          : "—",
       cls: weather.rh !== null && weather.rh < 30 ? "text-warn" : undefined,
     },
     {
-      k: "Sıcaklık",
-      v: weather.tempC !== null ? `${fmtNum(weather.tempC)}°C` : "—",
+      k: t.weather.temp,
+      v:
+        weather.tempC !== null
+          ? fill(t.weather.tempValue, { n: fmtNum(weather.tempC, 0, locale) })
+          : "—",
     },
     {
-      k: "VPD",
-      v: weather.vpdKpa !== null ? `${fmtNum(weather.vpdKpa, 2)} kPa` : "—",
+      k: t.weather.vpd,
+      v:
+        weather.vpdKpa !== null
+          ? fill(t.weather.vpdValue, { n: fmtNum(weather.vpdKpa, 2, locale) })
+          : "—",
       cls:
         weather.vpdKpa !== null && weather.vpdKpa > 1.6
           ? "text-danger"
@@ -377,29 +405,35 @@ function FireWeather({
           {weather.fwi && (
             <div
               className="flex items-baseline gap-1.5"
-              title={`FFMC ${weather.fwi.ffmc} · DMC ${weather.fwi.dmc} · DC ${weather.fwi.dc} · ISI ${weather.fwi.isi} · BUI ${weather.fwi.bui} (${weather.fwi.days} günlük seri)`}
+              title={fill(t.weather.fwiTitle, {
+                ffmc: weather.fwi.ffmc,
+                dmc: weather.fwi.dmc,
+                dc: weather.fwi.dc,
+                isi: weather.fwi.isi,
+                bui: weather.fwi.bui,
+                days: weather.fwi.days,
+              })}
             >
-              <span className="text-[10px] text-ink-3">Yangın hava indeksi</span>
+              <span className="text-[10px] text-ink-3">{t.weather.fwi}</span>
               <span className={`font-mono text-[11px] ${FWI_CLS[weather.fwi.level]}`}>
-                {fmtNum(weather.fwi.fwi, 1)}
+                {fmtNum(weather.fwi.fwi, 1, locale)}
               </span>
               <span className={`text-[10px] ${FWI_CLS[weather.fwi.level]}`}>
-                {weather.fwi.label}
+                {t.fwiLevels[weather.fwi.level]}
               </span>
             </div>
           )}
           {weather.pm25 !== null && (
-            <div
-              className="flex items-baseline gap-1.5"
-              title="Yüzeydeki ince partikül — duman göstergesi (CAMS)"
-            >
-              <span className="text-[10px] text-ink-3">Duman (PM2.5)</span>
+            <div className="flex items-baseline gap-1.5" title={t.weather.smokeTitle}>
+              <span className="text-[10px] text-ink-3">{t.weather.smoke}</span>
               <span className={`font-mono text-[11px] ${aqiCls ?? "text-ink"}`}>
-                {fmtNum(weather.pm25)} µg/m³
+                {fill(t.weather.smokeValue, {
+                  n: fmtNum(weather.pm25, 0, locale),
+                })}
               </span>
               {weather.aqi !== null && (
                 <span className={`text-[10px] ${aqiCls ?? "text-ink-3"}`}>
-                  AQI {fmtNum(weather.aqi)}
+                  AQI {fmtNum(weather.aqi, 0, locale)}
                 </span>
               )}
             </div>
@@ -407,15 +441,20 @@ function FireWeather({
           {weather.terrain && (
             <div
               className="flex items-baseline gap-1.5"
-              title="Yangın yokuş yukarı hızlanır — rüzgâr ters yöne esse bile"
+              title={t.weather.terrainTitle}
             >
-              <span className="text-[10px] text-ink-3">Arazi</span>
+              <span className="text-[10px] text-ink-3">{t.weather.terrain}</span>
               <span className="font-mono text-[11px] text-ink">
-                {fmtNum(weather.terrain.elevM)} m · %{fmtNum(weather.terrain.slopePct)} eğim
+                {fill(t.weather.terrainValue, {
+                  m: fmtNum(weather.terrain.elevM, 0, locale),
+                  slope: fmtNum(weather.terrain.slopePct, 0, locale),
+                })}
               </span>
               {weather.terrain.slopePct >= 10 && (
                 <span className="text-[10px] text-warn">
-                  yokuş {compassTr(weather.terrain.upslopeDeg)}
+                  {fill(t.weather.upslope, {
+                    dir: compass(weather.terrain.upslopeDeg, locale),
+                  })}
                 </span>
               )}
             </div>
@@ -434,6 +473,8 @@ function Assessment({
   fuel,
   footprint,
   pass,
+  t,
+  locale,
 }: {
   ev: FireEvent;
   weather: WindPoint | undefined;
@@ -442,6 +483,8 @@ function Assessment({
   fuel?: string | null;
   footprint?: Footprint | null;
   pass?: PassInfo;
+  t: Dict;
+  locale: Locale;
 }) {
   const lines: React.ReactNode[] = [];
 
@@ -453,17 +496,7 @@ function Assessment({
   if (ev.fixedSource) {
     lines.push(
       <span key="sabit" className="text-ink-3">
-        <b className="font-normal text-ink">Bu bir yangın değil.</b> Bu nokta bu
-        sezon{" "}
-        <b className="font-mono font-normal text-ink">
-          {ev.fixedSource.days} ayrı günde
-        </b>{" "}
-        sıcak göründü. Uydu alev değil <b className="font-normal">ısı</b>{" "}
-        görür;
-        rafineri, demir-çelik tesisi, enerji santrali ve gaz bacası her gün
-        sıcaktır. Karşılaştırma için: Türkiye&apos;nin ölçülmüş en uzun orman
-        yangını 16,5 gün sürdü. Bu kayıtlar haritada duruyor ama{" "}
-        <b className="font-normal">aktif yangın sayısına katılmıyor</b>.
+        <Rich segs={t.assess.fixed} vars={{ days: ev.fixedSource.days }} />
       </span>
     );
   }
@@ -473,26 +506,23 @@ function Assessment({
   if (footprint) {
     lines.push(
       <span key="alan">
-        Uydunun sıcak gördüğü alan:{" "}
-        <b className="font-mono font-normal text-ink">
-          ≈{fmtNum(footprint.ha)} ha
-        </b>{" "}
-        <span className="text-ink-3">
-          ({footprint.cells} VIIRS pikseli) — resmî yanan alan değildir:
-          közlenen bölümler görünmez, tespit edilen piksel de bütünüyle yanmamış
-          olabilir.
-        </span>
+        <Rich
+          segs={t.assess.footprint}
+          vars={{
+            ha: fmtNum(footprint.ha, 0, locale),
+            cells: footprint.cells,
+          }}
+        />
       </span>
     );
   }
 
   // Yakıt: kullanıcı en çok "bu orman yangını mı, anız mı" diye merak ediyor.
-  // Aktif listenin büyük kısmı güneydoğuda tarımsal anız yakma.
-  const f = fuel ? FUEL_LABEL[fuel] : null;
+  const f = fuel ? t.fuel[fuel as keyof Dict["fuel"]] : null;
   if (f) {
     lines.push(
-      <span key="fuel" className={f.uyari ? "text-warn" : undefined}>
-        Arazi örtüsü: <b className="font-normal text-ink">{f.ad}</b> — {f.not}
+      <span key="fuel" className={FUEL_WARN[fuel!] ? "text-warn" : undefined}>
+        <Rich segs={t.assess.fuelLine} vars={{ ad: f.ad, not: f.not }} />
       </span>
     );
   }
@@ -500,12 +530,10 @@ function Assessment({
   // Isı eğilimi geleceği haber vermiyor (AUC 0,502); kullanıcı bunu
   // büyüme tahmini sanmasın diye açıkça yazıyoruz.
   const trend = ev.passes.length >= 2 ? trendOf(ev) : null;
-  if (trend && trend.text === "ısı arttı") {
+  if (trend && trend.key === "up") {
     lines.push(
       <span key="isi" className="text-ink-3">
-        Isının artması yangının büyümeye devam edeceği anlamına gelmiyor:
-        ölçtüğümüzde bu işaret, sonraki ilerlemeyi <b className="font-normal">
-        yazı turadan iyi kestiremedi</b> ve yükselen ısı çoğu zaman geri düştü.
+        <Rich segs={t.assess.heatUp} />
       </span>
     );
   }
@@ -514,8 +542,7 @@ function Assessment({
   if (live && pass?.inGap && pass.nextH !== null) {
     lines.push(
       <span key="gap" className="text-warn">
-        Şu an uydu kör aralığında: yeni tespit {fmtNext(pass.nextH)} beklenir.
-        Tespit gelmemesi yangının söndüğü anlamına gelmez.
+        {fill(t.assess.gap, { next: fmtNext(pass.nextH, locale) })}
       </span>
     );
   }
@@ -524,15 +551,19 @@ function Assessment({
   const yanmaSaati = Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000);
   lines.push(
     <span key="gecmis">
-      İlk görülme:{" "}
-      <b className="font-mono font-normal text-ink">
-        {fmtDayTime(ev.firstSeen)}
-      </b>{" "}
-      · {ev.passes.length} uydu geçişi boyunca{" "}
-      {yanmaSaati < 24
-        ? `${fmtNum(yanmaSaati)} saattir`
-        : `${fmtNum(yanmaSaati / 24, 1)} gündür`}{" "}
-      izleniyor
+      <Rich
+        segs={t.assess.history}
+        vars={{
+          first: fmtDayTime(ev.firstSeen, locale),
+          passes: ev.passes.length,
+          span:
+            yanmaSaati < 24
+              ? fill(t.assess.spanHours, { n: fmtNum(yanmaSaati, 0, locale) })
+              : fill(t.assess.spanDays, {
+                  n: fmtNum(yanmaSaati / 24, 1, locale),
+                }),
+        }}
+      />
     </span>
   );
 
@@ -540,65 +571,57 @@ function Assessment({
     const hours = Math.max(0.5, ev.drift.spanMs / 3600_000);
     lines.push(
       <span key="drift">
-        Geldiği yön:{" "}
-        <b className="font-mono font-normal text-ink">
-          {compassTr((ev.drift.bearingDeg + 180) % 360)}&apos;dan
-        </b>{" "}
-        →{" "}
-        <b className="font-mono font-normal text-ink">
-          {compassTr(ev.drift.bearingDeg)} yönüne
-        </b>{" "}
-        {fmtNum(ev.drift.km, 1)} km / {fmtNum(hours)} sa
+        <Rich
+          segs={t.assess.drift}
+          vars={{
+            from: compass((ev.drift.bearingDeg + 180) % 360, locale),
+            to: compass(ev.drift.bearingDeg, locale),
+            km: fmtNum(ev.drift.km, 1, locale),
+            hours: fmtNum(hours, 0, locale),
+          }}
+        />
       </span>
     );
   } else if (ev.passes.length >= 2) {
     // Sürüklenme eşiğin altında kaldı — sessiz kalmak yerine sebebini söyle
     lines.push(
       <span key="nodrift" className="text-ink-3">
-        Belirgin bir yer değişimi yok: yangın ilk çıktığı bölgede genişliyor.
+        {t.assess.noDrift}
       </span>
     );
   }
 
   if (cone) {
+    /* 2026-08-02 doğrulama (6 sezon, 232 orman/maki ilerlemesi):
+       rüzgâr+eğim bileşkesi rastgeleden iyi ama ortanca hata 68°.
+       Yarım açı ve yarıçap artık gözlenen dağılımdan geliyor. */
     lines.push(
       <span key="cone">
-        {/* 2026-08-02 doğrulama (6 sezon, 232 orman/maki ilerlemesi):
-            rüzgâr+eğim bileşkesi rastgeleden iyi ama ortanca hata 68°.
-            Yarım açı ve yarıçap artık gözlenen dağılımdan geliyor. */}
-        En olası yön:{" "}
-        <b className="font-mono font-normal text-ink">
-          {compassTr(cone.spreadDeg)}
-        </b>{" "}
-        · rüzgâr ve eğimin bileşkesi
+        <Rich
+          segs={t.assess.cone}
+          vars={{ dir: compass(cone.spreadDeg, locale) }}
+        />
         {cone.isDisc ? (
-          <span className="text-warn">
-            {" "}
-            — ama rüzgâr zayıf, yön kuvvetli değil
-          </span>
+          <span className="text-warn">{t.assess.coneWeak}</span>
         ) : (
-          <> · sapma payı ±{Math.round(cone.halfAngle)}°</>
+          fill(t.assess.coneSpread, { deg: Math.round(cone.halfAngle) })
         )}
       </span>
     );
     lines.push(
       <span key="cone-mean" className="text-ink-3">
-        Şekil 1·3·6 saatlik <b className="font-normal">%90&apos;lık erişim</b>:
-        ölçtüğümüz yangınların onda dokuzunda, <b className="font-normal">en
-        uzağa ilerleyen nokta bile</b> bu sınırın içinde kaldı — bu oran
-        modelin görmediği sezonlarda sınandı. Baş yönüne doğru geriye göre{" "}
-        <b className="font-normal">2,4 kat</b> uzun; yangınlar gerçekte böyle
-        bir damla çiziyor. Söndürme müdahalesi hesaba katılmaz.
+        <Rich segs={t.assess.coneMean} />
       </span>
     );
     // Rüzgârın dönmesi, doğrulama testinde tahmin hatasının kalemlerinden
     // biriydi; halkalar artık saatlik tahminle çiziliyor, kullanıcı görsün.
     if (cone.driftDeg >= 30) {
       lines.push(
-        <span key="drift" className="text-warn">
-          Rüzgâr önümüzdeki 6 saatte{" "}
-          <b className="font-normal">yaklaşık {Math.round(cone.driftDeg)}° dönüyor</b> —
-          uzak halkalar bu dönüşe göre çizildi
+        <span key="wind-turn" className="text-warn">
+          <Rich
+            segs={t.assess.windTurn}
+            vars={{ deg: Math.round(cone.driftDeg) }}
+          />
         </span>
       );
     }
@@ -606,10 +629,10 @@ function Assessment({
       // Daire modunda ortada bir yön iddiası yok; en güvenilir sinyal gözlem.
       lines.push(
         <span key="obs" className="text-ok">
-          Elimizdeki en güvenilir yön bilgisi gözlem:{" "}
-          <b className="font-normal">
-            son geçişlerde {compassTr(ev.drift.bearingDeg)} yönüne ilerledi
-          </b>
+          <Rich
+            segs={t.assess.observed}
+            vars={{ dir: compass(ev.drift.bearingDeg, locale) }}
+          />
         </span>
       );
     } else if (ev.drift) {
@@ -617,13 +640,11 @@ function Assessment({
       lines.push(
         d <= 45 ? (
           <span key="agree" className="text-ok">
-            Gözlenen ilerleme tahmin yönüyle uyuşuyor — güven artar
+            {t.assess.agree}
           </span>
         ) : (
           <span key="dis" className="text-warn">
-            Gözlenen ilerleme rüzgâr yönünden sapıyor; arazi, yakıt veya
-            söndürme etkili olabilir — <b className="font-normal">gözlenen
-            yönü esas al</b>
+            <Rich segs={t.assess.disagree} />
           </span>
         )
       );
@@ -635,9 +656,10 @@ function Assessment({
       if (d > 60) {
         lines.push(
           <span key="slope" className="text-warn">
-            Dik yamaç (%{fmtNum(weather.terrain.slopePct)}):{" "}
-            {compassTr(weather.terrain.upslopeDeg)} yönünde yokuş yukarı da
-            ilerleyebilir
+            {fill(t.assess.slope, {
+              slope: fmtNum(weather.terrain.slopePct, 0, locale),
+              dir: compass(weather.terrain.upslopeDeg, locale),
+            })}
           </span>
         );
       }
@@ -645,13 +667,13 @@ function Assessment({
   } else if (!live) {
     lines.push(
       <span key="past" className="text-ink-3">
-        Tahmin konisi yalnız canlı görünümde çizilir
+        {t.assess.past}
       </span>
     );
   } else if (weather && weather.windKmh !== null && weather.windKmh < 4) {
     lines.push(
       <span key="calm" className="text-ink-3">
-        Rüzgar durgun — belirgin bir yönelim yok
+        {t.assess.calm}
       </span>
     );
   }

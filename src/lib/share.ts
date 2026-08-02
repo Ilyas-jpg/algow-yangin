@@ -1,4 +1,5 @@
 import { slugifyTr } from "./slug";
+import { provinceHref, type Locale } from "./i18n";
 
 export const EV_PARAM = "ev";
 /** Zaman penceresi: /api/fires'ın days parametresiyle aynı alfabe (1|2|5). */
@@ -25,21 +26,18 @@ export interface ShareableEvent {
  * Pencere de taşınır: paylaşan kişi 5 günlük görünümdeyse, alıcının
  * varsayılan 24 saatlik penceresinde o yangın hiç bulunmayabilirdi.
  */
-export function eventPath(ev: ShareableEvent, days = "1"): string {
+export function eventPath(
+  ev: ShareableEvent,
+  days = "1",
+  locale: Locale = "tr"
+): string {
   const q = new URLSearchParams({ [EV_PARAM]: ev.id });
   if (days !== "1") q.set(WIN_PARAM, days);
-  return `/?${q.toString()}`;
+  // "/" + sorgu · "/en" + sorgu — dil kökü paylaşılan bağlantıda korunur
+  return `${locale === "en" ? "/en" : "/"}?${q.toString()}`;
 }
 
 /** İlin kendi sayfası — arama motoru yüzeyi, statik. */
-export function provincePath(il: string): string {
-  return `/yangin/${slugifyTr(il)}`;
-}
-
-export function eventUrl(
-  ev: ShareableEvent,
-  days = "1",
-  origin = "https://yangin.algow.net"
-): string {
-  return origin + eventPath(ev, days);
+export function provincePath(il: string, locale: Locale = "tr"): string {
+  return provinceHref(slugifyTr(il), locale);
 }

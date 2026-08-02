@@ -11,8 +11,36 @@ import type {
 } from "maplibre-gl";
 import type { LayerToggles, UserLocation, WindGrid } from "@/lib/types";
 import { CONE_MINZOOM, metersPerPixel } from "@/lib/geo";
+import type { Locale } from "@/lib/i18n";
 import type { ConeGeom } from "@/lib/wind";
+import { useLocale } from "./LocaleProvider";
 import { WindParticleLayer } from "./WindParticles";
+
+/**
+ * Yer adı alanı — açık olan dile göre.
+ *
+ * Karo verisi hem `name:tr` hem `name:en` taşıyor. Türkçe üründe varsayılan
+ * "name" alanı yerel dili veriyordu (Kıbrıs'ta Yunanca, ülke adında
+ * İngilizce); İngilizce üründe ise tersi sorun vardı — okuyan kişi
+ * "SURİYE", "BAĞDAT", "TRABLUSŞAM" görüyordu. Her dil kendi adlarını okur;
+ * karşılığı olmayan yerde `name:latin`, en sonda ham `name`.
+ *
+ * Türkiye'nin il/ilçe adları bundan etkilenmez: karo verisinde onların
+ * `name:en` karşılığı yok, iki dilde de "İstanbul", "Muğla" yazar.
+ */
+const nameField = (locale: Locale): ExpressionSpecification => {
+  const fallback: ExpressionSpecification = [
+    "coalesce",
+    ["get", locale === "en" ? "name:en" : "name:tr"],
+    ["get", "name:latin"],
+    ["get", "name"],
+  ];
+  if (locale !== "en") return fallback;
+  // Karo verisi ülkeye hâlâ "Turkey" diyor; platformun kendi İngilizce
+  // metni baştan sona "Türkiye" yazıyor. Haritanın metinle çelişmemesi için
+  // tek istisna burada.
+  return ["case", ["==", ["get", "name:en"], "Turkey"], "Türkiye", fallback];
+};
 
 const STYLE_URL = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
@@ -124,6 +152,7 @@ export default function FireMap({
   onCenterChange,
   onZoomChange,
 }: FireMapProps) {
+  const locale = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const windRef = useRef<WindParticleLayer | null>(null);
@@ -231,26 +260,15 @@ export default function FireMap({
         map.setPaintProperty(layer.id, "text-halo-color", "#08090b");
         map.setPaintProperty(layer.id, "text-halo-width", 1.4);
         map.setPaintProperty(layer.id, "text-halo-blur", 0.4);
-        // Türkçe adlar: karo verisi name:tr taşıyor. Varsayılan "name" alanı
-        // yerel dili veriyordu — Kıbrıs'ta Yunanca (Λευκωσία), Yunanistan'da
-        // Yunanca, ülke adında İngilizce ("TURKEY"). Türkçe bir üründe
-        // Lefkoşa, Girne, Gazimağusa ve Türkiye yazmalı.
-        map.setLayoutProperty(layer.id, "text-field", [
-          "coalesce",
-          ["get", "name:tr"],
-          ["get", "name:latin"],
-          ["get", "name"],
-        ]);
+        // Yer adları açık olan dilde (bkz. nameField): varsayılan "name"
+        // alanı yerel dili veriyor — Kıbrıs'ta Yunanca (Λευκωσία),
+        // Yunanistan'da Yunanca.
+        map.setLayoutProperty(layer.id, "text-field", nameField(locale));
       }
       // Ülke/eyalet etiketleri de aynı şekilde
       for (const id of ["place_country_1", "place_country_2", "place_state", "place_continent"]) {
         if (!map.getLayer(id)) continue;
-        map.setLayoutProperty(id, "text-field", [
-          "coalesce",
-          ["get", "name:tr"],
-          ["get", "name:latin"],
-          ["get", "name"],
-        ]);
+        map.setLayoutProperty(id, "text-field", nameField(locale));
       }
 
       // Veri katmanları basemap etiketlerinin ALTINA girer; yer adları
@@ -854,6 +872,11 @@ export default function FireMap({
       mapRef.current = null;
       setReady(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps --
+    // `locale` bilerek bağımlılıkta değil: harita bir kez kuruluyor ve dil
+    // değişimi ayrı bir kök düzene (tam sayfa yükleme) gidiyor, yani bu
+    // bileşen zaten yeniden bağlanıyor. Bağımlılığa eklemek her dil
+    // okumasında haritayı yıkıp yeniden kurardı.
   }, []);
 
   // ── Veri güncellemeleri

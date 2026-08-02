@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       // Gömme görünümü ve uç noktalar dizinde ayrı sayfa olarak görünmesin;
       // asıl sayfaların kopyası sayılırlar.
-      disallow: ["/api/", "/embed"],
+      disallow: ["/api/", "/embed", "/en/embed"],
     },
     sitemap: "https://yangin.algow.net/sitemap.xml",
   };

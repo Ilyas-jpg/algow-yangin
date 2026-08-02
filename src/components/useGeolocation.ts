@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GeoState } from "@/lib/types";
+import { useT } from "./LocaleProvider";
 
 /**
  * Kullanıcının konumu — yalnızca tarayıcıda tutulur, hiçbir sunucuya gönderilmez.
  * Sahada hareket eden ekipler için sürekli izleme (watchPosition) kullanılır.
  */
 export function useGeolocation() {
+  const t = useT();
   const [state, setState] = useState<GeoState>({ status: "idle" });
   const watchRef = useRef<number | null>(null);
 
@@ -21,10 +23,7 @@ export function useGeolocation() {
 
   const start = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setState({
-        status: "error",
-        message: "Bu tarayıcı konum servisini desteklemiyor",
-      });
+      setState({ status: "error", message: t.geo.unsupported });
       return;
     }
     setState({ status: "locating" });
@@ -57,15 +56,13 @@ export function useGeolocation() {
             : {
                 status: "error",
                 message:
-                  err.code === err.TIMEOUT
-                    ? "Konum alınamadı — açık alanda tekrar deneyin"
-                    : "Konum servisi şu an yanıt vermiyor",
+                  err.code === err.TIMEOUT ? t.geo.timeout : t.geo.unavailable,
               }
         );
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
-  }, []);
+  }, [t]);
 
   const toggle = useCallback(() => {
     if (watchRef.current !== null) stop();

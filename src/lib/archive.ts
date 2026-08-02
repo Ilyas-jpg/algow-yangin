@@ -23,10 +23,25 @@ export interface ArchiveIndexItem {
   ad: string;
   il: string;
   ozet: string;
+  /** İngilizce ad ve özet — arşiv kaydının metni yalnız indekste çevrili
+   *  tutuluyor; 362 KB'lik tespit dosyalarının ikinci bir kopyası yok. */
+  adEn?: string;
+  ozetEn?: string;
   ilk: number;
   son: number;
   tespit: number;
   maxFrp: number;
+}
+
+/** Kaydın açık dildeki adı ve özeti; İngilizcesi yoksa Türkçesine düşer. */
+export function archiveText(
+  k: ArchiveIndexItem,
+  locale: "tr" | "en"
+): { ad: string; ozet: string } {
+  if (locale === "en") {
+    return { ad: k.adEn ?? k.ad, ozet: k.ozetEn ?? k.ozet };
+  }
+  return { ad: k.ad, ozet: k.ozet };
 }
 
 /** Sütunlu kayıt → uygulamanın her yerinde kullanılan FirePoint. */

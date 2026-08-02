@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { FireEvent } from "@/lib/types";
 import { eventPath } from "@/lib/share";
 import { fmtNum } from "@/lib/format";
+import { fill } from "@/lib/i18n";
+import { useLocale, useT } from "./LocaleProvider";
 
 /**
  * Bir yangını paylaşmak.
@@ -11,6 +13,9 @@ import { fmtNum } from "@/lib/format";
  * Mobilde yerel paylaşım sayfası (WhatsApp/Telegram/mesaj), masaüstünde
  * panoya kopyalama. Büyük yangınlarda insanlar linki birbirine yolluyor;
  * bunu yapamamak platformun en büyük erişim kaybıydı.
+ *
+ * Bağlantı okuyanın dilinde kalır: İngilizce sayfadan paylaşılan yangın
+ * `/en?ev=…` olur, karşı taraf da İngilizce açar.
  */
 export default function ShareButton({
   ev,
@@ -20,12 +25,20 @@ export default function ShareButton({
   /** Paylaşanın açık olan zaman penceresi — bağlantıda taşınır */
   days: string;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [durum, setDurum] = useState<"hazir" | "kopyalandi" | "hata">("hazir");
 
   const paylas = async () => {
-    const url = new URL(eventPath(ev, days), window.location.origin).toString();
-    const baslik = `${ev.place} — ${fmtNum(ev.frpLast)} MW yangın tespiti`;
-    const metin = `${baslik} · Algow Yangın haritasında`;
+    const url = new URL(
+      eventPath(ev, days, locale),
+      window.location.origin
+    ).toString();
+    const baslik = fill(t.share.title, {
+      place: ev.place,
+      mw: fmtNum(ev.frpLast, 0, locale),
+    });
+    const metin = fill(t.share.text, { title: baslik });
 
     // navigator.share yalnız güvenli bağlamda ve kullanıcı hareketiyle çalışır;
     // desteklenmiyorsa ya da kullanıcı vazgeçerse panoya düşüyoruz.
@@ -62,10 +75,10 @@ export default function ShareButton({
         />
       </svg>
       {durum === "kopyalandi"
-        ? "bağlantı kopyalandı"
+        ? t.share.copied
         : durum === "hata"
-          ? "kopyalanamadı"
-          : "Paylaş"}
+          ? t.share.failed
+          : t.share.button}
     </button>
   );
 }

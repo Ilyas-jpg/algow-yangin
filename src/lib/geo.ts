@@ -1,3 +1,5 @@
+import type { Locale } from "./i18n";
+
 const R = 6371; // km
 
 export const toRad = (d: number) => (d * Math.PI) / 180;
@@ -121,12 +123,20 @@ export function metersPerPixel(lat: number, zoom: number): number {
  */
 export const CONE_MINZOOM = 7.5;
 
-const COMPASS_TR = [
-  "K", "KKD", "KD", "DKD", "D", "DGD", "GD", "GGD",
-  "G", "GGB", "GB", "BGB", "B", "BKB", "KB", "KKB",
-];
+const COMPASS: Record<Locale, string[]> = {
+  tr: [
+    "K", "KKD", "KD", "DKD", "D", "DGD", "GD", "GGD",
+    "G", "GGB", "GB", "BGB", "B", "BKB", "KB", "KKB",
+  ],
+  en: [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+  ],
+};
 
-/** dereceyi 16'lı Türkçe pusula yönüne çevir */
-export function compassTr(deg: number): string {
-  return COMPASS_TR[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+/** dereceyi 16'lı pusula yönüne çevir (K/KKD… · N/NNE…) */
+export function compass(deg: number, locale: Locale): string {
+  return COMPASS[locale][
+    Math.round((((deg % 360) + 360) % 360) / 22.5) % 16
+  ];
 }

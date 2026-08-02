@@ -10,6 +10,8 @@
  * • Yönelme ekinde ünlüyle biten sözcüğe kaynaştırma y'si girer
  */
 
+import type { Locale } from "./i18n";
+
 const KALIN = new Set("aıouâû");
 const INCE = new Set("eiöüî");
 const SERT = new Set("fstkçşhp");
@@ -44,3 +46,16 @@ export function yonelme(ad: string): string {
   const y = unluBitis(ad) ? "y" : "";
   return `${ad}'${y}${kalinMi(ad) ? "a" : "e"}`;
 }
+
+/**
+ * Dile göre hâl eki.
+ *
+ * İngilizcede ad çekilmez — ilgi edatı ("in Muğla", "near Muğla") cümle
+ * şablonunun kendi içinde durur. Bu yüzden İngilizce tarafta ad olduğu gibi
+ * geçer; Türkçe ek mantığı İngilizce sayfaya hiç bulaşmaz.
+ */
+export const locative = (ad: string, locale: Locale): string =>
+  locale === "tr" ? bulunma(ad) : ad;
+
+export const dative = (ad: string, locale: Locale): string =>
+  locale === "tr" ? yonelme(ad) : ad;

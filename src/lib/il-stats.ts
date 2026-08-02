@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Locale } from "./i18n";
 
 export interface IlStat {
   /** ham tespit (sabit kaynaklar dahil) */
@@ -55,29 +56,38 @@ export function ilStat(ad: string): IlStat | null {
   return ilStats()?.iller[ad] ?? null;
 }
 
-/** "2026-07-29" → "29 Temmuz" */
-export function trTarih(iso: string): string {
-  const AY = [
+const AYLAR: Record<Locale, string[]> = {
+  tr: [
     "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
     "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
-  ];
+  ],
+  en: [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ],
+};
+
+/** "2026-07-29" → "29 Temmuz" · "29 July" */
+export function fmtDate(iso: string, locale: Locale): string {
   const d = new Date(iso + "T00:00:00Z");
-  return `${d.getUTCDate()} ${AY[d.getUTCMonth()]}`;
+  return `${d.getUTCDate()} ${AYLAR[locale][d.getUTCMonth()]}`;
 }
 
 /**
  * Geçmiş ortalamaya göre konum. Küçük sayılarda yüzde anlamsızlaşır
  * (1 → 2 tespit "%100 artış" değildir), o yüzden eşik var.
+ *
+ * Yön bir ETİKET değil bir işaret: metni çağıran taraf kendi dilinde yazar.
  */
 export function kiyas(
   bu: number,
   ort: number
-): { yon: "üstünde" | "altında" | "yakın"; yuzde: number | null } {
-  if (ort < 10 || bu < 10) return { yon: "yakın", yuzde: null };
+): { yon: "above" | "below" | "near"; yuzde: number | null } {
+  if (ort < 10 || bu < 10) return { yon: "near", yuzde: null };
   const fark = ((bu - ort) / ort) * 100;
-  if (Math.abs(fark) < 15) return { yon: "yakın", yuzde: null };
+  if (Math.abs(fark) < 15) return { yon: "near", yuzde: null };
   return {
-    yon: fark > 0 ? "üstünde" : "altında",
+    yon: fark > 0 ? "above" : "below",
     yuzde: Math.abs(Math.round(fark)),
   };
 }

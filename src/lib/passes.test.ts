@@ -67,8 +67,15 @@ test("her saat tespit varsa kör aralık iddiası yapılmaz", () => {
 });
 
 test("fmtNext insan diliyle yazar", () => {
-  assert.equal(fmtNext(null), "—");
-  assert.equal(fmtNext(0.2), "birazdan");
-  assert.equal(fmtNext(1), "≈1 sa sonra");
-  assert.equal(fmtNext(4.4), "≈4 sa sonra");
+  assert.equal(fmtNext(null, "tr"), "—");
+  assert.equal(fmtNext(0.2, "tr"), "birazdan");
+  assert.equal(fmtNext(1, "tr"), "≈1 sa sonra");
+  assert.equal(fmtNext(4.4, "tr"), "≈4 sa sonra");
+});
+
+test("fmtNext İngilizcede de aynı eşikleri kullanır", () => {
+  assert.equal(fmtNext(null, "en"), "—");
+  assert.equal(fmtNext(0.2, "en"), "shortly");
+  assert.equal(fmtNext(1, "en"), "in ≈1 h");
+  assert.equal(fmtNext(4.4, "en"), "in ≈4 h");
 });

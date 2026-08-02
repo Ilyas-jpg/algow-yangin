@@ -11,6 +11,8 @@
  * değişirse (yeni uydu, kayıp uydu) bu kendiliğinden uyum sağlar.
  */
 
+import type { Locale } from "./i18n";
+
 export interface PassInfo {
   /** en yeni tespitin üstünden geçen saat */
   sinceH: number | null;
@@ -66,10 +68,16 @@ export function nextPassEstimate(
   return { sinceH, nextH, inGap, windows };
 }
 
-/** "≈2 sa sonra" / "birazdan" gibi kısa ifade */
-export function fmtNext(h: number | null): string {
+const NEXT: Record<Locale, { soon: string; one: string; many: string }> = {
+  tr: { soon: "birazdan", one: "≈1 sa sonra", many: "≈{n} sa sonra" },
+  en: { soon: "shortly", one: "in ≈1 h", many: "in ≈{n} h" },
+};
+
+/** "≈2 sa sonra" / "in ≈2 h" gibi kısa ifade */
+export function fmtNext(h: number | null, locale: Locale): string {
   if (h === null) return "—";
-  if (h < 0.5) return "birazdan";
-  if (h < 1.5) return "≈1 sa sonra";
-  return `≈${Math.round(h)} sa sonra`;
+  const t = NEXT[locale];
+  if (h < 0.5) return t.soon;
+  if (h < 1.5) return t.one;
+  return t.many.replace("{n}", String(Math.round(h)));
 }

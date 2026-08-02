@@ -1,0 +1,19 @@
+{
+  "name": "Algow Wildfire — wildfire map of Türkiye",
+  "short_name": "Algow Wildfire",
+  "description": "Live wildfire tracking from satellite detections, past advance, and a wind-based spread forecast. Works on a weak connection too.",
+  "lang": "en",
+  "start_url": "/en",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "icons": [
+    { "src": "/brand/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/brand/favicon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/brand/favicon-48.png", "sizes": "48x48", "type": "image/png" }
+  ]
+}

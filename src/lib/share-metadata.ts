@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import type { FireEvent } from "./types";
 import { EV_PARAM, WIN_PARAM } from "./share";
 import { fmtNum } from "./format";
-import { compassTr } from "./geo";
+import { compass } from "./geo";
+import { OG_LOCALE, fill, type Locale } from "./i18n";
+import type { Dict } from "@/i18n/tr";
+
+/** Kart görselinin dili — /api/og bu parametreyi okur. */
+export const LANG_PARAM = "lang";
 
 /**
  * Paylaşılan bir yangının sohbet/sosyal kartı.
@@ -14,35 +19,39 @@ import { compassTr } from "./geo";
 export function shareMetadata(
   ev: FireEvent,
   id: string,
-  days: string
+  days: string,
+  locale: Locale,
+  t: Dict
 ): Metadata {
   const saat = Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000);
   const sure =
     saat < 24
-      ? `${fmtNum(saat)} saattir izleniyor`
-      : `${fmtNum(saat / 24, 1)} gündür izleniyor`;
+      ? fill(t.shareMeta.spanHours, { n: fmtNum(saat, 0, locale) })
+      : fill(t.shareMeta.spanDays, { n: fmtNum(saat / 24, 1, locale) });
 
-  const durum =
-    ev.status === "active"
-      ? "aktif"
-      : ev.status === "waning"
-        ? "sönmekte"
-        : "eski kayıt";
+  const durum = t.shareMeta.status[ev.status];
 
-  const title = `${ev.place} — ${fmtNum(ev.frpLast)} MW yangın tespiti`;
+  const title = fill(t.shareMeta.title, {
+    place: ev.place,
+    mw: fmtNum(ev.frpLast, 0, locale),
+  });
   const parcalar = [
-    `Uydu tespiti ${durum}`,
-    `${ev.count} tespit`,
+    fill(t.shareMeta.lead, { status: durum }),
+    fill(t.shareMeta.count, { n: ev.count }),
     sure,
     ev.drift
-      ? `gözlenen ilerleme ${compassTr(ev.drift.bearingDeg)} yönüne ${fmtNum(ev.drift.km, 1)} km`
+      ? fill(t.shareMeta.drift, {
+          dir: compass(ev.drift.bearingDeg, locale),
+          km: fmtNum(ev.drift.km, 1, locale),
+        })
       : null,
-    "Uydu ısı görür, her tespit yangın olmayabilir; resmi uyarı değildir.",
+    t.shareMeta.tail,
   ].filter(Boolean);
   const description = parcalar.join(" · ");
 
   const q = new URLSearchParams({ [EV_PARAM]: id });
   if (days !== "1") q.set(WIN_PARAM, days);
+  if (locale !== "tr") q.set(LANG_PARAM, locale);
   const ogUrl = `/api/og?${q.toString()}`;
 
   return {
@@ -52,7 +61,7 @@ export function shareMetadata(
       title,
       description,
       type: "article",
-      locale: "tr_TR",
+      locale: OG_LOCALE[locale],
       images: [{ url: ogUrl, width: 1200, height: 630, alt: title }],
     },
     twitter: {

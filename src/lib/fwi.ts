@@ -161,12 +161,18 @@ export function runFwiSeries(days: FwiDay[], start = FWI_START): FwiCodes | null
   return { ffmc: r(ffmc), dmc: r(dmc), dc: r(dc), isi: r(isi), bui: r(bui), fwi: r(fwi) };
 }
 
-/** EFFIS'in Avrupa için kullandığı tehlike sınıfları */
-export function fwiClass(fwi: number): { label: string; level: 0 | 1 | 2 | 3 | 4 | 5 } {
-  if (fwi < 5.2) return { label: "Çok düşük", level: 0 };
-  if (fwi < 11.2) return { label: "Düşük", level: 1 };
-  if (fwi < 21.3) return { label: "Orta", level: 2 };
-  if (fwi < 38.0) return { label: "Yüksek", level: 3 };
-  if (fwi < 50.0) return { label: "Çok yüksek", level: 4 };
-  return { label: "Aşırı", level: 5 };
+/**
+ * EFFIS'in Avrupa için kullandığı tehlike sınıfı — yalnız SEVİYE döner.
+ *
+ * Etiket metni bilerek burada değil: yanıt gövdesine gömülseydi dil
+ * sunucudaki sabite bağlı kalırdı. Seviye taşınıyor, adı arayüz kendi
+ * sözlüğünden yazıyor (`fwiLevels`).
+ */
+export function fwiLevel(fwi: number): 0 | 1 | 2 | 3 | 4 | 5 {
+  if (fwi < 5.2) return 0;
+  if (fwi < 11.2) return 1;
+  if (fwi < 21.3) return 2;
+  if (fwi < 38.0) return 3;
+  if (fwi < 50.0) return 4;
+  return 5;
 }

@@ -20,13 +20,17 @@ import type { WindForecastPoint } from "@/app/api/wind/forecast/route";
 import type { SmokeGrid } from "@/app/api/smoke/grid/route";
 import { nextPassEstimate } from "@/lib/passes";
 import { fmtAgo, fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
+import { fill, path as localePath } from "@/lib/i18n";
 import {
   CONE_MINZOOM,
   bearingDeg,
-  compassTr,
+  compass,
   havKm,
   metersPerPixel,
 } from "@/lib/geo";
+import { useLocale, useT } from "./LocaleProvider";
+import MapLoading from "./MapLoading";
+import Rich from "./Rich";
 import { useGeolocation } from "./useGeolocation";
 import { useAlerts } from "./useAlerts";
 import { useFuel, fuelKey } from "./useFuel";
@@ -46,11 +50,7 @@ import Legend from "./Legend";
  */
 const FireMap = dynamic(() => import("./FireMap"), {
   ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 grid place-items-center bg-obsidian-1">
-      <span className="font-mono text-[11px] text-ink-3">harita yükleniyor…</span>
-    </div>
-  ),
+  loading: () => <MapLoading />,
 });
 
 /**
@@ -118,6 +118,8 @@ export interface AppProps {
 }
 
 export default function App({ focus, embed = false }: AppProps = {}) {
+  const t = useT();
+  const locale = useLocale();
   // Pencere de bağlantıdan gelebilir: paylaşan 5 günlük görünümdeyse, alıcının
   // 24 saatlik varsayılanında o yangın hiç bulunmayabilirdi.
   const [windowHours, setWindowHours] = useState<WindowHours>(() => {
@@ -543,7 +545,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
       properties: {
         kind: "pass",
         order: passes.length === 1 ? 1 : i / (passes.length - 1),
-        label: fmtClock(p.t),
+        label: fmtClock(p.t, locale),
       },
     }));
 
@@ -565,12 +567,12 @@ export default function App({ focus, embed = false }: AppProps = {}) {
       geometry: { type: "Point", coordinates: [ilk.lon, ilk.lat] },
       properties: {
         kind: "start",
-        label: `İLK GÖRÜLEN · ${fmtDayTime(ilk.t)}`,
+        label: `${t.map.firstSeen} · ${fmtDayTime(ilk.t, locale)}`,
       },
     });
 
     return { type: "FeatureCollection", features };
-  }, [selectedEvent, effT]);
+  }, [selectedEvent, effT, t, locale]);
 
   /** Seçili yangının o ana kadar yaktığı alan (tüm geçmiş tespitleri). */
   const burnedFC = useMemo<GeoJSON.FeatureCollection>(() => {
@@ -606,9 +608,12 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     return {
       ev: best,
       km: bestKm,
-      dir: compassTr(bearingDeg(userLoc.lon, userLoc.lat, best.lon, best.lat)),
+      dir: compass(
+        bearingDeg(userLoc.lon, userLoc.lat, best.lon, best.lat),
+        locale
+      ),
     };
-  }, [userLoc, events]);
+  }, [userLoc, events, locale]);
 
   const msgFC = useMemo<GeoJSON.FeatureCollection>(
     () =>
@@ -748,43 +753,39 @@ export default function App({ focus, embed = false }: AppProps = {}) {
   const layerNotes = useMemo(() => {
     const notes: string[] = [];
     if (layers.heat && zoom > 10.5) {
-      notes.push(
-        "Isı katmanı yakın zumda kapanır — bu ölçekte tek tek tespitler zaten görünüyor."
-      );
+      notes.push(t.layerNote.heatZoom);
     }
     if (layers.cones && !live) {
-      notes.push(
-        "Tahmin konisi yalnız canlı görünümde çizilir; geçmişe sardığın için gizli."
-      );
+      notes.push(t.layerNote.conePast);
     } else if (coneTooSmall) {
       notes.push(
-        `Erişim şekli bu ölçekte gizli: en geniş halka ${fmtNum(coneTooSmall.km, 1)} km, yani birkaç piksel — okunmadığı için çizilmiyor. Bir yangına yakınlaş, şekil kendiliğinden gelir.`
+        fill(t.layerNote.coneSmall, {
+          km: fmtNum(coneTooSmall.km, 1, locale),
+        })
       );
     } else if (layers.cones && live && cones.length === 0 && events.length > 0) {
       notes.push(
-        windGrid
-          ? "Tahmin konisi yok: aktif yangınların bulunduğu yerlerde rüzgâr çok durgun."
-          : "Tahmin konisi için rüzgâr verisi bekleniyor."
+        windGrid ? t.layerNote.coneCalm : t.layerNote.coneWaiting
       );
     }
     if (layers.wind && !windGrid) {
-      notes.push("Rüzgâr animasyonu için veri bekleniyor.");
+      notes.push(t.layerNote.windWaiting);
     }
     if (layers.wind && reducedMotion) {
-      notes.push(
-        "Hareket azaltma açık olduğu için rüzgâr animasyonu çalışmıyor."
-      );
+      notes.push(t.layerNote.windReduced);
     }
     // Süzgecin ne yaptığını ve neyi yapamadığını açıkça söyle: sessizce
     // "temizlenmiş" bir harita, eksiği olmayan bir harita sanılır.
     if (layers.hideFarm) {
       if (fuelData.loading) {
-        notes.push("Arazi örtüsü sorgulanıyor — anız süzgeci birazdan oturur.");
+        notes.push(t.layerNote.fuelLoading);
       } else {
         notes.push(
-          `Anız süzgeci: ${hiddenIds.size} tarım ateşi gizlendi.` +
+          fill(t.layerNote.farmHidden, { n: hiddenIds.size }) +
             (fuelData.unclassified > 0
-              ? ` ${fuelData.unclassified} olayın örtüsü sorulamadı (CORINE doğu illerini kapsamıyor) — onlar listede duruyor.`
+              ? fill(t.layerNote.farmUnclassified, {
+                  n: fuelData.unclassified,
+                })
               : "")
         );
       }
@@ -801,6 +802,8 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     fuelData,
     hiddenIds.size,
     coneTooSmall,
+    t,
+    locale,
   ]);
 
   const panel = (
@@ -829,14 +832,18 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     <main className="fixed inset-0 flex flex-col bg-obsidian-1">
       <h1 className="sr-only">
         {focus
-          ? `${focus.ad} yangın haritası — canlı uydu tespitleri ve yön tahmini`
-          : "Algow Yangın — Türkiye canlı yangın haritası ve yön tahmini"}
+          ? fill(t.province.srH1, { ad: focus.ad })
+          : t.province.srH1Home}
       </h1>
       {embed ? (
         <EmbedBar
           meta={fires?.meta}
           now={now}
-          href={focus ? provincePath(focus.ad) : "/"}
+          href={
+            focus
+              ? provincePath(focus.ad, locale)
+              : localePath("home", locale)
+          }
         />
       ) : (
         <TopBar
@@ -864,9 +871,13 @@ export default function App({ focus, embed = false }: AppProps = {}) {
         (fires as (FiresResponse & { __offline?: boolean }) | undefined)
           ?.__offline) && (
         <div className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn">
-          Çevrimdışısın — cihazında saklanan son veri gösteriliyor
-          {fires ? ` (${fmtClock(fires.meta.fetchedAt)})` : ""}. Bağlantı
-          gelince kendiliğinden tazelenir.
+          {fill(t.banner.offline, {
+            when: fires
+              ? fill(t.banner.offlineWhen, {
+                  clock: fmtClock(fires.meta.fetchedAt, locale),
+                })
+              : "",
+          })}
         </div>
       )}
       {evMissing && (
@@ -874,16 +885,12 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           role="status"
           className="relative z-20 flex items-center gap-3 border-b border-line bg-obsidian-2 px-3 py-1.5 text-[11px] text-ink-2"
         >
-          <span>
-            Paylaşılan yangın seçili zaman penceresinde görünmüyor — sönmüş ya
-            da uydu bir süredir ısı görmemiş olabilir. Pencereyi genişletmeyi
-            deneyebilirsin.
-          </span>
+          <span>{t.banner.eventMissing}</span>
           <button
             onClick={() => setEvMissing(false)}
             className="ml-auto shrink-0 rounded border border-line px-2 py-0.5 text-[10px] text-ink hover:border-cobalt/60"
           >
-            Kapat
+            {t.common.close}
           </button>
         </div>
       )}
@@ -892,8 +899,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           role="alert"
           className="relative z-20 border-b border-danger/40 bg-danger/10 px-3 py-1.5 text-xs text-danger"
         >
-          NASA FIRMS verisine şu an ulaşılamıyor — bağlantı aralıklarla yeniden
-          denenecek.
+          {t.banner.noData}
         </div>
       )}
       {fires && fires.meta.sourcesOk < fires.meta.sourcesTotal && (
@@ -901,9 +907,10 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           role="status"
           className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
         >
-          {fires.meta.sourcesTotal} uydu kaynağından{" "}
-          {fires.meta.sourcesTotal - fires.meta.sourcesOk} tanesi yanıt
-          vermiyor — bazı tespitler eksik olabilir.
+          {fill(t.banner.sourcesDown, {
+            total: fires.meta.sourcesTotal,
+            down: fires.meta.sourcesTotal - fires.meta.sourcesOk,
+          })}
         </div>
       )}
       {windGrid && windGrid.failedChunks > 0 && (
@@ -911,8 +918,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           role="status"
           className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
         >
-          Rüzgâr verisi kısmen eksik — bazı bölgelerde yön tahmini
-          gösterilmiyor.
+          {t.banner.windPartial}
         </div>
       )}
       {thinMode && (
@@ -920,10 +926,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           role="status"
           className="relative z-20 flex items-center gap-3 border-b border-line bg-obsidian-2 px-3 py-1.5 text-[11px] text-ink-2"
         >
-          <span>
-            Bağlantın yavaş göründüğü için rüzgâr animasyonu ve ısı katmanı
-            kapalı başlatıldı.
-          </span>
+          <span>{t.banner.thin}</span>
           <button
             onClick={() => {
               setLayers((l) => ({ ...l, wind: true, heat: true }));
@@ -931,28 +934,26 @@ export default function App({ focus, embed = false }: AppProps = {}) {
             }}
             className="ml-auto shrink-0 rounded border border-line px-2 py-0.5 text-[10px] text-ink hover:border-cobalt/60"
           >
-            Yine de aç
+            {t.banner.thinAction}
           </button>
         </div>
       )}
       {layers.msg && msg?.meta && (
         <div className="relative z-20 border-b border-line bg-obsidian-2 px-3 py-1 text-[11px] text-ink-2">
           <span className="font-mono text-warn">
-            {msg.meta.kaynak ?? "MSG"} {msg.meta.araDk ?? 15}dk
-          </span>{" "}
-          · Meteosat {fmtClock(msg.meta.slot)} taraması:{" "}
+            {fill(t.banner.msgSource, {
+              src: msg.meta.kaynak ?? "MSG",
+              min: msg.meta.araDk ?? 15,
+            })}
+          </span>
+          {fill(t.banner.msgScan, { clock: fmtClock(msg.meta.slot, locale) })}
           {msg.meta.count > 0 ? (
             <>
-              {msg.meta.count} tespit ·{" "}
-              <span className="text-ink-3">
-                konum kabadır (turuncu halka pikselin gerçek alanıdır)
-              </span>
+              {fill(t.banner.msgCount, { n: msg.meta.count })}
+              <span className="text-ink-3">{t.banner.msgCoarse}</span>
             </>
           ) : (
-            <span className="text-ink-3">
-              bu taramada Türkiye&apos;de tespit yok — Meteosat yalnız büyük
-              yangınları görür, hassas uydu katmanı açık kalsın
-            </span>
+            <span className="text-ink-3">{t.banner.msgEmpty}</span>
           )}
         </div>
       )}
@@ -961,8 +962,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           role="status"
           className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
         >
-          Rüzgâr verisine ulaşılamıyor — yön tahmini ve rüzgâr katmanı şu an
-          devre dışı.
+          {t.banner.windDown}
         </div>
       )}
       {staleData && fires && (
@@ -971,8 +971,21 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           className="relative z-20 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn"
         >
           {fires.meta.windowHours !== windowHours
-            ? `Seçtiğin ${windowHours >= 120 ? "5 günlük" : windowHours + " saatlik"} aralık şu an alınamadı — ekranda hâlâ ${fires.meta.windowHours >= 120 ? "5 günlük" : fires.meta.windowHours + " saatlik"} veri var.`
-            : `Bağlantı sorunu — ${fmtClock(fires.meta.fetchedAt)} itibarıyla alınan son veri gösteriliyor.`}
+            ? fill(t.banner.staleWindow, {
+                want:
+                  windowHours >= 120
+                    ? t.banner.window120
+                    : fill(t.banner.windowHours, { n: windowHours }),
+                have:
+                  fires.meta.windowHours >= 120
+                    ? t.banner.window120
+                    : fill(t.banner.windowHours, {
+                        n: fires.meta.windowHours,
+                      }),
+              })
+            : fill(t.banner.staleConn, {
+                clock: fmtClock(fires.meta.fetchedAt, locale),
+              })}
         </div>
       )}
 
@@ -1022,13 +1035,12 @@ export default function App({ focus, embed = false }: AppProps = {}) {
             <div className="pointer-events-auto rounded-md border border-line bg-obsidian-1/95 px-3 py-2">
               {geo.state.status === "locating" && (
                 <p className="font-mono text-[11px] text-ink-2">
-                  konum alınıyor…
+                  {t.geo.locating}
                 </p>
               )}
               {geo.state.status === "denied" && (
                 <p className="text-[11px] leading-relaxed text-ink-2">
-                  Konum izni verilmedi. Tarayıcı ayarlarından bu siteye konum
-                  izni verirsen kendini haritada görebilirsin.
+                  {t.geo.denied}
                 </p>
               )}
               {geo.state.status === "error" && (
@@ -1040,21 +1052,26 @@ export default function App({ focus, embed = false }: AppProps = {}) {
                   <div className="min-w-0 flex-1">
                     {nearestToMe ? (
                       <p className="text-[12px] leading-tight">
-                        Sana en yakın yangın{" "}
-                        <b className="font-medium">
-                          {fmtNum(nearestToMe.km, nearestToMe.km < 10 ? 1 : 0)} km
-                        </b>{" "}
-                        <b className="font-medium">{nearestToMe.dir}</b> yönünde
+                        <Rich
+                          segs={t.geo.nearest}
+                          vars={{
+                            km: fmtNum(
+                              nearestToMe.km,
+                              nearestToMe.km < 10 ? 1 : 0,
+                              locale
+                            ),
+                            dir: nearestToMe.dir,
+                          }}
+                        />
                         <span className="text-ink-3"> · {nearestToMe.ev.place}</span>
                       </p>
                     ) : (
-                      <p className="text-[12px]">
-                        Yakınında aktif yangın tespiti yok.
-                      </p>
+                      <p className="text-[12px]">{t.geo.none}</p>
                     )}
                     <p className="mt-0.5 font-mono text-[10px] text-ink-3">
-                      konum ±{fmtNum(geo.state.loc.accuracy)} m · cihazından
-                      çıkmaz
+                      {fill(t.geo.accuracy, {
+                        m: fmtNum(geo.state.loc.accuracy, 0, locale),
+                      })}
                     </p>
                   </div>
                   {nearestToMe && (
@@ -1062,7 +1079,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
                       onClick={() => handleSelect(nearestToMe.ev.id)}
                       className="shrink-0 rounded border border-line px-2 py-1 text-[10px] text-ink-2 transition-colors hover:text-ink active:scale-[0.98]"
                     >
-                      Göster
+                      {t.common.show}
                     </button>
                   )}
                 </div>
@@ -1076,16 +1093,19 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           <div className="absolute top-3 left-3 z-10 max-w-[280px] rounded-md border border-line bg-obsidian-1/95 px-3 py-2">
             <p className="text-[13px] font-medium">{selectedEvent.place}</p>
             <p className="mt-0.5 font-mono text-[11px] text-ink-2">
-              {selectedEvent.count} tespit · {fmtNum(selectedEvent.frpLast)} MW ·{" "}
-              {fmtAgo(selectedEvent.lastSeen, now)}
+              {fill(t.embed.cardMeta, {
+                count: selectedEvent.count,
+                mw: fmtNum(selectedEvent.frpLast, 0, locale),
+                ago: fmtAgo(selectedEvent.lastSeen, now, locale),
+              })}
             </p>
             <a
-              href={eventPath(selectedEvent, DAYS_PARAM[windowHours])}
+              href={eventPath(selectedEvent, DAYS_PARAM[windowHours], locale)}
               target="_blank"
               rel="noopener"
               className="mt-1.5 inline-block text-[10px] text-cobalt hover:underline"
             >
-              ayrıntı ve tahmin ↗
+              {t.embed.detail}
             </a>
           </div>
         )}
@@ -1179,8 +1199,10 @@ export default function App({ focus, embed = false }: AppProps = {}) {
                         e.status === "active" && !e.abroad && !e.fixedSource
                     ).length
                   }
-                </span>{" "}
-                aktif yangın · {shownEvents.filter((e) => !e.abroad).length} olay
+                </span>
+                {fill(t.embed.mobileCount, {
+                  events: shownEvents.filter((e) => !e.abroad).length,
+                })}
               </span>
               <svg
                 width="12"

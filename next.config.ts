@@ -58,8 +58,16 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // /embed dışındaki her yol — kurallar çakışmasın diye ayrık tutuldu
-        source: "/((?!embed$).*)",
+        // İngilizce gömme görünümü de çerçevelenebilir olmalı
+        source: "/en/embed",
+        headers: [
+          { key: "Content-Security-Policy", value: CSP_EMBED },
+          ...ORTAK,
+        ],
+      },
+      {
+        // Gömme görünümleri dışındaki her yol — kurallar çakışmasın diye ayrık
+        source: "/((?!embed$|en/embed$).*)",
         headers: [
           { key: "Content-Security-Policy", value: CSP },
           { key: "X-Frame-Options", value: "DENY" },

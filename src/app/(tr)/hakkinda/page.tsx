@@ -1,23 +1,36 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
+import LangSwitch from "@/components/LangSwitch";
+import { alternates } from "@/lib/i18n";
+import { getDict } from "@/i18n";
+
+const t = getDict("tr");
 
 export const metadata: Metadata = {
-  title: "Hakkında — Algow Yangın",
-  description:
-    "Algow Yangın'ın veri kaynakları, güncellik sınırları ve yön tahmininin nasıl çalıştığı üzerine dürüst bir açıklama.",
+  title: t.meta.aboutTitle,
+  description: t.meta.aboutDescription,
+  alternates: alternates("/hakkinda"),
 };
 
 export default function HakkindaPage() {
   return (
     <div className="min-h-dvh overflow-y-auto bg-obsidian-1">
       <div className="mx-auto max-w-[640px] px-5 py-10">
-        <Link
-          href="/"
-          className="font-mono text-xs text-ink-3 transition-colors hover:text-ink"
-        >
-          ← Haritaya dön
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="font-mono text-xs text-ink-3 transition-colors hover:text-ink"
+          >
+            {t.common.backToMap}
+          </Link>
+          <LangSwitch
+            locale="tr"
+            label={t.common.otherLang}
+            title={t.common.otherLangTitle}
+            className="ml-auto"
+          />
+        </div>
 
         <h1 className="mt-6 text-2xl font-medium tracking-tight">
           Bu harita ne gösteriyor?
@@ -233,6 +246,24 @@ export default function HakkindaPage() {
           </p>
 
           <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium text-ink">
+                2 Ağustos 2026 — İngilizce dil desteği
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Platform artık İngilizce de var.
+                  </b>{" "}
+                  Harita, yangın paneli, il sayfaları, sezon istatistikleri ve
+                  arşiv <span className="font-mono">/en</span> altında
+                  İngilizce yayınlanıyor. Türkçe adresler değişmedi: daha önce
+                  paylaşılmış her bağlantı çalışmaya devam ediyor. Yer adları
+                  iki dilde de Türkçe kalıyor — ad bir kimliktir, çevrilseydi
+                  haritadaki isimle sahadaki isim birbirinden kopardı.
+                </li>
+              </ul>
+            </div>
             <div>
               <p className="font-medium text-ink">
                 2 Ağustos 2026 — sabit ısı kaynakları, il sayfaları, paylaşım
