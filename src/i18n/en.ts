@@ -508,7 +508,7 @@ export const en: Dict = {
       "The {yil} season is still under way; the other years are clipped to the same calendar window (1 May – today), which is what makes the comparison fair.",
     h2Provinces: "By province",
     provincesNote:
-      "The figures below are not broken down by land cover: heat detections on agricultural land are included in these totals, and those are not forest fires. For that reason this list should not be read as a ranking of “provinces that burn most”.",
+      "This table counts the same thing for every province: the heat detections the satellite saw there. Fixed industrial sources are removed; what remains contains both forest fires and stubble fires on agricultural land, and the two are not separated from each other. A high number can mean many forest fires or a lot of farmland — which one it is follows from that province's land cover.",
     thProvince: "province",
     thThis: "this season",
     thPast: "past avg.",

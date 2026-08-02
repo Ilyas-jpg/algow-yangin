@@ -495,7 +495,7 @@ export const tr = {
       "{yil} sezonu henüz sürüyor; diğer yıllar da aynı takvim penceresine (1 Mayıs – bugün) kırpıldı, karşılaştırma bu yüzden adil.",
     h2Provinces: "İllere göre",
     provincesNote:
-      "Aşağıdaki sayılar arazi örtüsüne göre ayrıştırılmamıştır: tarım alanlarındaki ısı tespitleri de bu toplamlara dahildir ve bunlar orman yangını değildir. Bu yüzden liste bir “en çok yanan iller” sıralaması olarak okunmamalıdır.",
+      "Bu tablo her il için aynı şeyi sayıyor: uydunun o ilde gördüğü ısı tespitleri. Sabit sanayi kaynakları düşüldü; geri kalanda hem orman yangını hem tarım alanındaki anız ateşi var ve ikisi birbirinden ayrıştırılmadı. Yüksek bir sayı çok orman yangını anlamına da gelebilir, çok tarım alanı anlamına da — hangisi olduğu o ilin arazi örtüsünden anlaşılır.",
     thProvince: "il",
     thThis: "bu sezon",
     thPast: "geçmiş ort.",
