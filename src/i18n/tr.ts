@@ -496,6 +496,8 @@ export const tr = {
     h2Provinces: "İllere göre",
     provincesNote:
       "Bu tablo her il için aynı şeyi sayıyor: uydunun o ilde gördüğü ısı tespitleri. Sabit sanayi kaynakları düşüldü; geri kalanda hem orman yangını hem tarım alanındaki anız ateşi var ve ikisi birbirinden ayrıştırılmadı. Yüksek bir sayı çok orman yangını anlamına da gelebilir, çok tarım alanı anlamına da — hangisi olduğu o ilin arazi örtüsünden anlaşılır.",
+    provincesStubble:
+      "Şunu da açıkça yazalım: anız yakmak yasaktır ve haklı olarak yasaktır. Ateş toprağın üstünü değil canlısını öldürür, tarlanın kendi verimini yıllarca düşürür, dumanı en yakın yerleşimin ciğerine gider; rüzgâr sertleştiğinde de tarlada kalmaz, sınırındaki ormana sıçrar. Yazı kurak geçen, rüzgârı sert esen, ormanı zor yetişen bir coğrafyada bu alışkanlığı sürdürmek doğaya karşı işlenen büyük bir ayıptır.",
     thProvince: "il",
     thThis: "bu sezon",
     thPast: "geçmiş ort.",

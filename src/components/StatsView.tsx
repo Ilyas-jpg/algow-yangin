@@ -260,6 +260,9 @@ export default function StatsView({ locale }: { locale: Locale }) {
       <p className="mt-2 text-[12px] leading-relaxed text-ink-2">
         {t.stats.provincesNote}
       </p>
+      <p className="mt-2 border-l-2 border-line pl-3 text-[12px] leading-relaxed text-ink-2">
+        {t.stats.provincesStubble}
+      </p>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-[12px]">
           <thead>

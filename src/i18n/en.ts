@@ -509,6 +509,8 @@ export const en: Dict = {
     h2Provinces: "By province",
     provincesNote:
       "This table counts the same thing for every province: the heat detections the satellite saw there. Fixed industrial sources are removed; what remains contains both forest fires and stubble fires on agricultural land, and the two are not separated from each other. A high number can mean many forest fires or a lot of farmland — which one it is follows from that province's land cover.",
+    provincesStubble:
+      "Let us also say this plainly: burning stubble is illegal, and rightly so. The fire kills what lives in the soil rather than merely clearing its surface, costs the field its own fertility for years, and sends smoke into the lungs of the nearest settlement; when the wind picks up it does not stay in the field either — it crosses into the forest at its edge. In a country whose summers run dry, whose winds run hard and whose forests grow back slowly, keeping this habit alive is a serious disgrace against nature.",
     thProvince: "province",
     thThis: "this season",
     thPast: "past avg.",
