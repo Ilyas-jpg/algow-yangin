@@ -231,6 +231,94 @@ export default function HakkindaPage() {
 
           <div className="space-y-4 text-sm">
             <div>
+              <p className="font-medium text-ink">
+                2 Ağustos 2026 — sabit ısı kaynakları, il sayfaları, paylaşım
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Sanayi tesislerini yangın saymayı bıraktık — sayacımız
+                    şişikti.
+                  </b>{" "}
+                  Uydu alev değil ısı görür; rafineri, demir-çelik tesisi ve
+                  enerji santrali her gün sıcaktır. Bunları &quot;aktif
+                  yangın&quot; sayıyorduk. Ölçtük: aynı noktada{" "}
+                  <b className="font-medium">40&apos;tan fazla ayrı günde</b>{" "}
+                  sıcaklık görülen 50 yer var. Karşılaştırma için Türkiye&apos;nin
+                  ölçülmüş en uzun orman yangını 16,5 gün sürdü. Bu noktalar
+                  haritada duruyor ama artık &quot;sabit kaynak&quot; diye
+                  işaretleniyor ve yangın sayısına katılmıyor. Başlıktaki rakam
+                  bu yüzden düştü — eskisi yanlıştı, yenisi doğru.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    81 il için ayrı sayfa açıldı.
+                  </b>{" "}
+                  Her ilin kendi sayfasında o ilin sezon verisi var: kaç
+                  tespit, geçmiş sezonlara göre nasıl, en yüksek ısı ne zaman
+                  nerede ölçüldü. Sayılardan sabit ısı kaynakları düşülüyor —
+                  yoksa sanayi bölgelerinde rakam gerçeğin kat kat üstünde
+                  çıkıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Yangınlar artık paylaşılabiliyor.
+                  </b>{" "}
+                  Bir yangını seçip bağlantısını gönderdiğinde karşı taraf
+                  doğrudan o yangını görüyor; sohbet uygulamalarında da yerin
+                  adı, ısı gücü ve süresi görünüyor. Karttaki sayılar bağlantıya
+                  yazılmıyor, her seferinde gerçek veriden üretiliyor — uydurma
+                  bir kart oluşturulamasın diye.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Duman tahmini eklendi.
+                  </b>{" "}
+                  Yangının yerinde önümüzdeki 48 saatte havadaki ince partikülün
+                  (PM2.5) ne zaman zirve yapacağını gösteriyoruz. Dağılımı biz
+                  hesaplamıyoruz; Avrupa&apos;nın atmosfer izleme servisi
+                  CAMS&apos;in çıktısını aktarıyoruz.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Geçmiş yangınların arşivi açıldı.
+                  </b>{" "}
+                  2021&apos;in Manavgat, Marmaris ve Milas yangınları baştan
+                  sona oynatılabiliyor. Arşivde tahmin şekli bilerek
+                  çizilmiyor: o gün yapılmamış bir tahmini sonradan yapılmış
+                  gibi göstermeyiz.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Tarım alanlarındaki ateşler gizlenebiliyor, il/ilçe araması
+                    geldi.
+                  </b>{" "}
+                  Arazi örtüsü tarım olan tespitler tek düğmeyle listeden ve
+                  haritadan çıkıyor. Örtüsü sorulamayan olaylar gizlenmiyor ve
+                  kaç tanesi olduğu yazılıyor — sessizce temizlenmiş bir harita
+                  yanıltıcı olurdu.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Erişim şekli yakın ölçekte çiziliyor.
+                  </b>{" "}
+                  Türkiye görünümünde şekil birkaç piksel kalıyordu; çizilse de
+                  okunmuyor, sadece leke bırakıyordu. Artık bir yangına
+                  yaklaşınca geliyor ve neden görünmediği yazıyor. Ayrıca en
+                  dıştaki 6 saatlik sınır belirginleştirildi — asıl okunması
+                  gereken çizgi oydu ama en soluğu oydu.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Uydunun sıcak gördüğü alan gösteriliyor.
+                  </b>{" "}
+                  Hektar cinsinden. Bu resmî yanan alan değildir: közlenen
+                  bölümler ısı imzasını kaybeder, tespit edilen piksel de
+                  bütünüyle yanmamış olabilir. Adını da öyle koyduk.
+                </li>
+              </ul>
+            </div>
+            <div>
               <p className="font-medium text-ink">2 Ağustos 2026 — Kıbrıs ve görseller</p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
