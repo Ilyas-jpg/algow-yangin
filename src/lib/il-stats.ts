@@ -14,10 +14,19 @@ export interface IlStat {
   yillar: Record<string, number>;
 }
 
+export interface UlkeStat {
+  /** yıl → sezon toplamı (sabit ısı kaynakları düşülmüş) */
+  yillar: Record<string, number>;
+  /** yıl → gün gün tespit (1 Mayıs'tan itibaren, sabit kaynaklar düşülmüş) */
+  gunluk: Record<string, number[]>;
+  gunSayisi: number;
+}
+
 export interface IlStatFile {
   pencere: { bas: string; son: string };
   guncelYil: number;
   iller: Record<string, IlStat>;
+  ulke?: UlkeStat;
 }
 
 /**

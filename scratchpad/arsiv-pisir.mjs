@@ -25,8 +25,21 @@ const env = readFileSync(join(KOK, ".env.local"), "utf8");
 const KEY = (env.match(/^FIRMS_MAP_KEY=(.*)$/m)?.[1] ?? "").trim();
 if (!KEY) throw new Error(".env.local içinde FIRMS_MAP_KEY yok");
 
-/** SP arşivinde 2021 için mevcut kaynaklar (MODIS 2000+, SNPP 2012+, NOAA20 2018+) */
-const KAYNAKLAR = ["VIIRS_SNPP_SP", "VIIRS_NOAA20_SP", "MODIS_SP"];
+/**
+ * Kaynak seti yıla göre değişir — ÖLÇÜLDÜ (2026-08-02):
+ * SP arşivi güncel sezonu KAPSAMIYOR (2026'nın her ayında 0 tespit),
+ * NRT ise 1 Mayıs 2026'ya kadar gidiyor. Sınır ~1 Nisan 2026.
+ */
+const SP_KAYNAK = ["VIIRS_SNPP_SP", "VIIRS_NOAA20_SP", "MODIS_SP"];
+const NRT_KAYNAK = [
+  "VIIRS_SNPP_NRT",
+  "VIIRS_NOAA20_NRT",
+  "VIIRS_NOAA21_NRT",
+  "MODIS_NRT",
+];
+const GUNCEL_YIL = new Date().getUTCFullYear();
+const kaynakSeti = (baslangic) =>
+  Number(baslangic.slice(0, 4)) >= GUNCEL_YIL ? NRT_KAYNAK : SP_KAYNAK;
 /**
  * FIRMS area API tek istekte en fazla 5 gün veriyor — 10 denendi, HTTP 400
  * "Expects [1..5]" döndü. Bu sınır SP arşivinde de aynı (NRT'de zaten
@@ -39,6 +52,29 @@ const GUN = 5;
  * gerçekte veri var mı betiğin çıktısı söyler — uydurma kayıt basmıyoruz.
  */
 const YANGINLAR = [
+  // ── 2026 sezonu (NRT). Adaylar veriden seçildi: sanayi dışı, 2-16 gün
+  // süren, en çok tespit üreten noktalar — kısa ve yoğun patern gerçek
+  // orman yangınına işaret ediyor (uzun ve yayvan olanlar tarımsal).
+  {
+    slug: "seydikemer-2026",
+    ad: "Seydikemer yangını",
+    il: "Muğla",
+    bbox: "28.9,36.3,29.9,37.0",
+    baslangic: "2026-07-27",
+    gun: 8,
+    ozet:
+      "29 Temmuz 2026'da Seydikemer çevresinde başlayan yangın, bu sezonun uydudan en yoğun görülen orman yangını oldu.",
+  },
+  {
+    slug: "burhaniye-ayvalik-2026",
+    ad: "Burhaniye – Ayvalık yangını",
+    il: "Balıkesir",
+    bbox: "26.4,39.1,27.5,39.9",
+    baslangic: "2026-07-20",
+    gun: 14,
+    ozet:
+      "Temmuz 2026'nın ikinci yarısında Burhaniye ve Ayvalık çevresinde birden çok noktada süren yangınlar.",
+  },
   {
     slug: "manavgat-2021",
     ad: "Manavgat yangını",
@@ -115,7 +151,7 @@ const indeks = [];
 for (const y of YANGINLAR) {
   const hepsi = [];
   const kaynakDurum = [];
-  for (const src of KAYNAKLAR) {
+  for (const src of kaynakSeti(y.baslangic)) {
     let alt = 0;
     for (let off = 0; off < y.gun; off += GUN) {
       const tarih = gunEkle(y.baslangic, off);

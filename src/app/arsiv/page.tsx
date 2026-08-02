@@ -26,6 +26,9 @@ export default function ArchiveIndexPage() {
         <Link href="/" className="hover:text-ink">
           ← Canlı harita
         </Link>
+        <Link href="/istatistik" className="hover:text-ink">
+          Sezon istatistikleri
+        </Link>
         <Link href="/hakkinda" className="hover:text-ink">
           Hakkında
         </Link>

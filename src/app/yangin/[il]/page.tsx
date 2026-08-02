@@ -158,6 +158,11 @@ export default async function ProvincePage({ params }: Props) {
               </li>
             ))}
             <li>
+              <Link href="/istatistik">
+                Türkiye geneli sezon istatistikleri
+              </Link>
+            </li>
+            <li>
               <Link href="/arsiv">Geçmiş yangınların uydu arşivi</Link>
             </li>
           </ul>

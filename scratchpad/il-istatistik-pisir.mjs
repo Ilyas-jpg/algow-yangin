@@ -126,7 +126,9 @@ async function yilIndir(yil) {
           const hh = (hucreler[il] ??= {});
           const hc = (hh[hk] ??= { n: 0, gunler: {} });
           hc.n++;
-          hc.gunler[p.tarih] = 1;
+          // ADET tutuluyor, "var/yok" değil: ülke geneli günlük eğriden sabit
+          // ısı kaynaklarını düşebilmek için hücre-gün sayısı gerekiyor.
+          hc.gunler[p.tarih] = (hc.gunler[p.tarih] ?? 0) + 1;
         }
       } catch (e) {
         console.log(`   ! ${src} ${iso(d)}: ${e.message}`);
@@ -281,6 +283,47 @@ if (arg === "birlestir") {
       ),
     };
   }
+
+  /**
+   * Ülke geneli — sezon istatistik sayfası için.
+   * Günlük seri sabit ısı kaynaklarından ARINDIRILMIŞ: hücre-gün adetleri
+   * düşülüyor, yoksa her güne sanayi tabanı ekleniyor ve eğri yalan söylüyor.
+   */
+  const gunSayisi = Math.round((pencere(guncel).son - pencere(guncel).bas) / 86400000) + 1;
+  const ulke = { yillar: {}, gunluk: {}, gunSayisi };
+  for (const y of YILLAR) {
+    const { bas } = pencere(y);
+    const seri = new Array(gunSayisi).fill(0);
+    let toplam = 0;
+    for (const il of tumIller) {
+      const gunler = veri[y].iller[il]?.gunler ?? {};
+      // o ilin sabit hücrelerinin gün gün katkısı
+      const sabitGun = {};
+      for (const [k, v] of Object.entries(veri[y].hucreler?.[il] ?? {})) {
+        const [lo, la] = k.split(",").map(Number);
+        if (!sabitAnahtar.has(`${lo.toFixed(2)},${la.toFixed(2)}`)) continue;
+        for (const [t, n] of Object.entries(v.gunler)) {
+          sabitGun[t] = (sabitGun[t] ?? 0) + n;
+        }
+      }
+      for (const [t, n] of Object.entries(gunler)) {
+        const net = Math.max(0, n - (sabitGun[t] ?? 0));
+        if (net === 0) continue;
+        const idx = Math.round(
+          (new Date(t + "T00:00:00Z") - bas) / 86400000
+        );
+        if (idx >= 0 && idx < gunSayisi) seri[idx] += net;
+        toplam += net;
+      }
+    }
+    ulke.yillar[y] = toplam;
+    ulke.gunluk[y] = seri;
+  }
+  cikti.ulke = ulke;
+  console.log(
+    "ülke geneli (sanayi düşülmüş):",
+    YILLAR.map((y) => `${y}=${ulke.yillar[y]}`).join(" · ")
+  );
 
   const yol = join(KOK, "public", "il-istatistik.json");
   writeFileSync(yol, JSON.stringify(cikti));

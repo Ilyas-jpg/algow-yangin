@@ -1,5 +1,25 @@
 [
  {
+  "slug": "seydikemer-2026",
+  "ad": "Seydikemer yangını",
+  "il": "Muğla",
+  "ozet": "29 Temmuz 2026'da Seydikemer çevresinde başlayan yangın, bu sezonun uydudan en yoğun görülen orman yangını oldu.",
+  "ilk": 1785195180000,
+  "son": 1785501840000,
+  "tespit": 747,
+  "maxFrp": 2639
+ },
+ {
+  "slug": "burhaniye-ayvalik-2026",
+  "ad": "Burhaniye – Ayvalık yangını",
+  "il": "Balıkesir",
+  "ozet": "Temmuz 2026'nın ikinci yarısında Burhaniye ve Ayvalık çevresinde birden çok noktada süren yangınlar.",
+  "ilk": 1784505780000,
+  "son": 1785582120000,
+  "tespit": 714,
+  "maxFrp": 1096
+ },
+ {
   "slug": "manavgat-2021",
   "ad": "Manavgat yangını",
   "il": "Antalya",
