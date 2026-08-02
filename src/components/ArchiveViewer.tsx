@@ -212,6 +212,7 @@ export default function ArchiveViewer({ slug }: { slug: string }) {
           trailFC={trailFC}
           burnedFC={EMPTY}
           msgFC={EMPTY}
+          smokeFC={EMPTY}
           selectedId={selectedId}
           effT={effT}
           windowHours={Math.max(1, (son - ilk) / 3600_000)}
@@ -226,6 +227,7 @@ export default function ArchiveViewer({ slug }: { slug: string }) {
             terrain: true,
             burnt: false,
             danger: false,
+            smoke: false,
             msg: false,
           }}
           windGrid={undefined}

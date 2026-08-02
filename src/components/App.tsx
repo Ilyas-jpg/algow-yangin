@@ -17,6 +17,7 @@ import { resolveEvent } from "@/lib/event-id";
 import { buildCone, type ConeGeom } from "@/lib/wind";
 import type { TerrainPoint } from "@/app/api/terrain/route";
 import type { WindForecastPoint } from "@/app/api/wind/forecast/route";
+import type { SmokeGrid } from "@/app/api/smoke/grid/route";
 import { nextPassEstimate } from "@/lib/passes";
 import { fmtAgo, fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
 import {
@@ -137,6 +138,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     terrain: false,
     burnt: false,
     danger: false,
+    smoke: false,
     msg: true,
   });
   const [offline, setOffline] = useState(false);
@@ -234,6 +236,39 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     fetcher,
     { refreshInterval: 1_800_000, revalidateOnFocus: false }
   );
+
+  // Duman alanı yalnız katman açıkken çekilir — kapalıyken kimseye maliyeti yok
+  const { data: smokeGrid } = useSWR<SmokeGrid>(
+    layers.smoke ? "/api/smoke/grid" : null,
+    fetcher,
+    { refreshInterval: 1_800_000, revalidateOnFocus: false }
+  );
+
+  /** Grid → nokta bulutu. Yarıçap hücreyi kaplasın diye zoom'a bağlı. */
+  const smokeFC = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!smokeGrid) return EMPTY_FC;
+    const feats: GeoJSON.Feature[] = [];
+    for (let r = 0; r < smokeGrid.ny; r++) {
+      for (let c = 0; c < smokeGrid.nx; c++) {
+        const v = smokeGrid.pm[r * smokeGrid.nx + c];
+        // null = veri yok. 0 yazıp "temiz" göstermek olmayan bilgiyi
+        // iyi haber diye sunmak olurdu.
+        if (v === null || v === undefined) continue;
+        feats.push({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [
+              smokeGrid.lon0 + c * smokeGrid.dLon,
+              smokeGrid.lat0 + r * smokeGrid.dLat,
+            ],
+          },
+          properties: { pm: v },
+        });
+      }
+    }
+    return { type: "FeatureCollection", features: feats };
+  }, [smokeGrid]);
 
   const live = scrub === null;
   const effT = scrub ?? now;
@@ -947,6 +982,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           trailFC={trailFC}
           burnedFC={burnedFC}
           msgFC={msgFC}
+          smokeFC={smokeFC}
           selectedId={selectedId}
           effT={effT}
           windowHours={windowHours}

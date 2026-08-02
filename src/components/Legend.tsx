@@ -47,6 +47,15 @@ export default function Legend() {
       </div>
       <div className="mt-1.5 flex items-center gap-2">
         <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden className="shrink-0">
+          <rect x="1" y="2" width="6" height="8" fill="#8f83b8" fillOpacity="0.25" />
+          <rect x="7" y="2" width="6" height="8" fill="#c05a8a" fillOpacity="0.5" />
+        </svg>
+        <span className="text-[10px] leading-tight text-ink-2">
+          Duman (PM2.5) — koyulaştıkça yoğun; alan CAMS modelinden, ızgara kaba
+        </span>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden className="shrink-0">
           <circle cx="8" cy="6" r="2.2" fill="#f97316" />
           <circle cx="8" cy="6" r="4.6" fill="none" stroke="#fdba74" strokeOpacity="0.7" strokeWidth="1" />
         </svg>

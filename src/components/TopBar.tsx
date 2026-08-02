@@ -17,6 +17,12 @@ const TOGGLES: { key: keyof LayerToggles; label: string; title: string }[] = [
   { key: "wind", label: "Rüzgar", title: "Rüzgâr akış animasyonu" },
   { key: "heat", label: "Isı", title: "Tespit yoğunluğu ısı haritası" },
   { key: "cones", label: "Tahmin", title: "Rüzgâra göre taşıma konisi" },
+  {
+    key: "smoke",
+    label: "Duman",
+    title:
+      "Yüzeydeki ince partikül (PM2.5) alanı. Dağılımı ECMWF/CAMS hesaplar; ızgara kaba çünkü modelin kendi çözünürlüğü de kaba. Yangın dışı kaynakları (trafik, sanayi, toz) da içerir.",
+  },
   // "Anız gizle" bilerek burada DEĞİL: o bir katman değil süzgeç ve yeri
   // liste başlığı. Üst şeride 10. düğme olarak konduğunda bar taşıp sağdaki
   // durum metniyle çakışıyordu (aynı sorun 9 toggle'da da yaşanmıştı).

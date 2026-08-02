@@ -171,6 +171,8 @@ export interface LayerToggles {
   burnt: boolean;
   /** GWIS yangın tehlike tahmini (FWI) */
   danger: boolean;
+  /** CAMS yüzey PM2.5 alanı — "duman nereye gidiyor" */
+  smoke: boolean;
   /** Meteosat 15 dakikalık tespitler (kaba çözünürlük, kör aralığı doldurur) */
   msg: boolean;
 }

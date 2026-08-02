@@ -86,6 +86,8 @@ interface FireMapProps {
   trailFC: GeoJSON.FeatureCollection;
   burnedFC: GeoJSON.FeatureCollection;
   msgFC: GeoJSON.FeatureCollection;
+  /** CAMS yüzey PM2.5 alanı (0,5° nokta bulutu) */
+  smokeFC: GeoJSON.FeatureCollection;
   selectedId: string | null;
   effT: number;
   windowHours: number;
@@ -108,6 +110,7 @@ export default function FireMap({
   trailFC,
   burnedFC,
   msgFC,
+  smokeFC,
   selectedId,
   effT,
   windowHours,
@@ -488,6 +491,52 @@ export default function FireMap({
        * en küçük koni bile 8 px yarıçapa çıkıyor, orada anlamlı oluyor.
        * Uzak zumda niye görünmediğini panel notu açıkça söylüyor.
        */
+      /**
+       * Duman alanı — yangın noktalarının ALTINDA, arka plan gibi.
+       *
+       * Renk tek renk değil ama ateş rampasından da uzak: soluk mavi-griden
+       * mora. Duman turuncu çizilseydi yangınla karışırdı. Opaklık da değerle
+       * artıyor; tek başına renk farkı bu ölçekte zor okunuyor.
+       *
+       * Yarıçap zoom'a bağlı: 0,5° hücre ~55 km, yakın zumda büyümezse
+       * alan değil nokta gibi görünür. Örtüşen daireler sürekli bir alan
+       * hissi veriyor — veri zaten sürekli bir konsantrasyon alanı.
+       */
+      map.addSource("smoke", { type: "geojson", data: EMPTY_FC });
+      map.addLayer(
+        {
+          id: "smoke-field",
+          type: "circle",
+          source: "smoke",
+          layout: { visibility: "none" },
+          paint: {
+            "circle-radius": [
+              "interpolate", ["exponential", 2], ["zoom"],
+              4, 14,
+              6, 34,
+              8, 120,
+              10, 420,
+            ],
+            "circle-blur": 1,
+            "circle-color": [
+              "interpolate", ["linear"], ["get", "pm"],
+              5, "#7d8ea8",
+              15, "#8f83b8",
+              35, "#a86fae",
+              60, "#c05a8a",
+            ],
+            "circle-opacity": [
+              "interpolate", ["linear"], ["get", "pm"],
+              5, 0.06,
+              15, 0.2,
+              35, 0.38,
+              60, 0.5,
+            ],
+          },
+        },
+        "fires-heat"
+      );
+
       map.addLayer({
         id: "cone-fills",
         type: "fill",
@@ -910,6 +959,7 @@ export default function FireMap({
     map.setLayoutProperty("fires-heat", "visibility", layers.heat ? "visible" : "none");
     map.setLayoutProperty("burnt", "visibility", layers.burnt ? "visible" : "none");
     map.setLayoutProperty("danger", "visibility", layers.danger ? "visible" : "none");
+    map.setLayoutProperty("smoke-field", "visibility", layers.smoke ? "visible" : "none");
   }, [
     ready,
     layers.satellite,
@@ -918,7 +968,14 @@ export default function FireMap({
     layers.heat,
     layers.burnt,
     layers.danger,
+    layers.smoke,
   ]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("smoke") as GeoJSONSource | undefined)?.setData(smokeFC);
+  }, [ready, smokeFC]);
 
   // ── Rüzgar partikülleri
   useEffect(() => {
