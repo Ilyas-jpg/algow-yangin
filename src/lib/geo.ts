@@ -109,6 +109,18 @@ export function metersPerPixel(lat: number, zoom: number): number {
   return (156543.03392 * Math.cos(toRad(lat))) / Math.pow(2, zoom + 1);
 }
 
+/**
+ * Erişim şeklinin çizilmeye başladığı zum.
+ *
+ * Kalibrasyondan sonra halkalar küçüldü; Türkiye görünümünde (z≈5,3) en geniş
+ * halka bile ~4 piksel yarıçapında kalıyor — okunmuyor, sadece leke bırakıyor.
+ * z=7,5'te en küçük koni bile 8 px yarıçapa çıkıyor.
+ *
+ * Hem harita katmanı hem "neden görünmüyor" notu bunu paylaşır — iki yerde
+ * ayrı sayı tutulursa arayüz "gizli" derken şekil görünür kalabilir.
+ */
+export const CONE_MINZOOM = 7.5;
+
 const COMPASS_TR = [
   "K", "KKD", "KD", "DKD", "D", "DGD", "GD", "GGD",
   "G", "GGB", "GB", "BGB", "B", "BKB", "KB", "KKB",

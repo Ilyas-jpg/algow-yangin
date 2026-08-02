@@ -163,6 +163,7 @@ export function clusterEvents(points: FirePoint[]): ClusterResult {
       lon: last.lon,
       lat: last.lat,
       place: where.label,
+      il: where.il,
       abroad: where.abroad,
       firstSeen: first.t,
       lastSeen: pts[pts.length - 1].dt,

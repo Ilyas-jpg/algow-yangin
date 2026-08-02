@@ -10,7 +10,7 @@ import type {
   MapMouseEvent,
 } from "maplibre-gl";
 import type { LayerToggles, UserLocation, WindGrid } from "@/lib/types";
-import { metersPerPixel } from "@/lib/geo";
+import { CONE_MINZOOM, metersPerPixel } from "@/lib/geo";
 import type { ConeGeom } from "@/lib/wind";
 import { WindParticleLayer } from "./WindParticles";
 
@@ -93,7 +93,8 @@ interface FireMapProps {
   layers: LayerToggles;
   windGrid: WindGrid | undefined;
   reducedMotion: boolean;
-  flyTarget: { lon: number; lat: number; key: number } | null;
+  /** zoom verilmezse yakınlaşma tabanı 9'dur (olay seçimi); il görünümü daha geniş ister */
+  flyTarget: { lon: number; lat: number; key: number; zoom?: number } | null;
   userLoc: UserLocation | null;
   onSelect: (id: string | null) => void;
   onCenterChange?: (c: { lon: number; lat: number }) => void;
@@ -478,25 +479,62 @@ export default function FireMap({
         },
       }, labelTop);
 
+      /**
+       * Erişim şekli yalnız yakın zumdan itibaren çizilir.
+       *
+       * Kalibrasyondan sonra halkalar küçüldü: Türkiye görünümünde (z≈5,3) en
+       * geniş halka bile ~4 piksel yarıçapında kalıyor — okunmuyor ama her
+       * yangının yanında mavi bir leke bırakıyor, yani sadece gürültü. z=7,5'te
+       * en küçük koni bile 8 px yarıçapa çıkıyor, orada anlamlı oluyor.
+       * Uzak zumda niye görünmediğini panel notu açıkça söylüyor.
+       */
       map.addLayer({
         id: "cone-fills",
         type: "fill",
         source: "cones",
+        minzoom: CONE_MINZOOM,
         paint: {
           "fill-color": "#3d5bff",
           "fill-opacity": ["match", ["get", "hours"], 1, 0.2, 3, 0.12, 6, 0.06, 0.1],
         },
       }, labelTop);
+      // İç halkalar (1 ve 3 sa) yalnız kademeyi belli etsin — sınır iddiası
+      // taşıyan çizgi bunlar değil.
       map.addLayer({
         id: "cone-borders",
         type: "line",
         source: "cones",
-        paint: { "line-color": "#5872ff", "line-width": 0.8, "line-opacity": 0.45 },
+        minzoom: CONE_MINZOOM,
+        filter: ["!=", ["get", "hours"], 6],
+        paint: { "line-color": "#5872ff", "line-width": 0.7, "line-opacity": 0.3 },
+      }, labelTop);
+      /**
+       * En dıştaki 6 saatlik sınır ayrı katman.
+       *
+       * Kullanıcının okuduğu cümle bu çizgide: "yangının onda dokuzunda en uzak
+       * nokta bile bunun içinde kaldı". Oysa en dış halka en soluk çizgiydi
+       * (dolgu 0,06 · kenar 0,45 · 0,8px) — hiyerarşi tersti, sınır sınır gibi
+       * durmuyordu. Kesikli desen bilinçli: bu keskin bir duvar değil, %90'lık
+       * bir dilim; düz çizgi olsaydı olduğundan kesin görünürdü.
+       */
+      map.addLayer({
+        id: "cone-edge",
+        type: "line",
+        source: "cones",
+        minzoom: CONE_MINZOOM,
+        filter: ["==", ["get", "hours"], 6],
+        paint: {
+          "line-color": "#8fa2ff",
+          "line-width": 1.6,
+          "line-opacity": 0.8,
+          "line-dasharray": [3, 2],
+        },
       }, labelTop);
       map.addLayer({
         id: "cone-center",
         type: "line",
         source: "cone-lines",
+        minzoom: CONE_MINZOOM,
         paint: {
           "line-color": "#8fa2ff",
           "line-width": 1.2,
@@ -513,6 +551,7 @@ export default function FireMap({
         id: "cone-arrow",
         type: "symbol",
         source: "cone-lines",
+        minzoom: CONE_MINZOOM,
         layout: {
           "symbol-placement": "line-center",
           "text-field": ">",
@@ -929,7 +968,7 @@ export default function FireMap({
     const isDesktop = window.innerWidth >= 768;
     map.easeTo({
       center: [flyTarget.lon, flyTarget.lat],
-      zoom: Math.max(map.getZoom(), 9),
+      zoom: flyTarget.zoom ?? Math.max(map.getZoom(), 9),
       padding: isDesktop
         ? { left: 360, top: 60, right: 40, bottom: 80 }
         : { left: 20, top: 60, right: 20, bottom: 260 },

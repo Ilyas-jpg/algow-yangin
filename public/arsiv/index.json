@@ -1,0 +1,32 @@
+[
+ {
+  "slug": "manavgat-2021",
+  "ad": "Manavgat yangını",
+  "il": "Antalya",
+  "ozet": "28 Temmuz 2021'de Manavgat'ta başlayan ve günlerce süren yangın, Türkiye'nin ölçülmüş en büyük orman yangınlarından biri oldu.",
+  "ilk": 1627432260000,
+  "son": 1628855520000,
+  "tespit": 9204,
+  "maxFrp": 4856
+ },
+ {
+  "slug": "marmaris-2021",
+  "ad": "Marmaris yangını",
+  "il": "Muğla",
+  "ozet": "Marmaris ve çevresinde Temmuz sonunda başlayan yangın, kıyı yerleşimlerinin tahliyesine yol açtı.",
+  "ilk": 1627555380000,
+  "son": 1628641140000,
+  "tespit": 3948,
+  "maxFrp": 2027
+ },
+ {
+  "slug": "milas-2021",
+  "ad": "Milas yangını",
+  "il": "Muğla",
+  "ozet": "Milas'taki yangın, Kemerköy Termik Santrali'nin çevresine ulaşarak ülke gündemine oturdu.",
+  "ilk": 1627776360000,
+  "son": 1628762100000,
+  "tespit": 2537,
+  "maxFrp": 2355
+ }
+]

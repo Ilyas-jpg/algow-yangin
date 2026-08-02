@@ -1,11 +1,16 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { FireEvent, WindPoint } from "@/lib/types";
+import { foldTr } from "@/lib/slug";
 import type { ConeGeom } from "@/lib/wind";
+import type { Footprint } from "@/lib/footprint";
 import { compassTr } from "@/lib/geo";
 import { angDiff, fmtAgo, fmtDayTime, fmtNum } from "@/lib/format";
 import { fmtNext, type PassInfo } from "@/lib/passes";
 import Sparkline from "./Sparkline";
+import ShareButton from "./ShareButton";
+import SmokeForecast from "./SmokeForecast";
 
 const STATUS_LABEL: Record<FireEvent["status"], { text: string; cls: string }> = {
   active: { text: "AKTİF", cls: "border-danger/50 text-danger" },
@@ -47,7 +52,16 @@ interface EventPanelProps {
   cones: ConeGeom[];
   /** CORINE yakıt sınıfı — anız yangınını orman yangınından ayırmak için */
   fuel?: string | null;
+  /** Uydunun sıcak gördüğü alan — resmî yanan alan DEĞİL (bkz. lib/footprint) */
+  footprint?: Footprint | null;
   pass?: PassInfo;
+  /** Açık olan zaman penceresi (1|2|5) — paylaşım bağlantısına yazılır */
+  days: string;
+  /** Anız (tarım) süzgeci — katman değil liste süzgeci olduğu için burada */
+  hideFarm: boolean;
+  onHideFarm: () => void;
+  hiddenFarmCount: number;
+  fuelLoading: boolean;
 }
 
 /** Yakıt sınıfının insan diliyle karşılığı + neden önemli olduğu */
@@ -66,11 +80,26 @@ const FUEL_LABEL: Record<string, { ad: string; not: string; uyari: boolean }> = 
 };
 
 export default function EventPanel(props: EventPanelProps) {
-  const { events, selectedId, onSelect, now } = props;
+  const { events, now, hideFarm, onHideFarm, hiddenFarmCount, fuelLoading } =
+    props;
+  const [q, setQ] = useState("");
   const activeCount = events.filter(
     (e) => e.status === "active" && !e.abroad
   ).length;
   const abroadCount = events.filter((e) => e.abroad).length;
+
+  /**
+   * İl/ilçe araması. Yüzlerce olay arasında kendi bölgesini arayan kullanıcı
+   * listeyi tek tek tarayamıyordu. Katlama Türkçe'ye duyarlı: "cine" → "Çine",
+   * "IZMIR" → "İzmir" (bkz. lib/slug).
+   */
+  const filtered = useMemo(() => {
+    const k = foldTr(q.trim());
+    if (!k) return events;
+    return events.filter(
+      (e) => foldTr(e.place).includes(k) || foldTr(e.il).includes(k)
+    );
+  }, [events, q]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -86,14 +115,60 @@ export default function EventPanel(props: EventPanelProps) {
         </span>
       </div>
 
+      {events.length > 0 && (
+        <div className="relative border-b border-line px-3 py-2">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="İl veya ilçe ara — Muğla, Çine…"
+            aria-label="Yangınları il veya ilçe adına göre ara"
+            className="w-full rounded border border-line bg-obsidian-2 px-2.5 py-1.5 text-[12px] text-ink placeholder:text-ink-3 focus-visible:border-cobalt/60"
+          />
+          <div className="mt-1.5 flex items-center gap-2">
+            <button
+              onClick={onHideFarm}
+              aria-pressed={hideFarm}
+              title="Tarım alanlarındaki ateşleri (anız yakma) listeden ve haritadan çıkarır. Sınıflandırma CORINE arazi örtüsünden gelir; doğu illerinde kapsam olmadığı için oradaki olaylar gizlenmez."
+              className={`shrink-0 rounded border px-2 py-0.5 text-[10px] transition-colors active:scale-[0.98] ${
+                hideFarm
+                  ? "border-cobalt/60 bg-cobalt/10 text-ink"
+                  : "border-line text-ink-3 hover:text-ink-2"
+              }`}
+            >
+              Anız gizle
+              {hideFarm && !fuelLoading && hiddenFarmCount > 0
+                ? ` · ${hiddenFarmCount}`
+                : ""}
+            </button>
+            {hideFarm && fuelLoading && (
+              <span className="font-mono text-[10px] text-ink-3">
+                arazi örtüsü sorgulanıyor…
+              </span>
+            )}
+            {q.trim() !== "" && (
+              <span className="ml-auto font-mono text-[10px] text-ink-3">
+                {filtered.length} eşleşme
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {events.length === 0 ? (
         <div className="px-3 py-6 text-xs leading-relaxed text-ink-3">
           Seçili zaman penceresinde uydu tespiti yok. Pencereyi genişletmeyi
           deneyebilirsin; uydular her bölgeyi günde birkaç kez tarar.
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="px-3 py-6 text-xs leading-relaxed text-ink-3">
+          <b className="font-normal text-ink-2">{q.trim()}</b> için tespit yok.
+          Bu, orada yangın olmadığı anlamına gelmez: uydu küçük ve kısa süreli
+          yangınları kaçırabilir.
+        </div>
       ) : (
         <ul className="scroll-slim min-h-0 flex-1 divide-y divide-line/70 overflow-y-auto">
-          {events.map((ev) => (
+          {filtered.map((ev) => (
             <EventCard key={ev.id} ev={ev} {...props} ago={fmtAgo(ev.lastSeen, now)} />
           ))}
         </ul>
@@ -113,7 +188,9 @@ function EventCard({
   weatherError,
   cones,
   fuel,
+  footprint,
   pass,
+  days,
 }: EventPanelProps & { ev: FireEvent; ago: string }) {
   const selected = ev.id === selectedId;
   const status = STATUS_LABEL[ev.status];
@@ -168,12 +245,15 @@ function EventCard({
             loading={weatherLoading}
             error={weatherError}
           />
+          {/* Anlık PM2.5 yukarıda; asıl merak edilen "ne zaman kötüleşecek" */}
+          <SmokeForecast lat={ev.lat} lon={ev.lon} />
           <Assessment
             ev={ev}
             weather={weather}
             cone={cone}
             live={live}
             fuel={selected ? fuel : null}
+            footprint={selected ? footprint : null}
             pass={pass}
           />
           {ev.passes.length >= 3 && ev.drift === null && (
@@ -183,6 +263,9 @@ function EventCard({
               olabilir.
             </p>
           )}
+          <div className="mt-2 flex justify-end">
+            <ShareButton ev={ev} days={days} />
+          </div>
           <p className="mt-2 border-t border-line/60 pt-2 text-[10px] leading-relaxed text-ink-3">
             Uydu ısı görür; her tespit yangın olmayabilir. Yönelim
             göstergesidir, resmi uyarı yerine geçmez. Acil durumda{" "}
@@ -343,6 +426,7 @@ function Assessment({
   cone,
   live,
   fuel,
+  footprint,
   pass,
 }: {
   ev: FireEvent;
@@ -350,9 +434,28 @@ function Assessment({
   cone: ConeGeom | undefined;
   live: boolean;
   fuel?: string | null;
+  footprint?: Footprint | null;
   pass?: PassInfo;
 }) {
   const lines: React.ReactNode[] = [];
+
+  // "Kaç hektar yandı" haberin ilk sorusu. Ölçebildiğimiz şey yanan alan
+  // değil, uydunun ısı gördüğü alan — adı da öyle konuyor.
+  if (footprint) {
+    lines.push(
+      <span key="alan">
+        Uydunun sıcak gördüğü alan:{" "}
+        <b className="font-mono font-normal text-ink">
+          ≈{fmtNum(footprint.ha)} ha
+        </b>{" "}
+        <span className="text-ink-3">
+          ({footprint.cells} VIIRS pikseli) — resmî yanan alan değildir:
+          közlenen bölümler görünmez, tespit edilen piksel de bütünüyle yanmamış
+          olabilir.
+        </span>
+      </span>
+    );
+  }
 
   // Yakıt: kullanıcı en çok "bu orman yangını mı, anız mı" diye merak ediyor.
   // Aktif listenin büyük kısmı güneydoğuda tarımsal anız yakma.

@@ -17,6 +17,9 @@ const TOGGLES: { key: keyof LayerToggles; label: string; title: string }[] = [
   { key: "wind", label: "Rüzgar", title: "Rüzgâr akış animasyonu" },
   { key: "heat", label: "Isı", title: "Tespit yoğunluğu ısı haritası" },
   { key: "cones", label: "Tahmin", title: "Rüzgâra göre taşıma konisi" },
+  // "Anız gizle" bilerek burada DEĞİL: o bir katman değil süzgeç ve yeri
+  // liste başlığı. Üst şeride 10. düğme olarak konduğunda bar taşıp sağdaki
+  // durum metniyle çakışıyordu (aynı sorun 9 toggle'da da yaşanmıştı).
   {
     key: "msg",
     label: "MSG 15dk",
@@ -90,7 +93,9 @@ export default function TopBar({
           </span>
         </div>
 
-        <div className="order-3 flex w-full items-center gap-2 overflow-x-auto md:order-none md:w-auto md:overflow-visible">
+        {/* Dar ekranda da geniş ekranda da KAYSIN: taşma yerine kaydırma.
+            Sabit genişlikte tutulunca sağdaki durum metninin üstüne biniyordu. */}
+        <div className="scroll-slim order-3 flex w-full min-w-0 items-center gap-2 overflow-x-auto md:order-none md:flex-1">
           <div className="flex shrink-0 overflow-hidden rounded border border-line">
             {WINDOWS.map((w) => (
               <button
@@ -122,6 +127,16 @@ export default function TopBar({
               {t.label}
             </button>
           ))}
+          {meta?.demo && (
+            <span className="shrink-0 rounded border border-warn/50 px-2 py-1 text-[10px] text-warn">
+              Demo veri
+            </span>
+          )}
+        </div>
+
+        {/* Eylem düğmeleri kaydırılan katman şeridinin DIŞINDA: kaydırılabilir
+            bölgede kalınca geniş ekranda bile ekran dışına çıkabiliyorlardı. */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <button
             onClick={onGeoToggle}
             aria-pressed={geoActive}
@@ -182,14 +197,9 @@ export default function TopBar({
             </svg>
             Uyarı{alertCount > 0 ? ` (${alertCount})` : ""}
           </button>
-          {meta?.demo && (
-            <span className="shrink-0 rounded border border-warn/50 px-2 py-1 text-[10px] text-warn">
-              Demo veri
-            </span>
-          )}
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <div
             className="flex items-center gap-1.5 font-mono text-[11px] text-ink-2"
             title={

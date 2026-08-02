@@ -1,10 +1,13 @@
 "use client";
 
 import { fmtDayTime } from "@/lib/format";
-import type { WindowHours } from "@/lib/types";
 
 interface TimelineBarProps {
-  windowHours: WindowHours;
+  /**
+   * Gösterilen aralık, saat. Canlı haritada 24/48/120; arşiv oynatmasında
+   * yangının kendi süresi (haftalar olabilir) — bu yüzden birleşim tip değil.
+   */
+  windowHours: number;
   now: number;
   effT: number;
   live: boolean;

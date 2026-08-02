@@ -60,6 +60,8 @@ export interface FireEvent {
   lon: number;
   lat: number;
   place: string;
+  /** En yakın merkezin ili — il sayfası filtresi ve arama için */
+  il: string;
   /** Türkiye dışında (komşu ülke) — listede geri sıraya alınır */
   abroad: boolean;
   firstSeen: number;
@@ -147,6 +149,12 @@ export interface LayerToggles {
   wind: boolean;
   heat: boolean;
   cones: boolean;
+  /**
+   * Tarım (anız) ateşlerini gizle. Katman değil süzgeç ama arayüzde aynı
+   * şeritte duruyor. Ölçümde vakaların yarısından çoğu anızdı; kullanıcının
+   * "orman yangını var mı" sorusunu bu gürültü boğuyordu.
+   */
+  hideFarm: boolean;
   /** Sentinel-2 cloudless 10 m altlık (Esri'nin yıllar öncesine ait olabilen
    *  mozaiğinin yerine) */
   satellite: boolean;

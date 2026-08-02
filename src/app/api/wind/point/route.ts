@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { WindPoint } from "@/lib/types";
 import { runFwiSeries, fwiClass, type FwiDay } from "@/lib/fwi";
+import { fetchJson } from "@/lib/fetch-retry";
 
 /**
  * Tek nokta yangın meteorolojisi: rüzgar + hamle + nem + sıcaklık + VPD,
@@ -72,22 +73,6 @@ export async function GET(request: NextRequest) {
   interface AirResp {
     current?: { pm2_5?: number; pm10?: number; us_aqi?: number };
   }
-
-  // Open-Meteo eşzamanlı istek yoğunluğunda 429/5xx dönebiliyor; tek
-  // denemede pes etmek paneli sebepsiz "veri yok"a düşürüyordu.
-  const fetchJson = async <T,>(url: string, revalidate: number): Promise<T | null> => {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const res = await fetch(url, { next: { revalidate } });
-        if (res.ok) return (await res.json()) as T;
-        if (res.status < 500 && res.status !== 429) return null;
-      } catch {
-        /* ağ hatası — tekrar dene */
-      }
-      await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
-    }
-    return null;
-  };
 
   const data = await fetchJson<WeatherResp>(weatherUrl, 1800);
   if (!data) {

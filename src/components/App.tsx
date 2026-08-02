@@ -12,17 +12,28 @@ import type {
   WindowHours,
 } from "@/lib/types";
 import { clusterEvents, statusOf } from "@/lib/cluster";
+import { EV_PARAM, WIN_PARAM, eventPath, provincePath } from "@/lib/share";
+import { resolveEvent } from "@/lib/event-id";
 import { buildCone, type ConeGeom } from "@/lib/wind";
 import type { TerrainPoint } from "@/app/api/terrain/route";
 import type { WindForecastPoint } from "@/app/api/wind/forecast/route";
 import { nextPassEstimate } from "@/lib/passes";
-import { fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
-import { bearingDeg, compassTr, havKm } from "@/lib/geo";
+import { fmtAgo, fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
+import {
+  CONE_MINZOOM,
+  bearingDeg,
+  compassTr,
+  havKm,
+  metersPerPixel,
+} from "@/lib/geo";
 import { useGeolocation } from "./useGeolocation";
 import { useAlerts } from "./useAlerts";
+import { useFuel, fuelKey } from "./useFuel";
+import { heatFootprint } from "@/lib/footprint";
 import AlertPanel from "./AlertPanel";
 import dynamic from "next/dynamic";
 import TopBar from "./TopBar";
+import EmbedBar from "./EmbedBar";
 import EventPanel from "./EventPanel";
 import TimelineBar from "./TimelineBar";
 import Legend from "./Legend";
@@ -79,8 +90,24 @@ function isThinConnection(): boolean {
 const DAYS_PARAM: Record<WindowHours, string> = { 24: "1", 48: "2", 120: "5" };
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
-export default function App() {
-  const [windowHours, setWindowHours] = useState<WindowHours>(24);
+export interface AppProps {
+  /** İl sayfasından gelindiğinde harita bu ile odaklanır. */
+  focus?: { ad: string; lat: number; lon: number };
+  /**
+   * Gömme görünümü: yan panel, zaman çizgisi, uyarılar ve konum kapalı.
+   * Haber sitesine iframe ile alınan sade harita.
+   */
+  embed?: boolean;
+}
+
+export default function App({ focus, embed = false }: AppProps = {}) {
+  // Pencere de bağlantıdan gelebilir: paylaşan 5 günlük görünümdeyse, alıcının
+  // 24 saatlik varsayılanında o yangın hiç bulunmayabilirdi.
+  const [windowHours, setWindowHours] = useState<WindowHours>(() => {
+    if (typeof window === "undefined") return 24;
+    const g = new URLSearchParams(window.location.search).get(WIN_PARAM);
+    return g === "5" ? 120 : g === "2" ? 48 : 24;
+  });
   const [scrub, setScrub] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -88,6 +115,7 @@ export default function App() {
     wind: true,
     heat: true,
     cones: true,
+    hideFarm: false,
     satellite: false,
     today: false,
     terrain: false,
@@ -108,7 +136,30 @@ export default function App() {
     lon: number;
     lat: number;
     key: number;
-  } | null>(null);
+    zoom?: number;
+  } | null>(() => {
+    // İl sayfası: bağlantıda olay yoksa harita doğrudan o ile açılsın.
+    // Efektle yapmak yerine ilk değerde veriliyor — açılışta fazladan
+    // bir render turu ve kısa bir "önce Türkiye, sonra il" sıçraması olmuyor.
+    if (!focus) return null;
+    if (typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get(EV_PARAM)) return null; // olay varsa uçuşu o belirler
+    }
+    return { lon: focus.lon, lat: focus.lat, key: 1, zoom: 8 };
+  });
+
+  /**
+   * Paylaşılan bağlantıdaki olay (?ev=). Kümeleme istemcide olduğu için
+   * veri gelmeden çözülemez; ilk değeri render sırasında okuyoruz (bu bileşen
+   * yalnız tarayıcıda çalışır) ki URL yazıcı efekt bayrağı silmesin.
+   */
+  const [pendingEv, setPendingEv] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get(EV_PARAM)
+  );
+  const [evMissing, setEvMissing] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -212,23 +263,51 @@ export default function App() {
     [events, selectedId]
   );
 
+  /**
+   * Anız süzgeci. Sınıflandırma yalnız süzgeç açıkken istenir.
+   * Sınıfı bilinmeyen olay GİZLENMEZ: "bilmiyorum"u "tarım değil" saymak da
+   * "tarım" saymak da yanlış olurdu, ikisi de kullanıcıyı yanıltır.
+   */
+  const fuelData = useFuel(events, layers.hideFarm);
+  const hiddenIds = useMemo(() => {
+    if (!layers.hideFarm) return new Set<string>();
+    const out = new Set<string>();
+    for (const e of events) {
+      if (fuelData.map.get(fuelKey(e.lon, e.lat)) === "TARIM") out.add(e.id);
+    }
+    return out;
+  }, [events, fuelData, layers.hideFarm]);
+
+  /** Listede ve haritada gösterilenler. Arama/seçim `events` üzerinden kalır. */
+  const shownEvents = useMemo(
+    () => (hiddenIds.size ? events.filter((e) => !hiddenIds.has(e.id)) : events),
+    [events, hiddenIds]
+  );
+
   const mapFC = useMemo<GeoJSON.FeatureCollection>(() => {
     if (!fires) return EMPTY_FC;
+    const feats = fires.features.map((f) => ({
+      ...f,
+      properties: { ...f.properties, eventId: pointEvent[f.properties.id] ?? "" },
+    }));
     return {
       type: "FeatureCollection",
-      features: fires.features.map((f) => ({
-        ...f,
-        properties: { ...f.properties, eventId: pointEvent[f.properties.id] ?? "" },
-      })),
+      // Gizlenen olayın tespitleri haritadan da düşer; yoksa liste temizlenip
+      // harita anız noktalarıyla dolu kalırdı.
+      features: hiddenIds.size
+        ? feats.filter((f) => !hiddenIds.has(f.properties.eventId))
+        : feats,
     };
-  }, [fires, pointEvent]);
+  }, [fires, pointEvent, hiddenIds]);
 
   const coneCandidates = useMemo(() => {
     if (!windGrid || !live) return [];
     // Koni yurt dışı bayrağına göre kısıtlanmaz: sınır boyunda en yakın
     // yerleşim karşı tarafta kalabiliyor (Akçakale, Nusaybin, Silopi...),
     // o yüzden gerçek bir TR yangını yanlışlıkla konisiz kalmasın.
-    const candidates = events.filter((e) => e.status === "active").slice(0, 14);
+    const candidates = shownEvents
+      .filter((e) => e.status === "active")
+      .slice(0, 14);
     if (
       selectedEvent &&
       selectedEvent.status !== "old" &&
@@ -237,7 +316,7 @@ export default function App() {
       candidates.push(selectedEvent);
     }
     return candidates;
-  }, [events, selectedEvent, windGrid, live]);
+  }, [shownEvents, selectedEvent, windGrid, live]);
 
   // Koni yönü rüzgâr + eğim bileşkesinden çiziliyor; eğim burada toplu çekilir.
   // Anahtar 0,05°'ye yuvarlanmış ve sıralı → her tazelemede aynı, cache tutuyor.
@@ -298,6 +377,33 @@ export default function App() {
     return out;
   }, [coneCandidates, windGrid, live, terrainData, fcData]);
 
+  /**
+   * Erişim şekli bu ölçekte görülebiliyor mu?
+   *
+   * Kalibrasyondan sonra en büyük halka ~2,7 km — Türkiye görünümünde (z≈5,3)
+   * bu 1-2 piksel, yani şekil çiziliyor ama göze "hiç yok" gibi geliyor ve
+   * "Tahmin" düğmesi bozuk sanılıyor. Şekli sahte büyütmek yanlış bir erişim
+   * vaadi olurdu; onun yerine ölçeği söylüyoruz.
+   */
+  const coneTooSmall = useMemo(() => {
+    if (!layers.cones || !live || cones.length === 0) return null;
+    let maxKm = 0;
+    for (const c of cones) {
+      const son = c.rings[c.rings.length - 1];
+      if (!son) continue;
+      for (const p of son.ring) {
+        const km = havKm(c.apex[0], c.apex[1], p[0], p[1]);
+        if (km > maxKm) maxKm = km;
+      }
+    }
+    if (maxKm === 0) return null;
+    // Eşik harita katmanıyla ORTAK (lib/geo) — arayüz "gizli" derken şekil
+    // görünür kalmasın.
+    if (zoom >= CONE_MINZOOM) return null;
+    const mpp = metersPerPixel(mapCenter?.lat ?? 39, zoom);
+    return { km: maxKm, px: (maxKm * 1000) / mpp };
+  }, [cones, layers.cones, live, zoom, mapCenter]);
+
   /** Uydu geçiş pencereleri verinin kendisinden ölçülür (yörünge tablosu yok) */
   const passInfo = useMemo(
     () =>
@@ -315,6 +421,28 @@ export default function App() {
     const k = `${(Math.round(selectedEvent.lon * 20) / 20).toFixed(2)},${(Math.round(selectedEvent.lat * 20) / 20).toFixed(2)}`;
     return terrainData.points.find((p) => `${p.lon.toFixed(2)},${p.lat.toFixed(2)}` === k)?.fuel ?? null;
   }, [selectedEvent, terrainData]);
+
+  /**
+   * Seçili yangının uydu ayak izi. "Kaç hektar yandı" haberin ilk sorusu ve
+   * panelde hiç yoktu. Yetkili kaynak EFFIS perimetresidir ama Türkiye için
+   * poligon dönmüyor (sorguldu, boş); ölçebildiğimizi adını doğru koyarak
+   * veriyoruz — bkz. lib/footprint.
+   */
+  const selectedFootprint = useMemo(() => {
+    if (!selectedEvent || !fires) return null;
+    const pts = fires.features
+      .filter(
+        (f) =>
+          pointEvent[f.properties.id] === selectedEvent.id &&
+          f.properties.dt <= effT
+      )
+      .map((f) => ({
+        lon: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+        sat: f.properties.sat,
+      }));
+    return heatFootprint(pts);
+  }, [selectedEvent, fires, pointEvent, effT]);
 
   const conesFC = useMemo<GeoJSON.FeatureCollection>(
     () => ({
@@ -505,6 +633,41 @@ export default function App() {
     [events]
   );
 
+  /**
+   * Paylaşılan olayı veri gelince seç. Olay artık zaman penceresinde değilse
+   * sessizce yutma: kullanıcı linke tıklamış, bir cevap hak ediyor.
+   */
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Kümeleme istemcide yapılıyor ve veri SWR ile sonradan geliyor; paylaşılan
+     olay ancak veri indikten SONRA çözülebilir. Render sırasında türetilemez,
+     çünkü seçim kullanıcının da değiştirdiği bir state. pendingEv bir kez
+     temizlendikten sonra bu efekt bir daha iş yapmaz. */
+  useEffect(() => {
+    if (!pendingEv || !fires) return;
+    const ev = resolveEvent(events, pendingEv);
+    if (ev) {
+      setSelectedId(ev.id);
+      setFlyTarget({ lon: ev.lon, lat: ev.lat, key: Date.now() });
+      setSheetOpen(true);
+    } else {
+      setEvMissing(true);
+    }
+    setPendingEv(null);
+  }, [pendingEv, events, fires]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  /** Seçim → URL. Paylaşılabilir bağlantı her zaman adres çubuğunda durur. */
+  useEffect(() => {
+    if (pendingEv) return; // açılıştaki ?ev= henüz çözülmedi, silme
+    const url = new URL(window.location.href);
+    if (selectedId) url.searchParams.set(EV_PARAM, selectedId);
+    else url.searchParams.delete(EV_PARAM);
+    const days = DAYS_PARAM[windowHours];
+    if (days !== "1") url.searchParams.set(WIN_PARAM, days);
+    else url.searchParams.delete(WIN_PARAM);
+    window.history.replaceState(null, "", url);
+  }, [selectedId, pendingEv, windowHours]);
+
   // Konum ilk kez geldiğinde haritayı oraya getir (sonraki güncellemelerde değil)
   const flewToMe = useRef(false);
   useEffect(() => {
@@ -540,6 +703,10 @@ export default function App() {
       notes.push(
         "Tahmin konisi yalnız canlı görünümde çizilir; geçmişe sardığın için gizli."
       );
+    } else if (coneTooSmall) {
+      notes.push(
+        `Erişim şekli bu ölçekte gizli: en geniş halka ${fmtNum(coneTooSmall.km, 1)} km, yani birkaç piksel — okunmadığı için çizilmiyor. Bir yangına yakınlaş, şekil kendiliğinden gelir.`
+      );
     } else if (layers.cones && live && cones.length === 0 && events.length > 0) {
       notes.push(
         windGrid
@@ -555,12 +722,37 @@ export default function App() {
         "Hareket azaltma açık olduğu için rüzgâr animasyonu çalışmıyor."
       );
     }
+    // Süzgecin ne yaptığını ve neyi yapamadığını açıkça söyle: sessizce
+    // "temizlenmiş" bir harita, eksiği olmayan bir harita sanılır.
+    if (layers.hideFarm) {
+      if (fuelData.loading) {
+        notes.push("Arazi örtüsü sorgulanıyor — anız süzgeci birazdan oturur.");
+      } else {
+        notes.push(
+          `Anız süzgeci: ${hiddenIds.size} tarım ateşi gizlendi.` +
+            (fuelData.unclassified > 0
+              ? ` ${fuelData.unclassified} olayın örtüsü sorulamadı (CORINE doğu illerini kapsamıyor) — onlar listede duruyor.`
+              : "")
+        );
+      }
+    }
     return notes;
-  }, [layers, zoom, live, cones.length, events.length, windGrid, reducedMotion]);
+  }, [
+    layers,
+    zoom,
+    live,
+    cones.length,
+    events.length,
+    windGrid,
+    reducedMotion,
+    fuelData,
+    hiddenIds.size,
+    coneTooSmall,
+  ]);
 
   const panel = (
     <EventPanel
-      events={events}
+      events={shownEvents}
       selectedId={selectedId}
       onSelect={handleSelect}
       now={now}
@@ -570,34 +762,50 @@ export default function App() {
       weatherError={Boolean(weatherError)}
       cones={cones}
       fuel={selectedFuel}
+      footprint={selectedFootprint}
       pass={passInfo}
+      days={DAYS_PARAM[windowHours]}
+      hideFarm={layers.hideFarm}
+      onHideFarm={() => toggleLayer("hideFarm")}
+      hiddenFarmCount={hiddenIds.size}
+      fuelLoading={fuelData.loading}
     />
   );
 
   return (
     <main className="fixed inset-0 flex flex-col bg-obsidian-1">
       <h1 className="sr-only">
-        Algow Yangın — Türkiye canlı yangın haritası ve yön tahmini
+        {focus
+          ? `${focus.ad} yangın haritası — canlı uydu tespitleri ve yön tahmini`
+          : "Algow Yangın — Türkiye canlı yangın haritası ve yön tahmini"}
       </h1>
-      <TopBar
-        windowHours={windowHours}
-        onWindow={(w) => {
-          setWindowHours(w);
-          setScrub(null);
-          setPlaying(false);
-        }}
-        layers={layers}
-        onToggle={toggleLayer}
-        meta={fires?.meta}
-        now={now}
-        loading={firesLoading}
-        geoActive={geo.state.status === "ready"}
-        geoBusy={geo.state.status === "locating"}
-        onGeoToggle={geo.toggle}
-        alertCount={alerts.points.length}
-        onAlertsToggle={() => setAlertsOpen((o) => !o)}
-        pass={passInfo}
-      />
+      {embed ? (
+        <EmbedBar
+          meta={fires?.meta}
+          now={now}
+          href={focus ? provincePath(focus.ad) : "/"}
+        />
+      ) : (
+        <TopBar
+          windowHours={windowHours}
+          onWindow={(w) => {
+            setWindowHours(w);
+            setScrub(null);
+            setPlaying(false);
+          }}
+          layers={layers}
+          onToggle={toggleLayer}
+          meta={fires?.meta}
+          now={now}
+          loading={firesLoading}
+          geoActive={geo.state.status === "ready"}
+          geoBusy={geo.state.status === "locating"}
+          onGeoToggle={geo.toggle}
+          alertCount={alerts.points.length}
+          onAlertsToggle={() => setAlertsOpen((o) => !o)}
+          pass={passInfo}
+        />
+      )}
 
       {(offline ||
         (fires as (FiresResponse & { __offline?: boolean }) | undefined)
@@ -606,6 +814,24 @@ export default function App() {
           Çevrimdışısın — cihazında saklanan son veri gösteriliyor
           {fires ? ` (${fmtClock(fires.meta.fetchedAt)})` : ""}. Bağlantı
           gelince kendiliğinden tazelenir.
+        </div>
+      )}
+      {evMissing && (
+        <div
+          role="status"
+          className="relative z-20 flex items-center gap-3 border-b border-line bg-obsidian-2 px-3 py-1.5 text-[11px] text-ink-2"
+        >
+          <span>
+            Paylaşılan yangın seçili zaman penceresinde görünmüyor — sönmüş ya
+            da uydu bir süredir ısı görmemiş olabilir. Pencereyi genişletmeyi
+            deneyebilirsin.
+          </span>
+          <button
+            onClick={() => setEvMissing(false)}
+            className="ml-auto shrink-0 rounded border border-line px-2 py-0.5 text-[10px] text-ink hover:border-cobalt/60"
+          >
+            Kapat
+          </button>
         </div>
       )}
       {noData && !offline && (
@@ -789,13 +1015,36 @@ export default function App() {
           </div>
         )}
 
+        {/* Gömme görünümünde seçilen yangının sade kartı — yan panel yok */}
+        {embed && selectedEvent && (
+          <div className="absolute top-3 left-3 z-10 max-w-[280px] rounded-md border border-line bg-obsidian-1/95 px-3 py-2">
+            <p className="text-[13px] font-medium">{selectedEvent.place}</p>
+            <p className="mt-0.5 font-mono text-[11px] text-ink-2">
+              {selectedEvent.count} tespit · {fmtNum(selectedEvent.frpLast)} MW ·{" "}
+              {fmtAgo(selectedEvent.lastSeen, now)}
+            </p>
+            <a
+              href={eventPath(selectedEvent, DAYS_PARAM[windowHours])}
+              target="_blank"
+              rel="noopener"
+              className="mt-1.5 inline-block text-[10px] text-cobalt hover:underline"
+            >
+              ayrıntı ve tahmin ↗
+            </a>
+          </div>
+        )}
+
         {/* Masaüstü sol panel */}
-        <aside className="absolute top-0 bottom-0 left-0 z-10 hidden w-[340px] border-r border-line bg-obsidian-1/95 md:block">
-          {panel}
-        </aside>
+        {!embed && (
+          <aside className="absolute top-0 bottom-0 left-0 z-10 hidden w-[340px] border-r border-line bg-obsidian-1/95 md:block">
+            {panel}
+          </aside>
+        )}
 
         {/* Masaüstü zaman çizgisi + lejant */}
-        <div className="pointer-events-none absolute bottom-4 left-[352px] right-[240px] z-10 hidden justify-center md:flex">
+        <div
+          className={`pointer-events-none absolute bottom-4 left-[352px] right-[240px] z-10 hidden justify-center ${embed ? "" : "md:flex"}`}
+        >
           <TimelineBar
             className="pointer-events-auto w-full max-w-[620px]"
             windowHours={windowHours}
@@ -817,7 +1066,7 @@ export default function App() {
         </div>
         {/* Açık ama görünür çıktısı olmayan katmanların sebebini söyle —
             aksi hâlde toggle "bozuk" gibi hissettiriyor. */}
-        {layerNotes.length > 0 && (
+        {!embed && layerNotes.length > 0 && (
           <div className="pointer-events-none absolute bottom-4 left-3 z-10 hidden max-w-[300px] space-y-1 md:block">
             {layerNotes.map((n) => (
               <p
@@ -835,7 +1084,9 @@ export default function App() {
         </div>
 
         {/* Mobil alt yığın: zaman çizgisi + olay listesi */}
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col md:hidden">
+        <div
+          className={`absolute inset-x-0 bottom-0 z-10 flex-col md:hidden ${embed ? "hidden" : "flex"}`}
+        >
           <TimelineBar
             className="mx-2 mb-2"
             windowHours={windowHours}
@@ -864,11 +1115,12 @@ export default function App() {
               <span className="text-xs text-ink-2">
                 <span className="font-mono text-danger">
                   {
-                    events.filter((e) => e.status === "active" && !e.abroad)
-                      .length
+                    shownEvents.filter(
+                      (e) => e.status === "active" && !e.abroad
+                    ).length
                   }
                 </span>{" "}
-                aktif yangın · {events.filter((e) => !e.abroad).length} olay
+                aktif yangın · {shownEvents.filter((e) => !e.abroad).length} olay
               </span>
               <svg
                 width="12"

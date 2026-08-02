@@ -17,6 +17,10 @@ const FOREIGN = new Set([
 export interface PlaceInfo {
   label: string;
   abroad: boolean;
+  /** En yakın merkezin bağlı olduğu il (yurt dışıysa ülke adı). */
+  il: string;
+  /** En yakın merkezin kendi adı ("Bergama"). */
+  name: string;
 }
 
 /**
@@ -38,5 +42,7 @@ export function nearestPlace(lon: number, lat: number): PlaceInfo {
   return {
     label: bestKm > 60 ? `${base} açıkları` : base,
     abroad: FOREIGN.has(il),
+    il,
+    name,
   };
 }

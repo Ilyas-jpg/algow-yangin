@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { AppProps } from "./App";
 
 /**
  * Harita uygulaması tamamen tarayıcı-tarafı (Date.now, canvas, WebGL) —
@@ -15,4 +16,7 @@ const App = dynamic(() => import("./App"), {
   ),
 });
 
-export default App;
+/** İl sayfası haritayı o ile odaklamak için `focus` geçirir. */
+export default function ClientApp(props: AppProps) {
+  return <App {...props} />;
+}
