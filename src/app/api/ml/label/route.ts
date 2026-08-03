@@ -45,12 +45,28 @@ const CONFIRM_HOURS = 3;
 /** Tek turda işlenecek sinyal sayısı — fonksiyon süresini sınırlar. */
 const BATCH = 500;
 
+/**
+ * Yanma tesisine bu mesafeden yakın tespit, VIIRS doğrulasa bile `fire`
+ * SAYILMAZ — `unknown` olur.
+ *
+ * Ölçüldü: OSM'den 7.771 yanma tesisi eklendikten sonra, tesise 1 km'den
+ * yakın 71 tespitin 71'i `fire` etiketlenmişti (yalnız 2 `unknown`).
+ * Sebep basit: VIIRS bacayı da görür. Yani "VIIRS doğruladı" o mesafede
+ * yangın kanıtı değil, tesisin sıcak olduğunun kanıtı.
+ *
+ * `not_fire` de demiyoruz: rafineriden 800 m ötede gerçek bir yangın
+ * çıkabilir ve orada GERÇEKTEN bilmiyoruz. Bilmediğimize isim takmak
+ * modeli değil, yalnız raporladığımız doğruluğu iyileştirir.
+ */
+const INDUSTRIAL_AMBIGUOUS_KM = 1;
+
 interface Signal {
   id: number;
   lon: number;
   lat: number;
   scanned_at: string;
   fixed_source_days: number | null;
+  industrial_km: number | null;
 }
 
 export async function GET(req: NextRequest) {
@@ -63,9 +79,13 @@ export async function GET(req: NextRequest) {
   if ("error" in db) return NextResponse.json(db, { status: 500 });
 
   const esik = new Date(Date.now() - LABEL_AFTER_HOURS * 3600_000).toISOString();
+  // `enriched_at` şartı ZORUNLU: sanayi yakınlığı bilinmeden etiketlemek,
+  // baca tespitlerini `fire` yazmak demek (ölçüldü, aşağıya bkz.).
+  // Zenginleştirme statik veriyle çalıştığı için gecikmesi yok.
   const bekleyen = await db.select<Signal>(
-    `heat_signal?label=is.null&scanned_at=lt.${esik}` +
-      `&select=id,lon,lat,scanned_at,fixed_source_days&order=scanned_at.asc&limit=${BATCH}`
+    `heat_signal?label=is.null&scanned_at=lt.${esik}&enriched_at=not.is.null` +
+      `&select=id,lon,lat,scanned_at,fixed_source_days,industrial_km` +
+      `&order=scanned_at.asc&limit=${BATCH}`
   );
   if ("error" in bekleyen) return NextResponse.json(bekleyen, { status: 502 });
   if (!bekleyen.rows.length) {
@@ -84,7 +104,8 @@ export async function GET(req: NextRequest) {
   const guncelle: Record<string, unknown>[] = [];
   let fire = 0,
     notFire = 0,
-    unknown = 0;
+    unknown = 0,
+    belirsizSanayi = 0;
 
   for (const s of bekleyen.rows) {
     const t = Date.parse(s.scanned_at);
@@ -120,6 +141,14 @@ export async function GET(req: NextRequest) {
       label = "not_fire";
       source = "fixed_source";
       notFire++;
+    } else if (
+      s.industrial_km !== null &&
+      s.industrial_km < INDUSTRIAL_AMBIGUOUS_KM
+    ) {
+      // Tesisin dibi: VIIRS doğrulaması burada yangın kanıtı değil.
+      label = "unknown";
+      source = null;
+      belirsizSanayi++;
     } else if (enYakinKm !== null) {
       label = "fire";
       source = "viirs";
@@ -153,6 +182,7 @@ export async function GET(req: NextRequest) {
     fire,
     notFire,
     unknown,
+    belirsizSanayi,
     firmsNokta: firms.length,
     esik,
   });
