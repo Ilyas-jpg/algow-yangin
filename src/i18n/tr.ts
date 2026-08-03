@@ -330,6 +330,16 @@ export const tr = {
     accuracy: "konum ±{m} m · cihazından çıkmaz",
   },
 
+  /** Meteosat ısı halkası kartı — halkaya tıklanınca açılır */
+  heat: {
+    title: "Bölgede yangın şüphesi",
+    badge: "DOĞRULANMAMIŞ",
+    reading: "Meteosat bu halkanın içinde ısı gördü: {frp} MW · piksel {km2} km²",
+    scanned: "{ago} tarandı",
+    confidence: "güven %{n}",
+    disclaimer:
+      "Bu bir ısı ölçümüdür, doğrulanmış yangın değil. Halka pikselin gerçek alanıdır — ısının halkanın neresinde olduğunu bilmiyoruz. Yüksek çözünürlüklü uydu (VIIRS) henüz doğrulamadıysa yangın olabilir de, sanayi bacası veya anız ateşi de olabilir. Aktif yangın sayısına katılmaz.",
+  },
   /** Haber ihbarı kartı — haritadaki daireye tıklanınca açılır */
   news: {
     status: {
@@ -364,6 +374,9 @@ export const tr = {
       "Bağlantı sorunu — {clock} itibarıyla alınan son veri gösteriliyor.",
     window120: "5 günlük",
     windowHours: "{n} saatlik",
+    firstAlarm: "⚡ {n} yeni ısı kaynağı — henüz doğrulanmadı:",
+    firstAlarmNote:
+      " · Meteosat 10 dakikada bir tarıyor, yüksek çözünürlüklü uydu geçişini beklemeden gösteriyoruz. Yangın olabilir, olmayabilir.",
     newsPopupHint: " · daireye tıkla, haberi gör",
     newsCount: "Haberde {n} yangın",
     newsUnverified:
@@ -488,6 +501,10 @@ export const tr = {
     viewerCount: " tespit · {mw} MW toplam",
     viewerNote:
       "NASA FIRMS arşiv (SP) verisi. Tahmin konisi çizilmiyor: o gün yapılmamış bir tahmini sonradan yapılmış gibi göstermeyiz.",
+    viewerNoteMtg:
+      "EUMETSAT LSA SAF Meteosat (MTG) verisi — bu yangının NASA FIRMS'te hiç kaydı yok. Piksel ~1,7 km²; nokta yığını yangının şeklini değil, ısının görüldüğü kaba hücreleri gösterir. Tahmin konisi çizilmiyor: o gün yapılmamış bir tahmini sonradan yapılmış gibi göstermeyiz.",
+    srBodyMtg:
+      "{il} · {n} uydu tespiti · {days} gün · en yüksek yangın ışıma gücü {mw} MW. Kayıt EUMETSAT LSA SAF Meteosat (MTG) verisinden hazırlandı; bu yangının NASA FIRMS arşivinde hiç kaydı yok. Meteosat pikseli ~1,7 km² olduğu için konum kabadır.",
     srH1: "{ad} — uydu kaydı",
     srBody:
       "{il} · {n} uydu tespiti · {days} gün · en yüksek yangın ışıma gücü {mw} MW. Kayıt NASA FIRMS arşiv (SP) verisinden hazırlandı; uydu ısı görür ve bulut altında kalan bölümler eksik olabilir.",

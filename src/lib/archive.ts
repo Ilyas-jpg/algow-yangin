@@ -31,6 +31,17 @@ export interface ArchiveIndexItem {
   son: number;
   tespit: number;
   maxFrp: number;
+  /**
+   * Kaydı üreten uydular. Kaynak atfı buradan türetiliyor: Bayramiç kaydı
+   * tümüyle Meteosat'tan kuruldu ve NASA FIRMS'te hiç izi yok — sabit
+   * "FIRMS arşivi" metni orada yanlış bir kaynak iddiası olurdu.
+   */
+  sats?: string[];
+}
+
+/** Kayıt yalnız jeostasyoner Meteosat tespitlerinden mi kuruldu? */
+export function isMtgOnly(sats: string[] | undefined): boolean {
+  return sats?.length === 1 && sats[0] === "MTG";
 }
 
 /** Kaydın açık dildeki adı ve özeti; İngilizcesi yoksa Türkçesine düşer. */

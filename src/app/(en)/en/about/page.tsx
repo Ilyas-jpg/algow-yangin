@@ -275,6 +275,58 @@ export default function AboutPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                3 August 2026 — the fire we missed, news reports, first alarm
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    On 2 August we failed to show you the fire at Bayramiç —
+                    even though we had seen it.
+                  </b>{" "}
+                  The high-resolution satellites (VIIRS/MODIS){" "}
+                  <b className="font-medium text-ink">never saw it</b>: the fire
+                  started and was contained between their passes. The
+                  geostationary Meteosat saw it at{" "}
+                  <b className="font-medium text-ink">16:08 local time</b>,{" "}
+                  <b className="font-medium text-ink">91 minutes before</b> the
+                  first news report, peaking at 303 MW. But that detection was
+                  only a temporary orange ring on the map: it never entered the
+                  fire list, was not counted, raised no alert, and vanished once
+                  the fire died down. We had the information and did not tell
+                  you.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">First alarm added.</b>{" "}
+                  Heat sources that Meteosat can see but a high-resolution
+                  satellite has not yet confirmed are now called out above the
+                  map. They are unconfirmed and are not counted as active fires;
+                  known industrial sources are excluded. Clicking a Meteosat
+                  ring now says &quot;possible fire in this area&quot; and
+                  explains what remains uncertain.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    News report layer added.
+                  </b>{" "}
+                  For the small, short-lived fires satellites cannot see, news
+                  is now watched as a second channel. These are unverified
+                  reports: they are drawn as an approximate area rather than a
+                  point, and are not counted as active fires. Clicking a circle
+                  shows which report it rests on, how many outlets carried it,
+                  and whether the fire has been contained.
+                </li>
+                <li>
+                  The Bayramiç fire has been{" "}
+                  <Link href="/en/archive/bayramic-2026" className="underline">
+                    added to the archive
+                  </Link>{" "}
+                  — the only record there built entirely from Meteosat
+                  detections, because no other satellite left a trace of it.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 2 August 2026 — English language support
               </p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">

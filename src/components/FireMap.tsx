@@ -86,6 +86,60 @@ function newsCard(
 }
 
 /**
+ * Meteosat ısı halkası kartı — "bölgede yangın şüphesi".
+ *
+ * Halka daha önce sessizdi: 2 Ağustos'ta Bayramiç yangınını 16:08'de
+ * gördük, halka haritada duruyordu ama tıklanınca hiçbir şey demiyordu ve
+ * bir sonraki dilimde silinip gitti. Artık ne gördüğünü, ne kadar kaba
+ * gördüğünü ve neyin belirsiz olduğunu yazıyor.
+ */
+function heatCard(
+  p: Record<string, unknown>,
+  t: Dict,
+  locale: Locale,
+  now: number
+): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "haber-karti";
+
+  const bas = document.createElement("div");
+  bas.className = "haber-karti-ust";
+  const yer = document.createElement("strong");
+  yer.textContent = t.heat.title;
+  bas.appendChild(yer);
+  const rozet = document.createElement("span");
+  rozet.className = "haber-rozet haber-rozet-devam";
+  rozet.textContent = t.heat.badge;
+  bas.appendChild(rozet);
+  el.appendChild(bas);
+
+  const frp = Number(p.frp);
+  const px = Number(p.pixelKm2);
+  const conf = Number(p.conf);
+  const olcum = document.createElement("div");
+  olcum.className = "haber-baslik";
+  olcum.textContent = t.heat.reading
+    .replace("{frp}", Number.isFinite(frp) ? frp.toFixed(0) : "?")
+    .replace("{km2}", Number.isFinite(px) ? px.toFixed(1) : "?");
+  el.appendChild(olcum);
+
+  const zaman = Number(p.dt);
+  const alt = document.createElement("div");
+  alt.className = "haber-kaynak";
+  alt.textContent =
+    (Number.isFinite(zaman) ? t.heat.scanned.replace("{ago}", fmtAgo(zaman, now, locale)) : "") +
+    (Number.isFinite(conf) ? ` · ${t.heat.confidence.replace("{n}", conf.toFixed(0))}` : "");
+  el.appendChild(alt);
+
+  const not = document.createElement("div");
+  not.className = "haber-not";
+  not.textContent = t.heat.disclaimer;
+  el.appendChild(not);
+
+  return el;
+}
+
+/**
  * Yer adı alanı — açık olan dile göre.
  *
  * Karo verisi hem `name:tr` hem `name:en` taşıyor. Türkçe üründe varsayılan
@@ -1029,6 +1083,37 @@ export default function FireMap({
         map.getCanvas().style.cursor = "pointer";
       });
       map.on("mouseleave", "news-area", () => {
+        map.getCanvas().style.cursor = "";
+      });
+
+      // Meteosat halkası: 2 Ağustos'ta Bayramiç yangınını 16:08'de gördük
+      // ama halka sessiz duruyordu — kullanıcı ona bakıp ne olduğunu
+      // anlayamıyordu. Artık tıklanınca "bölgede yangın şüphesi" diyor.
+      map.on("click", "msg-area", (e: MapMouseEvent) => {
+        const f = map.queryRenderedFeatures(e.point, { layers: ["msg-area"] })[0];
+        if (!f || f.geometry.type !== "Point") return;
+        popupRef.current?.remove();
+        popupRef.current = new Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: "300px",
+          className: "haber-popup",
+        })
+          .setLngLat(f.geometry.coordinates as [number, number])
+          .setDOMContent(
+            heatCard(
+              f.properties as Record<string, unknown>,
+              tRef.current,
+              localeRef.current,
+              Date.now()
+            )
+          )
+          .addTo(map);
+      });
+      map.on("mouseenter", "msg-area", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "msg-area", () => {
         map.getCanvas().style.cursor = "";
       });
 

@@ -1,0 +1,60 @@
+/**
+ * Geçiş grubu zamanlarının testi.
+ *
+ * CANLI HATA (3 Ağu 2026): Bayramiç arşiv kaydı jeostasyoner MTG'den
+ * kurulunca 73 tespit TEK geçiş grubuna düştü (16:08–18:58) ve haritadaki
+ * "İLK GÖRÜLEN" etiketi grubun MEDYANINI yazdı → 17:08. Gerçek ilk tespit
+ * 16:08'di; etiket tam bir saat yanlıştı ve /hakkinda'da yayınladığımız
+ * sayıyla çelişiyordu.
+ *
+ * Kutupsal uyduda geçiş ~2 dakika sürdüğü için medyan ile ilk arasında
+ * fark yok; hata yalnız saatlerce süren jeostasyoner kayıtta görünür oldu.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { clusterEvents } from "./cluster.ts";
+import type { FirePoint } from "./types.ts";
+
+const T = Date.UTC(2026, 7, 2, 13, 8);
+
+function p(dkSonra: number, frp = 50): FirePoint {
+  return {
+    id: `x${dkSonra}`,
+    lon: 26.747,
+    lat: 39.913,
+    frp,
+    conf: "n",
+    sat: "MTG",
+    dt: T + dkSonra * 60_000,
+    dn: "D",
+  };
+}
+
+test("geçiş grubu t0'ı en erken tespiti taşır (t medyandır)", () => {
+  // 10 dakikada bir, 3 saat boyunca — jeostasyoner tarama deseni
+  const pts = Array.from({ length: 18 }, (_, i) => p(i * 10));
+  const { events } = clusterEvents(pts);
+  assert.equal(events.length, 1);
+  const g = events[0].passes;
+  assert.equal(g.length, 1, "90 dk'dan küçük boşluklar tek gruba düşer");
+  assert.equal(g[0].t0, T, "t0 = ilk tespit");
+  assert.ok(g[0].t > g[0].t0, "medyan ilkten sonra gelir (kayıt saatlerce sürüyor)");
+});
+
+test("kutupsal desende t0 ile t pratikte aynı", () => {
+  // Tek geçiş = birkaç dakikalık pencere
+  const pts = [p(0), p(1), p(2)];
+  const { events } = clusterEvents(pts);
+  const g = events[0].passes[0];
+  assert.equal(g.t0, T);
+  assert.ok(g.t - g.t0 <= 2 * 60_000);
+});
+
+test("ayrı geçişlerde her grubun kendi t0'ı olur", () => {
+  const pts = [p(0), p(5), p(200), p(205)]; // araya >90 dk boşluk
+  const { events } = clusterEvents(pts);
+  const g = events[0].passes;
+  assert.equal(g.length, 2);
+  assert.equal(g[0].t0, T);
+  assert.equal(g[1].t0, T + 200 * 60_000);
+});

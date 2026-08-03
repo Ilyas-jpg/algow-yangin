@@ -137,7 +137,7 @@ function sahteOlay(): FireEvent {
     count: 1,
     frpLast: 50,
     frpMax: 50,
-    passes: [{ t, lon: 30, lat: 39, frp: 50, count: 1 }],
+    passes: [{ t, t0: t, lon: 30, lat: 39, frp: 50, count: 1 }],
     drift: null,
     lastPassPoints: [{ lon: 30, lat: 39 }],
     status: "active",

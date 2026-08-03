@@ -20,6 +20,7 @@ import type { WindForecastPoint } from "@/app/api/wind/forecast/route";
 import type { SmokeGrid } from "@/app/api/smoke/grid/route";
 import type { NewsResponse } from "@/app/api/news/route";
 import { nextPassEstimate } from "@/lib/passes";
+import { firstAlarms } from "@/lib/first-alarm";
 import { fmtAgo, fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
 import { fill, path as localePath } from "@/lib/i18n";
 import {
@@ -322,6 +323,27 @@ export default function App({ focus, embed = false }: AppProps = {}) {
 
   const alerts = useAlerts(events);
 
+  /**
+   * İlk alarm — MTG'nin gördüğü ama FIRMS'in doğrulamadığı ısı kaynakları.
+   *
+   * 2 Ağustos'ta Bayramiç yangınını MTG 16:08'de gördü, FIRMS hiç görmedi,
+   * ilk haber 17:39'da çıktı. Veri elimizdeydi ama yalnız harita üstünde
+   * geçici bir halkaydı: listede yoktu, sayaçta yoktu, uyarı üretmedi ve
+   * yangın sönünce halka da silindi. Bu memo o tespiti öne çıkarıyor.
+   */
+  const firstAlarm = useMemo(() => {
+    if (!live || !layers.msg || !msg?.features?.length) return [];
+    return firstAlarms(
+      msg.features.map((f) => ({
+        lon: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+        frp: f.properties.frp,
+        dt: f.properties.dt,
+      })),
+      points
+    ).filter((a) => !a.abroad);
+  }, [live, layers.msg, msg, points]);
+
   const selectedEvent = useMemo(
     () => events.find((e) => e.id === selectedId) ?? null,
     [events, selectedId]
@@ -578,7 +600,8 @@ export default function App({ focus, embed = false }: AppProps = {}) {
       geometry: { type: "Point", coordinates: [ilk.lon, ilk.lat] },
       properties: {
         kind: "start",
-        label: `${t.map.firstSeen} · ${fmtDayTime(ilk.t, locale)}`,
+        // Medyan değil en erken tespit — bkz. PassGroup.t0
+        label: `${t.map.firstSeen} · ${fmtDayTime(ilk.t0, locale)}`,
       },
     });
 
@@ -1004,6 +1027,29 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           ) : (
             <span className="text-ink-3">{t.banner.msgEmpty}</span>
           )}
+        </div>
+      )}
+      {firstAlarm.length > 0 && (
+        <div
+          role="alert"
+          className="relative z-20 border-b border-warn/50 bg-warn/10 px-3 py-1.5 text-[11px] text-ink-2"
+        >
+          <span className="font-mono text-warn">
+            {fill(t.banner.firstAlarm, { n: firstAlarm.length })}
+          </span>
+          {firstAlarm.slice(0, 3).map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() =>
+                setFlyTarget({ lon: a.lon, lat: a.lat, key: Date.now(), zoom: 9 })
+              }
+              className="ml-2 underline decoration-dotted underline-offset-2 hover:text-ink"
+            >
+              {a.label} ({fmtNum(a.frp, 0, locale)} MW)
+            </button>
+          ))}
+          <span className="text-ink-3">{t.banner.firstAlarmNote}</span>
         </div>
       )}
       {layers.news && news && (

@@ -1,5 +1,5 @@
 import ArchiveViewer from "@/components/ArchiveViewer";
-import { archiveText, type ArchiveIndexItem } from "@/lib/archive";
+import { archiveText, isMtgOnly, type ArchiveIndexItem } from "@/lib/archive";
 import { fmtNum } from "@/lib/format";
 import { fill, type Locale } from "@/lib/i18n";
 import { getDict } from "@/i18n";
@@ -27,7 +27,7 @@ export default function ArchiveFireView({
         <h1>{fill(t.archive.srH1, { ad })}</h1>
         <p>{ozet}</p>
         <p>
-          {fill(t.archive.srBody, {
+          {fill(isMtgOnly(k.sats) ? t.archive.srBodyMtg : t.archive.srBody, {
             il: k.il,
             n: k.tespit,
             days: gun,

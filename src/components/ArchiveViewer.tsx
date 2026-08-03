@@ -167,7 +167,9 @@ function Viewer({
       geometry: { type: "Point", coordinates: [passes[0].lon, passes[0].lat] },
       properties: {
         kind: "start",
-        label: `${t.map.firstSeen} · ${fmtDayTime(passes[0].t, locale)}`,
+        // Medyan değil EN ERKEN tespit — jeostasyoner kayıtta tek grup
+        // saatlerce sürüyor ve medyan "ilk görülen"i bir saat kaydırıyor.
+        label: `${t.map.firstSeen} · ${fmtDayTime(passes[0].t0, locale)}`,
       },
     });
     return { type: "FeatureCollection", features: feats };
@@ -307,8 +309,13 @@ function Viewer({
                 {ozet}
               </p>
             )}
+            {/* Kaynak atfı kaydın kendi uydularından türetiliyor. Bayramiç
+                kaydı tümüyle Meteosat'tan kuruldu (FIRMS o yangını hiç
+                görmedi); sabit "NASA FIRMS" metni orada yanlış olurdu. */}
             <p className="mt-1.5 border-t border-line/60 pt-1.5 text-[10px] leading-relaxed text-ink-3">
-              {t.archive.viewerNote}
+              {data?.sats.length === 1 && data.sats[0] === "MTG"
+                ? t.archive.viewerNoteMtg
+                : t.archive.viewerNote}
             </p>
           </div>
         </div>

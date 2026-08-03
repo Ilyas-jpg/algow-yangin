@@ -248,6 +248,58 @@ export default function HakkindaPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                3 Ağustos 2026 — kaçırdığımız yangın, haber ihbarı, ilk alarm
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    2 Ağustos&apos;ta Bayramiç&apos;teki yangını size
+                    gösteremedik — oysa görmüştük.
+                  </b>{" "}
+                  Yüksek çözünürlüklü uydular (VIIRS/MODIS) o yangını{" "}
+                  <b className="font-medium text-ink">hiç görmedi</b>: yangın
+                  onların geçişleri arasında çıktı ve aynı aralıkta kontrol
+                  altına alındı. Jeostasyoner Meteosat ise{" "}
+                  <b className="font-medium text-ink">saat 16:08&apos;de</b>,
+                  ilk haber bültenlerinden{" "}
+                  <b className="font-medium text-ink">91 dakika önce</b> gördü —
+                  tepe noktasında 303 MW. Ama bu tespit haritada yalnız geçici
+                  bir turuncu halkaydı: yangın listesine girmiyor, sayaca
+                  katılmıyor, uyarı üretmiyordu ve yangın sönünce halka da
+                  silindi. Elimizdeki bilgiyi size söylemedik.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">İlk alarm eklendi.</b>{" "}
+                  Meteosat&apos;ın gördüğü ama yüksek çözünürlüklü uydunun
+                  henüz doğrulamadığı ısı kaynakları artık haritanın üstünde
+                  ayrı bir uyarı olarak yazıyor. Doğrulanmamıştır ve aktif
+                  yangın sayısına katılmaz; sanayi bacaları listeden düşülür.
+                  Meteosat halkasına tıklayınca artık &quot;bölgede yangın
+                  şüphesi&quot; diyor ve neyin belirsiz olduğunu anlatıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Haber ihbarı katmanı eklendi.
+                  </b>{" "}
+                  Uydunun göremediği küçük ve kısa ömürlü yangınlar için
+                  haberler ikinci kanal olarak izleniyor. Doğrulanmamış
+                  ihbardır: haritada nokta değil, yerin yaklaşık bölgesi olarak
+                  daire çiziliyor ve aktif yangın sayısına katılmıyor. Daireye
+                  tıklayınca hangi habere dayandığı, kaç yayının yazdığı ve
+                  yangının kontrol altına alınıp alınmadığı görünüyor.
+                </li>
+                <li>
+                  Bayramiç yangını{" "}
+                  <Link href="/arsiv/bayramic-2026" className="underline">
+                    arşive eklendi
+                  </Link>{" "}
+                  — arşivdeki tek kayıt ki tümüyle Meteosat tespitlerinden
+                  kuruldu, çünkü diğer uydularda hiç izi yok.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 2 Ağustos 2026 — İngilizce dil desteği
               </p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">

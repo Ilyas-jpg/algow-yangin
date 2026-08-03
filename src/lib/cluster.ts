@@ -110,6 +110,7 @@ export function clusterEvents(points: FirePoint[]): ClusterResult {
       }
       passes.push({
         t: group[Math.floor(group.length / 2)].dt,
+        t0: group[0].dt,
         lon: sLon / group.length,
         lat: sLat / group.length,
         frp: Math.round(Math.max(...bySat.values()) * 10) / 10,

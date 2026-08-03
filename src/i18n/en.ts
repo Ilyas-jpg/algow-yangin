@@ -342,6 +342,16 @@ export const en: Dict = {
     accuracy: "location ±{m} m · never leaves your device",
   },
 
+  /** Meteosat heat ring card — opens when a ring on the map is clicked */
+  heat: {
+    title: "Possible fire in this area",
+    badge: "UNCONFIRMED",
+    reading: "Meteosat saw heat inside this ring: {frp} MW · pixel {km2} km²",
+    scanned: "scanned {ago}",
+    confidence: "{n}% confidence",
+    disclaimer:
+      "This is a heat measurement, not a confirmed fire. The ring is the true area of the pixel — we do not know where inside it the heat is. Until a high-resolution satellite (VIIRS) confirms it, this could be a fire, but it could equally be an industrial stack or a stubble burn. It is not counted as an active fire.",
+  },
   /** News report card — opens when a circle on the map is clicked */
   news: {
     status: {
@@ -375,6 +385,9 @@ export const en: Dict = {
     staleConn: "Connection problem — showing the last data fetched at {clock}.",
     window120: "5-day",
     windowHours: "{n}-hour",
+    firstAlarm: "⚡ {n} new heat source — not yet confirmed:",
+    firstAlarmNote:
+      " · Meteosat scans every 10 minutes, so we show this without waiting for a high-resolution pass. It may or may not be a fire.",
     newsPopupHint: " · click a circle to see the report",
     newsCount: "{n} fires in the news",
     newsUnverified:
@@ -501,9 +514,13 @@ export const en: Dict = {
     viewerCount: " detections · {mw} MW total",
     viewerNote:
       "NASA FIRMS archive (SP) data. No forecast shape is drawn: we do not present a forecast that was never made that day as if it had been.",
+    viewerNoteMtg:
+      "EUMETSAT LSA SAF Meteosat (MTG) data — this fire has no record in NASA FIRMS at all. The pixel is about 1.7 km²; the cluster of points shows the coarse cells where heat was seen, not the shape of the fire. No forecast shape is drawn: we do not present a forecast that was never made that day as if it had been.",
     srH1: "{ad} — satellite record",
     srBody:
       "{il} · {n} satellite detections · {days} days · peak fire radiative power {mw} MW. The record was prepared from NASA FIRMS archive (SP) data; the satellite sees heat and sections under cloud may be missing.",
+    srBodyMtg:
+      "{il} · {n} satellite detections · {days} days · peak fire radiative power {mw} MW. The record was prepared from EUMETSAT LSA SAF Meteosat (MTG) data; this fire has no record in the NASA FIRMS archive at all. The Meteosat pixel is about 1.7 km², so the location is coarse.",
   },
 
   stats: {

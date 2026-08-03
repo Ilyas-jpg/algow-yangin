@@ -39,6 +39,16 @@ export interface FirePointProps {
 export interface PassGroup {
   /** geçişin temsili zamanı (medyan), epoch ms */
   t: number;
+  /**
+   * Gruptaki EN ERKEN tespit. "İlk görülen" etiketi bunu kullanmalı.
+   *
+   * Kutupsal uyduda geçiş ~2 dakika sürer, medyan ile ilk arasında fark
+   * yoktur. Jeostasyoner (Meteosat) veride ise tek grup saatlerce sürüyor:
+   * Bayramiç kaydında 73 tespit 16:08–18:58 arasına yayılmış tek grup oldu
+   * ve medyan 17:08 çıktı — arşiv haritası "İLK GÖRÜLEN 17:08" yazarken
+   * gerçek ilk tespit 16:08'di, tam bir saat yanlış.
+   */
+  t0: number;
   lon: number;
   lat: number;
   /** geçişteki toplam FRP */
