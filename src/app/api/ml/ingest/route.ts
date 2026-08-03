@@ -24,6 +24,20 @@ import { nearestPlace } from "@/lib/places";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Ortam değişkeni temizliği.
+ *
+ * Panele elle girilen değerlere görünmez karakter bulaşıyor: BOM (U+FEFF),
+ * CRLF, kopyalarken kaçan tırnak. Bu projede zaten yaşandı — Windows'ta
+ * `vercel env add` pipe'ı FIRMS anahtarına `\r` ekleyip üretimde 4/4
+ * "Invalid MAP_KEY" verdirmişti; kardeş projede Turnstile anahtarına BOM
+ * bulaşmıştı. Bu tür bozulma sessizdir ve "fetch failed: unknown scheme"
+ * gibi hiçbir şey anlatmayan hatalarla çıkar.
+ */
+function cleanEnv(v: string | undefined): string {
+  return (v ?? "").replace(/^﻿/, "").replace(/^["']|["']$/g, "").trim();
+}
+
 interface Row {
   source: string;
   scanned_at: string;
@@ -44,10 +58,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = cleanEnv(process.env.SUPABASE_URL).replace(/\/+$/, "");
+  const key = cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) {
     return NextResponse.json({ error: "supabase yapılandırılmadı" }, { status: 500 });
+  }
+  // Teşhis edilebilir hata: bozuk URL'de fetch "unknown scheme" diye
+  // çöküyor ve neyin yanlış olduğunu söylemiyor. Değeri sızdırmadan
+  // uzunluğunu bildiriyoruz.
+  if (!/^https:\/\/[a-z0-9.-]+\.supabase\.co$/i.test(url)) {
+    return NextResponse.json(
+      { error: "SUPABASE_URL biçimi bozuk", uzunluk: url.length },
+      { status: 500 }
+    );
   }
 
   const latest = await fetchLatest();
