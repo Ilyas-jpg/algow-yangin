@@ -341,6 +341,10 @@ export default function App({ focus, embed = false }: AppProps = {}) {
         dt: f.properties.dt,
       })),
       points
+      // Yurt dışı alarm bandına çıkmıyor. Olay LİSTESİNDE sınır ötesi
+      // yangınlar "YURT DIŞI" rozetiyle duruyor ve orada kalmalı — ama
+      // ekranın tepesindeki alarm bandı Türkiye için bir uyarı; Güney
+      // Kıbrıs'taki bir ısı kaynağını oraya koymak bandı gürültüye boğar.
     ).filter((a) => !a.abroad);
   }, [live, layers.msg, msg, points]);
 
