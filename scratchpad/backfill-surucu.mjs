@@ -18,13 +18,22 @@ const env = readFileSync("C:/Users/milya/Desktop/00-Projeler/algow-yangin/.env.l
 const SECRET = (env.match(/^ML_INGEST_SECRET=(.*)$/m)?.[1] ?? "").trim();
 const BASE = "http://localhost:3060";
 
-/** Her günden çekilecek pencere (UTC). 09-13 = 12:00-16:00 TR, yangın tepe saatleri. */
-const SAAT_BAS = 9;
-const SLOTS = 24; // 4 saat
+/**
+ * Pencere (UTC). Varsayılan 09-13 = 12:00-16:00 TR, yangın tepe saatleri.
+ *
+ * ⚠️ GECE PENCERESİ AYRICA ÇEKİLMELİ. Anız insan eliyle yakılır: gündüz
+ * başlar, akşam söner. Orman yangını gece de yanar. Bu diurnal fark
+ * ikisini ayırmanın muhtemelen EN GÜÇLÜ sinyali — ama yalnız gündüz
+ * çekilirse veride hiç görünmez. İlk backfill bu hatayla yapıldı.
+ */
+const [ilkGun, sonGun, saatArg, slotArg] = process.argv.slice(2);
+const SAAT_BAS = Number(saatArg ?? 9);
+const SLOTS = Number(slotArg ?? 24);
 
-const [ilkGun, sonGun] = process.argv.slice(2);
 if (!ilkGun || !sonGun) {
-  console.error("kullanım: node backfill-surucu.mjs <YYYY-MM-DD> <YYYY-MM-DD>");
+  console.error(
+    "kullanım: node backfill-surucu.mjs <YYYY-MM-DD> <YYYY-MM-DD> [başlangıçSaatUTC] [dilim]"
+  );
   process.exit(1);
 }
 
