@@ -18,6 +18,7 @@ import { buildCone, type ConeGeom } from "@/lib/wind";
 import type { TerrainPoint } from "@/app/api/terrain/route";
 import type { WindForecastPoint } from "@/app/api/wind/forecast/route";
 import type { SmokeGrid } from "@/app/api/smoke/grid/route";
+import type { NewsResponse } from "@/app/api/news/route";
 import { nextPassEstimate } from "@/lib/passes";
 import { fmtAgo, fmtClock, fmtDayTime, fmtNum } from "@/lib/format";
 import { fill, path as localePath } from "@/lib/i18n";
@@ -143,6 +144,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     danger: false,
     smoke: false,
     msg: true,
+    news: true,
   });
   const [offline, setOffline] = useState(false);
   const geo = useGeolocation();
@@ -233,6 +235,14 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     keepPreviousData: true,
     revalidateOnFocus: true,
   });
+
+  // Haber ihbarı: uydunun hiç göremediği yangınların tek kanalı. Katman
+  // kapalıyken çekilmez — kapalı katmanın kimseye maliyeti olmasın.
+  const { data: news } = useSWR<NewsResponse>(
+    layers.news ? "/api/news" : null,
+    fetcher,
+    { refreshInterval: 600_000, keepPreviousData: true, revalidateOnFocus: true }
+  );
 
   const { data: windGrid, error: windError } = useSWR<WindGrid>(
     "/api/wind/grid",
@@ -624,6 +634,33 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     [msg]
   );
 
+  /**
+   * Haber ihbarları — nokta değil YAKLAŞIK ALAN. Yarıçap sunucudan geliyor
+   * ve eşleşmenin kabalığını taşıyor (ilçe adı geçtiyse dar, yalnız il adı
+   * geçtiyse geniş). Meteosat pikselinde verdiğimiz kararın aynısı: kaba
+   * konumu keskin bir nokta gibi çizmek, olmayan bir hassasiyet vaat eder.
+   */
+  const newsFC = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!layers.news || !news?.signals?.length) return EMPTY_FC;
+    return {
+      type: "FeatureCollection",
+      features: news.signals.map((s) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [s.lon, s.lat] },
+        properties: {
+          id: s.id,
+          radiusKm: s.radiusKm,
+          place: s.place,
+          il: s.il,
+          status: s.status,
+          label: s.place === s.il ? s.place : `${s.place}, ${s.il}`,
+          // Sönmüş ihbar soluk çizilir: hâlâ bilgi ama uyarı değil.
+          done: s.status === "sondu" ? 1 : 0,
+        },
+      })),
+    };
+  }, [layers.news, news]);
+
   const ticks = useMemo(() => {
     const q = new Set<number>();
     const min = now - windowMs;
@@ -961,6 +998,22 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           )}
         </div>
       )}
+      {layers.news && news && (
+        <div
+          role="status"
+          className="relative z-20 border-b border-line bg-obsidian-2 px-3 py-1 text-[11px] text-ink-2"
+        >
+          <span className="font-mono text-[#93c5fd]">
+            {fill(t.banner.newsCount, { n: news.signals.length })}
+          </span>
+          <span className="text-ink-3">{t.banner.newsUnverified}</span>
+          {news.meta.unlocated > 0 && (
+            <span className="text-ink-3">
+              {fill(t.banner.newsUnlocated, { n: news.meta.unlocated })}
+            </span>
+          )}
+        </div>
+      )}
       {windError && (
         <div
           role="status"
@@ -1001,6 +1054,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           trailFC={trailFC}
           burnedFC={burnedFC}
           msgFC={msgFC}
+          newsFC={newsFC}
           smokeFC={smokeFC}
           selectedId={selectedId}
           effT={effT}

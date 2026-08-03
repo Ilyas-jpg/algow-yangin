@@ -9,10 +9,25 @@ export async function fetchJson<T>(
   url: string,
   revalidate: number
 ): Promise<T | null> {
+  const body = await fetchText(url, revalidate);
+  if (body === null) return null;
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** Aynı politika, gövdeyi ham metin olarak döner (RSS/XML için). */
+export async function fetchText(
+  url: string,
+  revalidate: number,
+  init?: RequestInit
+): Promise<string | null> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch(url, { next: { revalidate } });
-      if (res.ok) return (await res.json()) as T;
+      const res = await fetch(url, { ...init, next: { revalidate } });
+      if (res.ok) return await res.text();
       if (res.status < 500 && res.status !== 429) return null;
     } catch {
       /* ağ hatası — tekrar dene */

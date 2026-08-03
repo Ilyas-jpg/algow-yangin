@@ -114,6 +114,8 @@ interface FireMapProps {
   trailFC: GeoJSON.FeatureCollection;
   burnedFC: GeoJSON.FeatureCollection;
   msgFC: GeoJSON.FeatureCollection;
+  /** Haber ihbarları — doğrulanmamış, yaklaşık alan olarak çizilir */
+  newsFC: GeoJSON.FeatureCollection;
   /** CAMS yüzey PM2.5 alanı (0,5° nokta bulutu) */
   smokeFC: GeoJSON.FeatureCollection;
   selectedId: string | null;
@@ -138,6 +140,7 @@ export default function FireMap({
   trailFC,
   burnedFC,
   msgFC,
+  newsFC,
   smokeFC,
   selectedId,
   effT,
@@ -441,6 +444,75 @@ export default function FireMap({
       map.addSource("burned", { type: "geojson", data: EMPTY_FC });
       map.addSource("me", { type: "geojson", data: EMPTY_FC });
       map.addSource("msg", { type: "geojson", data: EMPTY_FC });
+      map.addSource("news", { type: "geojson", data: EMPTY_FC });
+
+      // Haber ihbarı: konum bir BAŞLIKTAN çıkarıldı, o yüzden nokta değil
+      // alan. Renk ateş rampasından bilerek uzak (soğuk mavi) ve kenar
+      // KESİKLİ — hiçbir zumda uydu tespitiyle karıştırılmasın diye.
+      map.addLayer(
+        {
+          id: "news-area",
+          type: "circle",
+          source: "news",
+          paint: {
+            // GERÇEK yer ölçeği. İlk sürümde msg-area'nın çarpanları
+            // kopyalanmıştı; o katman küçük pikselini görünür kılmak için
+            // bilerek abartıyor, aynı çarpanı 45 km'lik bir yarıçapa
+            // uygulayınca daireler ~4 kat şişti ve harita okunmaz oldu.
+            // (Koni yarıçapının 8-12 kat fazla çıktığı hatanın aynısı.)
+            // px/km = 2^(zoom+1) / (156,543 · cos φ), φ≈39° → /121,634.
+            // Ölçüldü: zoom 8,2'de 12 km = 59 px, formülle birebir.
+            "circle-radius": [
+              "interpolate", ["exponential", 2], ["zoom"],
+              5, ["*", 0.526, ["get", "radiusKm"]],
+              10, ["*", 16.84, ["get", "radiusKm"]],
+            ],
+            "circle-color": "#60a5fa",
+            // Ülke görünümünde dolgu sadece leke bırakıyor; yaklaşıklığı
+            // kenar zaten anlatıyor. Yakınlaştıkça dolgu geliyor.
+            "circle-opacity": [
+              "interpolate", ["linear"], ["zoom"],
+              5, ["case", ["==", ["get", "done"], 1], 0.015, 0.03],
+              8, ["case", ["==", ["get", "done"], 1], 0.04, 0.09],
+            ],
+            "circle-stroke-color": "#93c5fd",
+            "circle-stroke-width": 1.2,
+            "circle-stroke-opacity": [
+              "case", ["==", ["get", "done"], 1], 0.3, 0.65,
+            ],
+          },
+        },
+        labelTop
+      );
+      map.addLayer(
+        {
+          id: "news-label",
+          type: "symbol",
+          source: "news",
+          minzoom: 6,
+          layout: {
+            "text-field": ["get", "label"],
+            "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+            "text-size": 11,
+            // Etiket dairenin MERKEZİNE denk geliyor ve orada altlığın kendi
+            // şehir adı duruyor; çakışma yüzünden MapLibre etiketi sessizce
+            // düşürüyordu (ölçtük: zoom 8,2'de 3 daire, 0 etiket). Biraz
+            // aşağı alıp yerleşimi zorluyoruz — bu katman seyrek (ülke
+            // genelinde ~20 kayıt), kalabalık yapma riski yok.
+            "text-offset": [0, 1.7],
+            "text-anchor": "top",
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+          },
+          paint: {
+            "text-color": "#bfdbfe",
+            "text-halo-color": "#0a0a0b",
+            "text-halo-width": 1.2,
+            "text-opacity": ["case", ["==", ["get", "done"], 1], 0.5, 0.9],
+          },
+        },
+        labelTop
+      );
 
       // Meteosat: pikseli 15-25 km² olduğu için nokta değil ALAN olarak
       // çizilir — kullanıcı konumun kaba olduğunu görsel olarak anlamalı.
@@ -911,6 +983,17 @@ export default function FireMap({
       layers.msg && live ? msgFC : EMPTY_FC
     );
   }, [ready, msgFC, layers.msg, live]);
+
+  // Haber ihbarı yalnız CANLI görünümde. Zaman kaydırıcısı geçmişte
+  // gezerken haber göstermek, o ana ait olmayan bilgiyi o an varmış gibi
+  // sunardı — koniyi geçmişte çizmeme kararının aynısı.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("news") as GeoJSONSource | undefined)?.setData(
+      layers.news && live ? newsFC : EMPTY_FC
+    );
+  }, [ready, newsFC, layers.news, live]);
 
   // ── Zaman filtresi + yaş soldurması (kaydırıcı)
   useEffect(() => {

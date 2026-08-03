@@ -155,6 +155,12 @@ export interface LayerToggles {
   heat: boolean;
   cones: boolean;
   /**
+   * Haber ihbarları — uydunun göremediği yangınlar. Doğrulanmamış veridir,
+   * yaklaşık ALAN olarak çizilir ve aktif yangın sayacına karışmaz.
+   * Gerekçe ve ölçüm: `lib/news.ts`.
+   */
+  news: boolean;
+  /**
    * Tarım (anız) ateşlerini gizle. Katman değil süzgeç ama arayüzde aynı
    * şeritte duruyor. Ölçümde vakaların yarısından çoğu anızdı; kullanıcının
    * "orman yangını var mı" sorusunu bu gürültü boğuyordu.

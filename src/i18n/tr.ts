@@ -45,6 +45,11 @@ export const tr = {
         title:
           "Meteosat: 15 dakikada bir tarar, uydu geçişleri arasındaki boşluğu doldurur. Konum kabadır (piksel 15-25 km²), halka o belirsizliği gösterir.",
       },
+      news: {
+        label: "Haber ihbarı",
+        title:
+          "Haberlere düşen yangınlar — uydunun göremediklerini yakalamak için. DOĞRULANMAMIŞ veridir: konum haber başlığından çıkarıldı, o yüzden nokta değil yaklaşık alan olarak çizilir. Aktif yangın sayısına dahil edilmez, yön tahmini yapılmaz.",
+      },
       burnt: {
         label: "Yanan alan",
         title: "EFFIS yanan alan perimetreleri (Sentinel-2)",
@@ -347,6 +352,10 @@ export const tr = {
       "Bağlantı sorunu — {clock} itibarıyla alınan son veri gösteriliyor.",
     window120: "5 günlük",
     windowHours: "{n} saatlik",
+    newsCount: "Haberde {n} yangın",
+    newsUnverified:
+      " · doğrulanmamış ihbar, daire yerin yaklaşık bölgesidir — aktif yangın sayısına dahil değil",
+    newsUnlocated: " · {n} haberin yeri çıkarılamadı",
     msgSource: "{src} {min}dk",
     msgScan: " · Meteosat {clock} taraması: ",
     msgCount: "{n} tespit · ",

@@ -260,6 +260,7 @@ function Viewer({
           trailFC={trailFC}
           burnedFC={EMPTY}
           msgFC={EMPTY}
+          newsFC={EMPTY}
           smokeFC={EMPTY}
           selectedId={selectedId}
           effT={effT}
@@ -277,6 +278,9 @@ function Viewer({
             danger: false,
             smoke: false,
             msg: false,
+            // Arşiv geçmiş bir yangını oynatıyor; bugünün haber akışının
+            // orada işi yok.
+            news: false,
           }}
           windGrid={undefined}
           reducedMotion={reducedMotion}

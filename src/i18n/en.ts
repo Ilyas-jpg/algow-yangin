@@ -48,6 +48,11 @@ export const en: Dict = {
         title:
           "Meteosat: scans every 15 minutes and fills the gap between polar satellite passes. The location is coarse (pixel 15-25 km²); the ring shows that uncertainty.",
       },
+      news: {
+        label: "News reports",
+        title:
+          "Fires reported in the news — here to catch what the satellite cannot see. This data is UNVERIFIED: the location is inferred from a headline, so it is drawn as an approximate area rather than a point. It is not counted as an active fire and no spread forecast is drawn for it.",
+      },
       burnt: {
         label: "Burnt area",
         title: "EFFIS burnt area perimeters (Sentinel-2)",
@@ -358,6 +363,10 @@ export const en: Dict = {
     staleConn: "Connection problem — showing the last data fetched at {clock}.",
     window120: "5-day",
     windowHours: "{n}-hour",
+    newsCount: "{n} fires in the news",
+    newsUnverified:
+      " · unverified reports; the circle is the approximate area of the place, not counted as active fires",
+    newsUnlocated: " · {n} reports could not be located",
     msgSource: "{src} {min}min",
     msgScan: " · Meteosat {clock} scan: ",
     msgCount: "{n} detections · ",
