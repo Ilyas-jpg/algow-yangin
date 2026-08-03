@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadFires } from "@/lib/fires-server";
+import { loadFires, loadFiresForDate } from "@/lib/fires-server";
 import { havKm } from "@/lib/geo";
 import { supabaseAdmin } from "@/lib/ml-db";
 
@@ -92,13 +92,38 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, bekleyen: 0 });
   }
 
-  // FIRMS'i TEK sefer çek, her sinyal için ayrı istek atma. 5 günlük
-  // pencere, 12-120 saat arası tüm bekleyen sinyalleri kapsıyor.
-  let firms;
+  // FIRMS penceresini BEKLEYEN SİNYALLERİN TARİHİNE göre çek.
+  //
+  // Canlı besleme yalnız son 5 günü veriyor; geriye doldurulmuş arşiv
+  // haftalar öncesine gidiyor. Tarih verilmezse o sinyaller "VIIRS
+  // görmedi" sanılıp toptan `unknown` olurdu — yani arşivin tamamı
+  // etiketsiz kalırdı.
+  //
+  // Parti `scanned_at` sırasına göre geldiği için tek bir 5 günlük
+  // pencere çoğu zaman yetiyor; yetmezse kalanlar sonraki turda.
+  const ilkGun = bekleyen.rows[0].scanned_at.slice(0, 10);
+  const pencereSon = Date.parse(`${ilkGun}T00:00:00Z`) + 5 * 86400_000;
+  const parti = bekleyen.rows.filter(
+    (s) => Date.parse(s.scanned_at) < pencereSon
+  );
+
+  let firms: Awaited<ReturnType<typeof loadFiresForDate>>;
   try {
-    firms = (await loadFires("5")).points;
+    // Bugüne yakınsa canlı besleme (10 dk cache), değilse tarihli arşiv.
+    const gunFarki = (Date.now() - Date.parse(ilkGun)) / 86400_000;
+    firms =
+      gunFarki < 5
+        ? (await loadFires("5")).points
+        : await loadFiresForDate(ilkGun);
   } catch {
     return NextResponse.json({ error: "FIRMS alınamadı" }, { status: 503 });
+  }
+  if (!firms.length) {
+    // Yanlış etiket yazmaktansa etiketsiz bırak: sonraki tur tekrar dener.
+    return NextResponse.json(
+      { error: "FIRMS penceresi boş döndü", gun: ilkGun },
+      { status: 503 }
+    );
   }
 
   const guncelle: Record<string, unknown>[] = [];
@@ -107,7 +132,7 @@ export async function GET(req: NextRequest) {
     unknown = 0,
     belirsizSanayi = 0;
 
-  for (const s of bekleyen.rows) {
+  for (const s of parti) {
     const t = Date.parse(s.scanned_at);
     let enYakinKm: number | null = null;
     let onayT: number | null = null;

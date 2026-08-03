@@ -33,6 +33,36 @@ export interface LoadedFires {
  * sayılar URL'den değil daima gerçek veriden gelir — uydurma bir kart
  * üretilemez (kamu güvenliği haritasında dezenformasyon vektörü olurdu).
  */
+/**
+ * Belirli bir tarihten başlayan 5 günlük FIRMS penceresi — ML etiketleme.
+ *
+ * `loadFires` bugünden geriye bakıyor; geriye doldurulmuş arşiv
+ * sinyallerini (haftalar öncesi) etiketlemek için tarih vermek gerekiyor.
+ * Hata durumunda boş dizi döner: etiketleyici o turu atlar, sinyaller
+ * etiketsiz kalır ve sonraki turda yeniden denenir — yanlış etiket
+ * yazmaktansa etiketsiz bırakmak doğru davranış.
+ *
+ * @param date YYYY-MM-DD (UTC)
+ */
+export async function loadFiresForDate(date: string): Promise<FirePoint[]> {
+  const mapKey = process.env.FIRMS_MAP_KEY;
+  if (!mapKey) return [];
+  const results = await Promise.allSettled(
+    FIRMS_SOURCES.map(async (source) => {
+      // dayRange 5 = FIRMS'in izin verdiği tavan (ölçüldü: 6+ → HTTP 400).
+      const res = await fetch(firmsAreaUrl(mapKey, source, 5, date), {
+        next: { revalidate: 86400 },
+      });
+      const text = await res.text();
+      if (!res.ok || !text.startsWith("latitude")) return [] as FirePoint[];
+      return parseFirmsCsv(text);
+    })
+  );
+  const out: FirePoint[] = [];
+  for (const r of results) if (r.status === "fulfilled") out.push(...r.value);
+  return out;
+}
+
 export async function loadFires(daysParam: string): Promise<LoadedFires> {
   // hasOwn şart: "constructor"/"__proto__" gibi anahtarlar truthy döner ve
   // ?? fallback'ini atlayıp win.hours'u undefined bırakırdı.

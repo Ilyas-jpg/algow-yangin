@@ -10,12 +10,22 @@ export const FIRMS_SOURCES = [
   "MODIS_NRT",
 ] as const;
 
+/**
+ * @param date  YYYY-MM-DD — verilirse pencere O GÜNDEN başlar; verilmezse
+ *              bugünden geriye. Geriye doldurulmuş arşiv sinyallerini
+ *              etiketlemek için şart: canlı besleme yalnız son 5 günü
+ *              veriyor, elimizdeki veri ise haftalarca geriye gidiyor.
+ *              ⚠️ FIRMS NRT arşivi 1 Mayıs 2026'ya kadar geriye açık;
+ *              öncesi için SP (standart işleme) ürünü gerekir.
+ */
 export function firmsAreaUrl(
   mapKey: string,
   source: string,
-  dayRange: number
+  dayRange: number,
+  date?: string
 ): string {
-  return `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/${TR_BBOX}/${dayRange}`;
+  const base = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/${TR_BBOX}/${dayRange}`;
+  return date ? `${base}/${date}` : base;
 }
 
 /**
