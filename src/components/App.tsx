@@ -1275,7 +1275,11 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           </div>
         )}
 
-        <div className="absolute right-3 bottom-4 z-10 hidden md:block">
+        {/* bottom-11: harita atıf şeridi (© CARTO / OpenStreetMap) sağ altta
+            duruyor ve bottom-4'te sözlükle 18 px çakışıyordu — ölçüldü.
+            Şeridin üst kenarı ekran altından 34 px yukarıda; 44 px araya
+            bir tık boşluk bırakıyor. Atıf gizlenemez (lisans şartı). */}
+        <div className="absolute right-3 bottom-11 z-10 hidden md:block">
           <Legend />
         </div>
 
