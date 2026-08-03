@@ -248,6 +248,66 @@ export default function HakkindaPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                3 Ağustos 2026 — Yunanistan kapsama girdi, söndürme uçakları
+                haritada
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Haritanın kapsadığı alan batıya genişledi.
+                  </b>{" "}
+                  Eskiden Yunanistan&apos;ın yalnız Ege kıyısını ve doğu
+                  adalarını görüyorduk; anakaranın batısı, Mora yarımadası, İyon
+                  adaları ve Girit&apos;in güneyi kapsama hiç girmiyordu.
+                  Genişletmenin ilk gününde oradaki en büyük yangın{" "}
+                  <b className="font-medium text-ink">2.645 MW</b> ölçüldü — o
+                  güne kadar Türkiye&apos;de gördüğümüz en büyük yangının iki
+                  katı. Komşu ülke yangınları &quot;YURT DIŞI&quot; rozetiyle
+                  işaretleniyor ve Türkiye sayacına katılmıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Olay listesi artık yangının büyüklüğüne göre sıralanıyor.
+                  </b>{" "}
+                  Önceden sınır ötesi yangınlar koşulsuz olarak listenin sonuna
+                  atılıyordu. Kapsam genişleyince bu kural bilgi gizlemeye
+                  başladı: Korint&apos;te 1.230 MW yanarken listenin başında
+                  182 MW&apos;lık bir yangın duruyordu. Hangi ülke olduğunu
+                  artık sıralama değil, kartın üstündeki rozet söylüyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Yangına giden uçak ve helikopterleri gösteren yeni bir
+                    katman var.
+                  </b>{" "}
+                  Kaynak, gönüllülerin işlettiği açık ADS-B ağı. Uçağın tipini
+                  ve tescilini gerçekten biliyoruz; görevini bilmiyoruz — yani
+                  bu katman &quot;orada müdahale var&quot; diye okunmalı, resmî
+                  bir görev kaydı olarak değil. Uçağın görünmemesi de müdahale
+                  olmadığı anlamına gelmez: her hava aracı yayın yapmaz ve
+                  dağlık alanda kapsama zayıftır. Aktif yangın sayısına
+                  katılmaz.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Kendi hatamız: rüzgâr haritasının bir bölümü sessizce boş
+                    kalıyordu.
+                  </b>{" "}
+                  Kapsamı büyütünce rüzgâr verisini aldığımız servisin dakikalık
+                  sınırını aştık ve ızgaranın kuzey kesimi doldurulamadı. Orası
+                  önemli, çünkü rüzgârı olmayan yangına{" "}
+                  <b className="font-medium text-ink">
+                    yön tahmini de çizilmiyor
+                  </b>{" "}
+                  — kullanıcı sebebini bilmeden eksik harita görüyordu. Izgarayı
+                  biraz seyrelttik; artık kapsamın tamamı doluyor. Bedeli yön
+                  hesabında ortalama 11 derecelik bir kabalaşma; tahminin kendi
+                  hata payı zaten bunun çok üstünde olduğu için doğru takas.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 3 Ağustos 2026 — kaçırdığımız yangın, haber ihbarı, ilk alarm
               </p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">

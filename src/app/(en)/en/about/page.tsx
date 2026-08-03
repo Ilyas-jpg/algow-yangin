@@ -275,6 +275,68 @@ export default function AboutPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                3 August 2026 — Greece now covered, firefighting aircraft on the
+                map
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    The area the map covers now extends further west.
+                  </b>{" "}
+                  Previously we only saw Greece&apos;s Aegean coast and its
+                  eastern islands; the western mainland, the Peloponnese, the
+                  Ionian islands and the south of Crete were outside the box
+                  entirely. On the first day of the wider coverage the largest
+                  fire there measured{" "}
+                  <b className="font-medium text-ink">2,645 MW</b> — twice the
+                  size of the largest fire we had ever recorded in Türkiye.
+                  Fires in neighbouring countries carry an &quot;ABROAD&quot;
+                  badge and are excluded from the Türkiye counter.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    The event list is now ordered by fire size.
+                  </b>{" "}
+                  Cross-border fires used to be pushed to the bottom
+                  unconditionally. Once coverage widened, that rule started
+                  hiding information: 1,230 MW was burning at Corinth while a
+                  182 MW fire sat at the top of the list. Which country a fire
+                  is in is now told by the badge on the card, not by its
+                  position.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    A new layer shows the aircraft and helicopters working a
+                    fire.
+                  </b>{" "}
+                  The source is an open ADS-B network run by volunteers. We
+                  genuinely know the aircraft type and registration; we do not
+                  know its mission — so read this layer as &quot;there is a
+                  response here&quot;, not as an official tasking record. An
+                  absent aircraft does not mean there is no response either: not
+                  every aircraft broadcasts, and coverage is weak over
+                  mountains. It is not counted as an active fire.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Our own mistake: part of the wind map was silently coming up
+                    empty.
+                  </b>{" "}
+                  Widening the coverage pushed us past the per-minute limit of
+                  the service we get wind data from, and the northern part of
+                  the grid could not be filled. That matters, because a fire
+                  with no wind data gets{" "}
+                  <b className="font-medium text-ink">no spread forecast</b>{" "}
+                  either — people were seeing an incomplete map without knowing
+                  why. We made the grid slightly coarser; the whole coverage now
+                  fills. The cost is about 11 degrees of extra coarseness in the
+                  direction calculation, which is well inside the forecast&apos;s
+                  own margin of error, so it is the right trade.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 3 August 2026 — the fire we missed, news reports, first alarm
               </p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
