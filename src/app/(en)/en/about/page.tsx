@@ -288,7 +288,8 @@ export default function AboutPage() {
                   Ionian islands and the south of Crete were outside the box
                   entirely. On the first day of the wider coverage the largest
                   fire there measured{" "}
-                  <b className="font-medium text-ink">2,645 MW</b> — twice the
+                  <b className="font-medium text-ink">2,645 MW</b>{" "}
+                  — twice the
                   size of the largest fire we had ever recorded in Türkiye.
                   Fires in neighbouring countries carry an &quot;ABROAD&quot;
                   badge and are excluded from the Türkiye counter.

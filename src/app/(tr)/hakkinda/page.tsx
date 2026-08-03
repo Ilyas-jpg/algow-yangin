@@ -260,7 +260,8 @@ export default function HakkindaPage() {
                   adalarını görüyorduk; anakaranın batısı, Mora yarımadası, İyon
                   adaları ve Girit&apos;in güneyi kapsama hiç girmiyordu.
                   Genişletmenin ilk gününde oradaki en büyük yangın{" "}
-                  <b className="font-medium text-ink">2.645 MW</b> ölçüldü — o
+                  <b className="font-medium text-ink">2.645 MW</b>{" "}
+                  ölçüldü — o
                   güne kadar Türkiye&apos;de gördüğümüz en büyük yangının iki
                   katı. Komşu ülke yangınları &quot;YURT DIŞI&quot; rozetiyle
                   işaretleniyor ve Türkiye sayacına katılmıyor.
