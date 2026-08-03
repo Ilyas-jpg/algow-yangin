@@ -38,6 +38,31 @@ function cleanEnv(v: string | undefined): string {
   return (v ?? "").replace(/^﻿/, "").replace(/^["']|["']$/g, "").trim();
 }
 
+const SUPABASE_URL_RE = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i;
+
+/**
+ * Proje URL'ini service_role anahtarından türetir.
+ *
+ * Supabase JWT'sinin gövdesinde proje referansı (`ref`) zaten var; URL onun
+ * bir fonksiyonu. Ayrı bir `SUPABASE_URL` değişkeni tutmak, birbiriyle
+ * tutarsız olabilecek İKİNCİ bir yapılandırma noktası demek — nitekim
+ * panele elle girilirken bozuldu (41 karakter, olması gereken 40) ve
+ * "fetch failed: unknown scheme" diye hiçbir şey anlatmayan bir çökmeye
+ * yol açtı. Anahtar doğruysa URL de doğrudur.
+ */
+function urlFromKey(key: string): string | null {
+  try {
+    const payload = key.split(".")[1];
+    if (!payload) return null;
+    const json = Buffer.from(payload, "base64url").toString("utf8");
+    const ref = (JSON.parse(json) as { ref?: string }).ref;
+    if (!ref || !/^[a-z0-9-]+$/i.test(ref)) return null;
+    return `https://${ref}.supabase.co`;
+  } catch {
+    return null;
+  }
+}
+
 interface Row {
   source: string;
   scanned_at: string;
@@ -58,17 +83,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const url = cleanEnv(process.env.SUPABASE_URL).replace(/\/+$/, "");
   const key = cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
-  if (!url || !key) {
+  if (!key) {
     return NextResponse.json({ error: "supabase yapılandırılmadı" }, { status: 500 });
   }
-  // Teşhis edilebilir hata: bozuk URL'de fetch "unknown scheme" diye
-  // çöküyor ve neyin yanlış olduğunu söylemiyor. Değeri sızdırmadan
-  // uzunluğunu bildiriyoruz.
-  if (!/^https:\/\/[a-z0-9.-]+\.supabase\.co$/i.test(url)) {
+
+  // Elle girilen URL yalnız BİÇİMİ doğruysa kullanılır; değilse anahtardan
+  // türetilene düşülür. Böylece bozuk bir panel değeri sistemi durduramaz.
+  const envUrl = cleanEnv(process.env.SUPABASE_URL).replace(/\/+$/, "");
+  const url = SUPABASE_URL_RE.test(envUrl) ? envUrl : urlFromKey(key);
+  if (!url) {
     return NextResponse.json(
-      { error: "SUPABASE_URL biçimi bozuk", uzunluk: url.length },
+      { error: "supabase URL çözülemedi", envUzunluk: envUrl.length },
       { status: 500 }
     );
   }
