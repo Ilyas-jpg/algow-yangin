@@ -1,4 +1,11 @@
 import { NextResponse } from "next/server";
+import {
+  SMOKE_LAT0,
+  SMOKE_LON0,
+  SMOKE_NX,
+  SMOKE_NY,
+  SMOKE_STEP,
+} from "@/lib/bbox";
 
 /**
  * TR bölgesi 0,5° duman (PM2.5) gridi — CAMS üzerinden.
@@ -13,11 +20,11 @@ import { NextResponse } from "next/server";
  * Yapı rüzgâr gridiyle aynı (100'lük parça, ikişerli dalga, 2 tekrar) —
  * o desen Open-Meteo'nun dakikalık sınırına takılmamak için ödenmiş bir ders.
  */
-const LON0 = 25.0;
-const LAT0 = 34.5;
-const D = 0.5;
-const NX = 42;
-const NY = 17;
+const LON0 = SMOKE_LON0;
+const LAT0 = SMOKE_LAT0;
+const D = SMOKE_STEP;
+const NX = SMOKE_NX;
+const NY = SMOKE_NY;
 
 export interface SmokeGrid {
   lon0: number;
@@ -48,7 +55,16 @@ export async function GET() {
   const totalChunks = Math.ceil(coords.length / CHUNK);
   let failedChunks = 0;
 
+  // Dakikalık limit lokasyon sayısına bakıyor: 429 gelmişse kalan parçalar
+  // da kesin 429 yiyecek. Tekrar denemek ne veriyi getirir ne de kotayı
+  // rahatlatır — sadece limiti daha çok tüketip route'u uzatır.
+  let minutelyLimit = false;
+
   const fetchChunk = async (offset: number, attempt = 0): Promise<void> => {
+    if (minutelyLimit) {
+      failedChunks++;
+      return;
+    }
     const slice = coords.slice(offset, offset + CHUNK);
     const url =
       "https://air-quality-api.open-meteo.com/v1/air-quality" +
@@ -57,6 +73,11 @@ export async function GET() {
       "&current=pm2_5&timezone=UTC";
     try {
       const res = await fetch(url, { next: { revalidate: 1800 } });
+      if (res.status === 429) {
+        minutelyLimit = true;
+        failedChunks++;
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const arr = Array.isArray(data) ? data : [data];

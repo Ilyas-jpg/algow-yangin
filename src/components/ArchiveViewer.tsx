@@ -263,6 +263,7 @@ function Viewer({
           burnedFC={EMPTY}
           msgFC={EMPTY}
           newsFC={EMPTY}
+          aircraftFC={EMPTY}
           smokeFC={EMPTY}
           selectedId={selectedId}
           effT={effT}
@@ -281,8 +282,11 @@ function Viewer({
             smoke: false,
             msg: false,
             // Arşiv geçmiş bir yangını oynatıyor; bugünün haber akışının
-            // orada işi yok.
+            // orada işi yok. Aynı gerekçe hava araçları için de geçerli —
+            // elimizde geçmiş uçuş izi yok, bugünkü uçağı 2021'in yangını
+            // üstünde göstermek düpedüz yanlış olurdu.
             news: false,
+            aircraft: false,
           }}
           windGrid={undefined}
           reducedMotion={reducedMotion}

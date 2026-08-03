@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
 import type { WindGrid } from "@/lib/types";
+import {
+  GRID_LAT0,
+  GRID_LON0,
+  GRID_NX,
+  GRID_NY,
+  GRID_STEP,
+} from "@/lib/bbox";
 
 /**
- * TR bölgesi 0.5° rüzgar gridi (Open-Meteo current, m/s).
- * ~700 nokta, 100'lük parçalarla; upstream 3 saat cache'lenir.
+ * Bölgenin 0.5° rüzgar gridi (Open-Meteo current, m/s).
+ * ~1000 nokta, 100'lük parçalarla; upstream 20 dk cache'lenir.
+ *
+ * Geometri `lib/bbox.ts`'ten geliyor: FIRMS kutusunu tamamen kapsaması şart,
+ * aksi hâlde kapsam dışı yangın sessizce konisiz kalır (Güney Kıbrıs vakası).
  */
-// FIRMS bbox'ını (25.0,34.8 → 45.5,42.6) tamamen kapsamalı; aksi hâlde
-// kapsam dışı yangın sessizce konisiz kalır (Güney Kıbrıs vakası).
-const LON0 = 25.0;
-const LAT0 = 34.5;
-const D = 0.5;
-const NX = 42; // 25.0 → 45.5
-const NY = 17; // 34.5 → 42.5
+const LON0 = GRID_LON0;
+const LAT0 = GRID_LAT0;
+const D = GRID_STEP;
+const NX = GRID_NX;
+const NY = GRID_NY;
 
 export async function GET() {
   const coords: { lat: number; lon: number }[] = [];

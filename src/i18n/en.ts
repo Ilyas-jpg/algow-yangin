@@ -53,6 +53,11 @@ export const en: Dict = {
         title:
           "Fires reported in the news — here to catch what the satellite cannot see. This data is UNVERIFIED: the location is inferred from a headline, so it is drawn as an approximate area rather than a point. It is not counted as an active fire and no spread forecast is drawn for it.",
       },
+      aircraft: {
+        label: "Aircraft",
+        title:
+          "Water-bombing aircraft and helicopters flying near a fire (ADS-B). This is NOT satellite data: it comes from a volunteer-run receiver network, so an aircraft that does not broadcast — or flies outside coverage — will not appear. We know the aircraft type, not its mission: read it as \"there is a response here\", not as an official tasking record.",
+      },
       burnt: {
         label: "Burnt area",
         title: "EFFIS burnt area perimeters (Sentinel-2)",
@@ -353,6 +358,20 @@ export const en: Dict = {
       "This is a heat measurement, not a confirmed fire. The ring is the true area of the pixel — we do not know where inside it the heat is. Until a high-resolution satellite (VIIRS) confirms it, this could be a fire, but it could equally be an industrial stack or a stubble burn. It is not counted as an active fire.",
   },
   /** News report card — opens when a circle on the map is clicked */
+  aircraft: {
+    unknown: "Aircraft",
+    badgeSure: "FIREFIGHTING AIRCRAFT",
+    badgeMaybe: "LIKELY",
+    altitude: "{ft} ft",
+    speed: "{kt} kt",
+    distance: "{km} km from fire",
+    onGround: "on the ground",
+    age: "position {sn} s old",
+    maybeNote:
+      "This airframe is used for firefighting but can also be an air ambulance or a transport; it is listed because it is flying low right next to the fire.",
+    disclaimer:
+      "Source: airplanes.live (volunteer ADS-B network). The type and position are real data; the mission is not. An absent aircraft does not mean there is no response — not every aircraft broadcasts.",
+  },
   news: {
     status: {
       devam: "ONGOING",

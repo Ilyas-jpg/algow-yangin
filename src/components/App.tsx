@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import type {
+  AircraftResponse,
   FirePoint,
   FiresResponse,
   LayerToggles,
@@ -146,6 +147,9 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     smoke: false,
     msg: true,
     news: true,
+    // Kapalı başlıyor: gönüllü işletilen ücretsiz bir beslemeye 60 saniyede
+    // bir soruyor ve çoğu gün sonuç boş. Duman/yanan alan gibi, isteyen açar.
+    aircraft: false,
   });
   const [offline, setOffline] = useState(false);
   const geo = useGeolocation();
@@ -245,6 +249,21 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     { refreshInterval: 600_000, keepPreviousData: true, revalidateOnFocus: true }
   );
 
+  /**
+   * Söndürme hava araçları. Yangının kendisi değil MÜDAHALESİ — "uçak geldi
+   * mi" sorusunun tek açık kaynaklı cevabı. 60 sn'de bir yenilenir; katman
+   * kapalıyken hiç çekilmez.
+   */
+  const { data: aircraft } = useSWR<AircraftResponse>(
+    layers.aircraft ? "/api/aircraft" : null,
+    fetcher,
+    // 30 sn: 60 saniyede bir güncellenince uçaklar ekranda "donuk" duruyordu
+    // ve harita canlı görünmüyordu. Daha sık sormak gönüllü işletilen
+    // beslemeye gereksiz yük olur — 100 knot'la giden bir uçak 30 saniyede
+    // ~1,5 km yol alıyor, hareket bu ölçekte zaten görünür.
+    { refreshInterval: 30_000, keepPreviousData: true, revalidateOnFocus: true }
+  );
+
   const { data: windGrid, error: windError } = useSWR<WindGrid>(
     "/api/wind/grid",
     fetcher,
@@ -308,16 +327,25 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     [points]
   );
 
-  // Durum ve sıralama saate bağlı; kümelemeyi yeniden çalıştırmadan türetilir.
+  /**
+   * Durum ve sıralama saate bağlı; kümelemeyi yeniden çalıştırmadan türetilir.
+   *
+   * ⚠️ Yurt dışı olaylar eskiden koşulsuz olarak listenin SONUNA atılıyordu.
+   * Kutu Yunanistan'ı kapsayacak şekilde genişleyince bu kural bilgi
+   * gizlemeye başladı: 3 Ağustos 2026'da Korint'te 1.230 MW yanarken listenin
+   * başında 182 MW'lık Çankırı duruyordu ve büyük yangını görmek için 135
+   * kart kaydırmak gerekiyordu. Artık sıralama şiddete göre; hangi ülke
+   * olduğunu kartın "YURT DIŞI" rozeti söylüyor.
+   *
+   * Sayaçlar bundan etkilenmiyor — "Türkiye'de N aktif" hâlâ yalnız yurt içi
+   * olayları sayıyor, sınır ötesi ayrı yazılıyor.
+   */
   const events = useMemo(() => {
     const rank = { active: 0, waning: 1, old: 2 } as const;
     return rawEvents
       .map((e) => ({ ...e, status: statusOf(e.lastSeen, now) }))
       .sort(
-        (a, b) =>
-          Number(a.abroad) - Number(b.abroad) ||
-          rank[a.status] - rank[b.status] ||
-          b.frpLast - a.frpLast
+        (a, b) => rank[a.status] - rank[b.status] || b.frpLast - a.frpLast
       );
   }, [rawEvents, now]);
 
@@ -660,6 +688,42 @@ export default function App({ focus, embed = false }: AppProps = {}) {
         : EMPTY_FC,
     [msg]
   );
+
+  /**
+   * Hava araçları — haber dairelerinin ve Meteosat halkalarının aksine NOKTA
+   * olarak çizilir: ADS-B konumu on metre mertebesinde, yaklaşıklık uyarısı
+   * gerektirmiyor. Belirsizlik başka yerde: uçağın yayın yapıp yapmadığında
+   * ve görevinin ne olduğunda — onu da kart ve bant yazıyor.
+   */
+  const aircraftFC = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!layers.aircraft || !aircraft?.aircraft?.length) return EMPTY_FC;
+    return {
+      type: "FeatureCollection",
+      features: aircraft.aircraft.map((a) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [a.lon, a.lat] },
+        properties: {
+          hex: a.hex,
+          tescil: a.tescil ?? "",
+          tip: a.tip ?? "",
+          tipAdi: a.tipAdi ?? "",
+          altFt: a.altFt ?? -1,
+          yerde: a.yerde ? 1 : 0,
+          hizKt: a.hizKt ?? -1,
+          // İkon rotasyonu için: rota yoksa 0, sembol kuzeye bakar
+          rota: a.rota ?? 0,
+          rotaVar: a.rota === null ? 0 : 1,
+          yanginKm: a.yanginKm ?? -1,
+          ozel: a.sinif === "ozel" ? 1 : 0,
+          doner: a.kanat === "doner" ? 1 : 0,
+          alcak: a.alcak ? 1 : 0,
+          yasSn: a.yasSn ?? -1,
+          // Etikette tescil yoksa tip kodu — ikisi de yoksa etiket boş kalır
+          label: a.tescil || a.tip || "",
+        },
+      })),
+    };
+  }, [aircraft, layers.aircraft]);
 
   /**
    * Haber ihbarları — nokta değil YAKLAŞIK ALAN. Yarıçap sunucudan geliyor
@@ -1114,6 +1178,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           burnedFC={burnedFC}
           msgFC={msgFC}
           newsFC={newsFC}
+          aircraftFC={aircraftFC}
           smokeFC={smokeFC}
           selectedId={selectedId}
           effT={effT}

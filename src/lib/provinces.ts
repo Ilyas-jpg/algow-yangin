@@ -1,5 +1,6 @@
 import { PLACES_TR } from "@/data/places-tr";
 import { slugifyTr } from "./slug";
+import { FOREIGN } from "./places";
 
 /**
  * Merkezi kendi adıyla kayıtlı olmayan iller: veri setinde il merkezi
@@ -14,19 +15,13 @@ const MERKEZ_ILCE: Record<string, string> = {
   Sakarya: "Adapazarı",
 };
 
-/** Uydu bbox'ı komşu ülkeleri de kapsıyor; il sayfası yalnız TR illeri için. */
-const NOT_PROVINCE = new Set([
-  "Suriye",
-  "Irak",
-  "İran",
-  "Gürcistan",
-  "Ermenistan",
-  "Azerbaycan",
-  "Yunanistan",
-  "Bulgaristan",
-  "Kıbrıs",
-  "KKTC",
-]);
+/**
+ * Uydu bbox'ı komşu ülkeleri de kapsıyor; il sayfası yalnız TR illeri için.
+ * Ülke listesi `places.ts`'ten geliyor — KKTC oradan farklı olarak burada
+ * ayrıca eleniyor: yangın etiketinde yurt dışı sayılmıyor ama Türkiye ili
+ * de değil, il sayfası üretilmemeli.
+ */
+const NOT_PROVINCE = new Set([...FOREIGN, "KKTC"]);
 
 export interface Province {
   /** "Şanlıurfa" */

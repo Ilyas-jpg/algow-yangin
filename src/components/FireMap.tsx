@@ -11,7 +11,11 @@ import type {
 } from "maplibre-gl";
 import type { LayerToggles, UserLocation, WindGrid } from "@/lib/types";
 import { CONE_MINZOOM, metersPerPixel } from "@/lib/geo";
-import type { Locale } from "@/lib/i18n";
+import { SMOKE_STEP } from "@/lib/bbox";
+
+/** Duman lekesi ızgara adımıyla birlikte büyümeli — bkz. smoke-field */
+const SMOKE_SCALE = SMOKE_STEP / 0.5;
+import { fill, type Locale } from "@/lib/i18n";
 import type { ConeGeom } from "@/lib/wind";
 import { useLocale, useT } from "./LocaleProvider";
 import { fmtAgo } from "@/lib/format";
@@ -80,6 +84,189 @@ function newsCard(
   const not = document.createElement("div");
   not.className = "haber-not";
   not.textContent = t.news.disclaimer.replace("{km}", String(p.radiusKm ?? ""));
+  el.appendChild(not);
+
+  return el;
+}
+
+/**
+ * Hava aracı ikonu — canvas'ta üretiliyor, glif/asset bağımlılığı yok.
+ *
+ * Sembol karakteri kullanmak cazipti ama bu haritada bir kez yandı: `▶`
+ * (U+25B6) basemap'in glyph setinde yok ve MapLibre onu HATA VERMEDEN
+ * çizmiyordu — iz okları haftalarca görünmedi. Kendi ikonumuzu üretmek
+ * o sınıf hatayı tamamen ortadan kaldırıyor.
+ */
+const IKON_PX = 34;
+/** Retina'da bulanıklaşmasın diye iki katı çözünürlükte çiziliyor */
+const IKON_OLCEK = 2;
+
+/**
+ * Hava aracı ikonu — sabit kanat ve döner kanat AYRI çiziliyor.
+ *
+ * İlk sürümde ikisi de aynı uçak silüetiydi ve "havada ne var" sorusu
+ * cevapsız kalıyordu: aynı yangında hem Skycrane hem AT-802 dönüyor ve
+ * bunlar bambaşka işler yapıyor (biri havada asılı su boşaltıyor, öbürü
+ * 120 knot'la geçiş yapıyor). Yön de okunmuyordu — burun artık belirgin
+ * sivri ve gövde uzun, böylece küçük boyutta bile nereye baktığı görünüyor.
+ *
+ * Glif kullanılmıyor: `▶` (U+25B6) basemap setinde yok ve MapLibre onu
+ * hata vermeden çizmiyordu; kendi ikonumuzu üretmek o sınıf hatayı kapatır.
+ */
+function havaAraciIkonu(
+  renk: string,
+  dolu: boolean,
+  kanat: "sabit" | "doner"
+): { data: ImageData; pixelRatio: number } {
+  const S = IKON_PX * IKON_OLCEK;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = S;
+  const g = c.getContext("2d")!;
+  g.translate(S / 2, S / 2);
+  g.scale(S / 34, S / 34);
+  g.lineJoin = "round";
+  g.lineCap = "round";
+
+  // Kuzeye bakan silüet; `icon-rotate` bunu gerçek rotaya çeviriyor
+  const govde = new Path2D();
+  if (kanat === "sabit") {
+    // Uçak: sivri burun, geriye eğik kanat, çatal kuyruk
+    govde.moveTo(0, -15);
+    govde.lineTo(2.4, -9.5);
+    govde.lineTo(2.6, -2);
+    govde.lineTo(14.5, 3.5);
+    govde.lineTo(14.5, 6.2);
+    govde.lineTo(2.6, 3.6);
+    govde.lineTo(2.4, 9.5);
+    govde.lineTo(6.4, 12.6);
+    govde.lineTo(6.4, 14.4);
+    govde.lineTo(0, 12.6);
+    govde.lineTo(-6.4, 14.4);
+    govde.lineTo(-6.4, 12.6);
+    govde.lineTo(-2.4, 9.5);
+    govde.lineTo(-2.6, 3.6);
+    govde.lineTo(-14.5, 6.2);
+    govde.lineTo(-14.5, 3.5);
+    govde.lineTo(-2.6, -2);
+    govde.lineTo(-2.4, -9.5);
+  } else {
+    // Helikopter: damla gövde + ince kuyruk kolu + kuyruk rotoru
+    govde.moveTo(0, -12.5);
+    govde.bezierCurveTo(4.2, -12.5, 5.6, -7.5, 5.6, -3);
+    govde.bezierCurveTo(5.6, 1.4, 4.2, 4.6, 1.9, 5.4);
+    govde.lineTo(1.5, 12.2);
+    govde.lineTo(4.6, 14.4);
+    govde.lineTo(4.6, 16);
+    govde.lineTo(-4.6, 16);
+    govde.lineTo(-4.6, 14.4);
+    govde.lineTo(-1.5, 12.2);
+    govde.lineTo(-1.9, 5.4);
+    govde.bezierCurveTo(-4.2, 4.6, -5.6, 1.4, -5.6, -3);
+    govde.bezierCurveTo(-5.6, -7.5, -4.2, -12.5, 0, -12.5);
+  }
+  govde.closePath();
+
+  // Koyu altlıkta ince siluet kayboluyor: önce dış hat, sonra dolgu
+  g.strokeStyle = "#04060a";
+  g.lineWidth = 3.4;
+  g.stroke(govde);
+  if (dolu) {
+    g.fillStyle = renk;
+    g.fill(govde);
+  } else {
+    g.strokeStyle = renk;
+    g.lineWidth = 1.7;
+    g.stroke(govde);
+  }
+
+  if (kanat === "doner") {
+    // Ana rotor: çapraz iki çubuk. Helikopteri bir bakışta ayıran işaret bu.
+    const rotor = new Path2D();
+    rotor.moveTo(-11.5, -10.5);
+    rotor.lineTo(11.5, 4.5);
+    rotor.moveTo(11.5, -10.5);
+    rotor.lineTo(-11.5, 4.5);
+    g.strokeStyle = "#04060a";
+    g.lineWidth = 3.2;
+    g.stroke(rotor);
+    g.strokeStyle = renk;
+    g.globalAlpha = dolu ? 0.95 : 0.7;
+    g.lineWidth = 1.5;
+    g.stroke(rotor);
+    g.globalAlpha = 1;
+  }
+
+  return { data: g.getImageData(0, 0, S, S), pixelRatio: IKON_OLCEK };
+}
+
+/**
+ * Hava aracı kartı — ikona tıklanınca açılır.
+ *
+ * Kartın işi kadar sınırını da söylemesi gerekiyor: elimizde tip ve konum
+ * var, görev bildirimi yok. "Söndürme uçağı" derken uçağın NE OLDUĞUNU
+ * söylüyoruz, ne yaptığını değil.
+ */
+function aircraftCard(
+  p: Record<string, unknown>,
+  t: Dict,
+  locale: Locale
+): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "haber-karti";
+
+  const bas = document.createElement("div");
+  bas.className = "haber-karti-ust";
+  const ad = document.createElement("strong");
+  ad.textContent =
+    String(p.tipAdi || "").trim() || String(p.tip || "") || t.aircraft.unknown;
+  bas.appendChild(ad);
+  const ozel = Number(p.ozel) === 1;
+  const rozet = document.createElement("span");
+  rozet.className = `haber-rozet haber-rozet-${ozel ? "devam" : "kontrol"}`;
+  rozet.textContent = ozel ? t.aircraft.badgeSure : t.aircraft.badgeMaybe;
+  bas.appendChild(rozet);
+  el.appendChild(bas);
+
+  const tescil = String(p.tescil || "").trim();
+  if (tescil) {
+    const r = document.createElement("div");
+    r.className = "haber-baslik";
+    r.textContent = tescil;
+    el.appendChild(r);
+  }
+
+  const alt = Number(p.altFt);
+  const hiz = Number(p.hizKt);
+  const km = Number(p.yanginKm);
+  const parcalar: string[] = [];
+  if (Number(p.yerde) === 1) parcalar.push(t.aircraft.onGround);
+  else if (Number.isFinite(alt) && alt >= 0)
+    parcalar.push(
+      fill(t.aircraft.altitude, { ft: alt.toLocaleString(locale) })
+    );
+  if (Number.isFinite(hiz) && hiz >= 0)
+    parcalar.push(fill(t.aircraft.speed, { kt: Math.round(hiz) }));
+  if (Number.isFinite(km) && km >= 0)
+    parcalar.push(fill(t.aircraft.distance, { km: km.toFixed(1) }));
+  const olcum = document.createElement("div");
+  olcum.className = "haber-kaynak";
+  olcum.textContent = parcalar.join(" · ");
+  el.appendChild(olcum);
+
+  const yas = Number(p.yasSn);
+  if (Number.isFinite(yas) && yas >= 0) {
+    const y = document.createElement("div");
+    y.className = "haber-kaynak";
+    y.textContent = fill(t.aircraft.age, { sn: Math.round(yas) });
+    el.appendChild(y);
+  }
+
+  const not = document.createElement("div");
+  not.className = "haber-not";
+  not.textContent = ozel
+    ? t.aircraft.disclaimer
+    : `${t.aircraft.maybeNote} ${t.aircraft.disclaimer}`;
   el.appendChild(not);
 
   return el;
@@ -239,6 +426,8 @@ interface FireMapProps {
   msgFC: GeoJSON.FeatureCollection;
   /** Haber ihbarları — doğrulanmamış, yaklaşık alan olarak çizilir */
   newsFC: GeoJSON.FeatureCollection;
+  /** Söndürme hava araçları (ADS-B) — konumu kesin, nokta olarak çizilir */
+  aircraftFC: GeoJSON.FeatureCollection;
   /** CAMS yüzey PM2.5 alanı (0,5° nokta bulutu) */
   smokeFC: GeoJSON.FeatureCollection;
   selectedId: string | null;
@@ -264,6 +453,7 @@ export default function FireMap({
   burnedFC,
   msgFC,
   newsFC,
+  aircraftFC,
   smokeFC,
   selectedId,
   effT,
@@ -576,6 +766,21 @@ export default function FireMap({
       map.addSource("me", { type: "geojson", data: EMPTY_FC });
       map.addSource("msg", { type: "geojson", data: EMPTY_FC });
       map.addSource("news", { type: "geojson", data: EMPTY_FC });
+      map.addSource("aircraft", { type: "geojson", data: EMPTY_FC });
+
+      // Renk ateş rampasından da haber mavisinden de ayrı (turkuaz): bu
+      // katman tehlikeyi değil MÜDAHALEYİ gösteriyor, aynı gözle okunmamalı.
+      for (const kanat of ["sabit", "doner"] as const) {
+        for (const [ad, dolu] of [
+          ["ozel", true],
+          ["muhtemel", false],
+        ] as const) {
+          const ikon = havaAraciIkonu("#5eead4", dolu, kanat);
+          map.addImage(`ucak-${kanat}-${ad}`, ikon.data, {
+            pixelRatio: ikon.pixelRatio,
+          });
+        }
+      }
 
       // Haber ihbarı: konum bir BAŞLIKTAN çıkarıldı, o yüzden nokta değil
       // alan. Renk ateş rampasından bilerek uzak (soğuk mavi) ve kenar
@@ -640,6 +845,75 @@ export default function FireMap({
             "text-halo-color": "#0a0a0b",
             "text-halo-width": 1.2,
             "text-opacity": ["case", ["==", ["get", "done"], 1], 0.5, 0.9],
+          },
+        },
+        labelTop
+      );
+
+      // Hava aracı: NOKTA olarak çiziliyor çünkü ADS-B konumu on metre
+      // mertebesinde — haber dairesinin ya da Meteosat halkasının aksine
+      // burada yaklaşıklık uyarısı vermek yanlış olurdu.
+      map.addLayer(
+        {
+          id: "aircraft-icon",
+          type: "symbol",
+          source: "aircraft",
+          layout: {
+            "icon-image": [
+              "concat",
+              "ucak-",
+              ["case", ["==", ["get", "doner"], 1], "doner", "sabit"],
+              "-",
+              ["case", ["==", ["get", "ozel"], 1], "ozel", "muhtemel"],
+            ],
+            "icon-rotate": ["get", "rota"],
+            // Rota harita kuzeyine göre; ekranla hizalanırsa uçak
+            // döndürüldüğünde yanlış yöne bakar
+            "icon-rotation-alignment": "map",
+            // Aynı yangında 6 helikopter dönüyor olabilir; MapLibre'nin
+            // çakışma elemesi bu katmanda kabul edilemez, hepsi görünmeli
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+            // İkon 2× çözünürlükte kayıtlı (pixelRatio 2), yani 1.0 = 34 CSS px
+            "icon-size": [
+              "interpolate", ["linear"], ["zoom"],
+              5, 0.5,
+              8, 0.78,
+              11, 1.05,
+            ],
+          },
+          paint: {
+            // Alçak uçan = iş başında olma ihtimali yüksek; transit geçen
+            // biraz geride dursun ama gizlenmesin
+            "icon-opacity": ["case", ["==", ["get", "alcak"], 1], 1, 0.6],
+          },
+        },
+        labelTop
+      );
+      map.addLayer(
+        {
+          id: "aircraft-label",
+          type: "symbol",
+          source: "aircraft",
+          minzoom: 9,
+          layout: {
+            "text-field": ["get", "label"],
+            "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+            "text-size": 10,
+            "text-offset": [0, 1.4],
+            "text-anchor": "top",
+            // Haber katmanının aksine burada çakışma ELENMELİ: aynı yangının
+            // başında altı hava aracı dönüyor ve tescilleri üst üste binince
+            // "VHIHWU" gibi okunmaz bir yığın çıkıyordu (ölçüldü, zoom 9,2).
+            // Etiket düşse de ikon duruyor ve tıklanınca kart açılıyor.
+            "text-allow-overlap": false,
+            "text-ignore-placement": false,
+            "text-padding": 3,
+          },
+          paint: {
+            "text-color": "#99f6e4",
+            "text-halo-color": "#04060a",
+            "text-halo-width": 1.2,
           },
         },
         labelTop
@@ -731,12 +1005,16 @@ export default function FireMap({
           source: "smoke",
           layout: { visibility: "none" },
           paint: {
+            // Yarıçaplar 0,5°'lik ızgaraya kalibre edilmişti; duman ızgarası
+            // Open-Meteo'nun dakikalık limiti yüzünden 0,75°'ye seyreldi.
+            // Sabitleri elle çoğaltmak yerine adımdan türetiliyor, yoksa
+            // hücreler arasında boşluk kalıp alan "delikli" görünürdü.
             "circle-radius": [
               "interpolate", ["exponential", 2], ["zoom"],
-              4, 14,
-              6, 34,
-              8, 120,
-              10, 420,
+              4, 14 * SMOKE_SCALE,
+              6, 34 * SMOKE_SCALE,
+              8, 120 * SMOKE_SCALE,
+              10, 420 * SMOKE_SCALE,
             ],
             "circle-blur": 1,
             "circle-color": [
@@ -1056,6 +1334,35 @@ export default function FireMap({
         map.getCanvas().style.cursor = "";
       });
 
+      map.on("click", "aircraft-icon", (e: MapMouseEvent) => {
+        const f = map.queryRenderedFeatures(e.point, {
+          layers: ["aircraft-icon"],
+        })[0];
+        if (!f || f.geometry.type !== "Point") return;
+        popupRef.current?.remove();
+        popupRef.current = new Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: "300px",
+          className: "haber-popup",
+        })
+          .setLngLat(f.geometry.coordinates as [number, number])
+          .setDOMContent(
+            aircraftCard(
+              f.properties as Record<string, unknown>,
+              tRef.current,
+              localeRef.current
+            )
+          )
+          .addTo(map);
+      });
+      map.on("mouseenter", "aircraft-icon", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "aircraft-icon", () => {
+        map.getCanvas().style.cursor = "";
+      });
+
       // Haber dairesi: hangi haberden geldiğini göstermeden "doğrulanmamış
       // ihbar" demek yetmiyor — kullanıcı kaynağı kendisi görebilmeli.
       map.on("click", "news-area", (e: MapMouseEvent) => {
@@ -1186,6 +1493,17 @@ export default function FireMap({
       layers.news && live ? newsFC : EMPTY_FC
     );
   }, [ready, newsFC, layers.news, live]);
+
+  // Hava araçları da yalnız CANLI görünümde: konum "şu an" demek, zaman
+  // kaydırıcısı geçmişteyken çizilirse o saatte orada uçak varmış gibi
+  // okunurdu. Elimizde geçmiş uçuş izi yok.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("aircraft") as GeoJSONSource | undefined)?.setData(
+      layers.aircraft && live ? aircraftFC : EMPTY_FC
+    );
+  }, [ready, aircraftFC, layers.aircraft, live]);
 
   // ── Zaman filtresi + yaş soldurması (kaydırıcı)
   useEffect(() => {

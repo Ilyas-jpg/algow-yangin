@@ -191,6 +191,23 @@ export interface LayerToggles {
   smoke: boolean;
   /** Meteosat 15 dakikalık tespitler (kaba çözünürlük, kör aralığı doldurur) */
   msg: boolean;
+  /**
+   * Söndürme hava araçları (ADS-B). Uydu verisi DEĞİL: gönüllü alıcı ağından
+   * geliyor, yayın yapmayan uçak görünmez. Aktif yangın sayacına karışmaz.
+   * Gerekçe ve sınıflandırma: `lib/aircraft.ts`.
+   */
+  aircraft: boolean;
+}
+
+export interface AircraftResponse {
+  aircraft: import("./aircraft").Aircraft[];
+  /** Kaç yangın merkezinin çevresine bakıldı — 0 ise "uçak yok" DEĞİL */
+  centers: number;
+  scanned?: number;
+  failed?: number;
+  fetchedAt: number;
+  /** Boş dönüşün sebebi: `fires` (yangın verisi alınamadı) / `no-fires` */
+  reason?: "fires" | "no-fires";
 }
 
 export interface MsgResponse {

@@ -50,6 +50,13 @@ export const tr = {
         title:
           "Haberlere düşen yangınlar — uydunun göremediklerini yakalamak için. DOĞRULANMAMIŞ veridir: konum haber başlığından çıkarıldı, o yüzden nokta değil yaklaşık alan olarak çizilir. Aktif yangın sayısına dahil edilmez, yön tahmini yapılmaz.",
       },
+      aircraft: {
+        // Kısa tutuluyor: 12. düğme şeridi 389 px taşırıyor ve uzun etiket
+        // ekranda kesik görünüyordu (10. toggle'da yaşanan taşmanın tekrarı).
+        label: "Uçak",
+        title:
+          "Yangın çevresinde uçan söndürme uçak ve helikopterleri (ADS-B). Uydu verisi DEĞİL: gönüllülerin işlettiği alıcı ağından geliyor, yayın yapmayan ya da kapsama dışındaki hava aracı görünmez. Uçağın tipini biliyoruz, görevini değil — 'orada müdahale var' diye okunmalı, resmî bir görev bildirimi olarak değil.",
+      },
       burnt: {
         label: "Yanan alan",
         title: "EFFIS yanan alan perimetreleri (Sentinel-2)",
@@ -339,6 +346,21 @@ export const tr = {
     confidence: "güven %{n}",
     disclaimer:
       "Bu bir ısı ölçümüdür, doğrulanmış yangın değil. Halka pikselin gerçek alanıdır — ısının halkanın neresinde olduğunu bilmiyoruz. Yüksek çözünürlüklü uydu (VIIRS) henüz doğrulamadıysa yangın olabilir de, sanayi bacası veya anız ateşi de olabilir. Aktif yangın sayısına katılmaz.",
+  },
+  /** Hava aracı kartı — haritadaki uçak ikonuna tıklanınca açılır */
+  aircraft: {
+    unknown: "Hava aracı",
+    badgeSure: "SÖNDÜRME UÇAĞI",
+    badgeMaybe: "MUHTEMEL",
+    altitude: "{ft} ft",
+    speed: "{kt} kt",
+    distance: "yangına {km} km",
+    onGround: "yerde",
+    age: "{sn} sn önceki konum",
+    maybeNote:
+      "Bu gövde tipi söndürmede de kullanılıyor ama ambulans veya nakliye de olabilir; yangının dibinde alçak uçtuğu için listelendi.",
+    disclaimer:
+      "Kaynak: airplanes.live (gönüllü ADS-B ağı). Tip ve konum gerçek veridir, görev bilgisi değildir. Uçak görünmemesi müdahale olmadığı anlamına gelmez — her hava aracı yayın yapmaz.",
   },
   /** Haber ihbarı kartı — haritadaki daireye tıklanınca açılır */
   news: {

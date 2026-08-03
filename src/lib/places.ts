@@ -1,8 +1,13 @@
 import { PLACES_TR } from "@/data/places-tr";
 import { havKm } from "./geo";
 
-/** Uydu bbox'ı komşu ülkeleri de kapsar; bunlar yurt dışı sayılır. */
-const FOREIGN = new Set([
+/**
+ * Uydu bbox'ı komşu ülkeleri de kapsar; bunlar yurt dışı sayılır.
+ * Aynı liste `provinces.ts`'te de gerekiyor (il sayfası yalnız TR için) —
+ * iki kopya tutulursa kutu büyüdüğünde biri güncellenip diğeri unutuluyor,
+ * o yüzden dışa açık.
+ */
+export const FOREIGN = new Set([
   "Suriye",
   "Irak",
   "İran",
@@ -12,6 +17,11 @@ const FOREIGN = new Set([
   "Yunanistan",
   "Bulgaristan",
   "Kıbrıs",
+  "Arnavutluk",
+  "K. Makedonya",
+  "Kosova",
+  "Karadağ",
+  "Sırbistan",
 ]);
 
 export interface PlaceInfo {

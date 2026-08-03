@@ -1,4 +1,5 @@
 import { havKm } from "./geo";
+import { inRegion } from "./bbox";
 
 /**
  * Olay kimliği `lon:lat:saat` biçiminde ve İLK geçişe bağlı
@@ -27,7 +28,7 @@ export function parseEventId(id: string): ParsedEventId | null {
   const hour = Number(parts[2]);
   if (!isFinite(lon) || !isFinite(lat) || !isFinite(hour)) return null;
   // Uydu bbox'ının dışı = bozuk/uydurma kimlik
-  if (lon < 25 || lon > 45.5 || lat < 34.8 || lat > 42.6) return null;
+  if (!inRegion(lon, lat)) return null;
   return { lon, lat, hour };
 }
 

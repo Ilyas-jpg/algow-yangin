@@ -26,6 +26,7 @@ const TOGGLE_KEYS = [
   "smoke",
   "msg",
   "news",
+  "aircraft",
   "burnt",
   "danger",
   "satellite",

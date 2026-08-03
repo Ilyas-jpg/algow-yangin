@@ -1,7 +1,8 @@
 import type { FirePoint } from "./types";
+import { REGION_BBOX } from "./bbox";
 
-/** TR + Kıbrıs + sınır bölgeleri: west,south,east,north */
-export const TR_BBOX = "25.0,34.8,45.5,42.6";
+/** TR + Kıbrıs + Yunanistan + sınır bölgeleri — kutu `lib/bbox.ts`'te tanımlı */
+export const TR_BBOX = REGION_BBOX;
 
 export const FIRMS_SOURCES = [
   "VIIRS_SNPP_NRT",

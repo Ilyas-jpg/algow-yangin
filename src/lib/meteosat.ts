@@ -1,5 +1,6 @@
 import * as hdf5 from "jsfive";
 import { gunzipSync } from "node:zlib";
+import { REGION } from "./bbox";
 
 /**
  * EUMETSAT LSA SAF — Meteosat (MSG/SEVIRI) FRP-PIXEL ürünü.
@@ -32,8 +33,8 @@ const BASE = "https://datalsasaf.lsasvcs.ipma.pt/PRODUCTS/MSG/FRP-PIXEL/HDF5";
 const MTG_BASE =
   "https://datalsasaf.lsasvcs.ipma.pt/PRODUCTS/MTG/MTFRPPixel/NATIVE";
 
-/** Türkiye ve yakın çevresi (FIRMS ile aynı kutu) */
-const TR = { west: 25.0, south: 34.8, east: 45.5, north: 42.6 };
+/** Türkiye ve yakın çevresi (FIRMS ile aynı kutu — bkz. lib/bbox.ts) */
+const TR = REGION;
 
 function authHeader(): string | null {
   const u = process.env.LSASAF_USER;
