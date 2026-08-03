@@ -342,6 +342,18 @@ export const en: Dict = {
     accuracy: "location ±{m} m · never leaves your device",
   },
 
+  /** News report card — opens when a circle on the map is clicked */
+  news: {
+    status: {
+      devam: "ONGOING",
+      kontrol: "CONTAINED",
+      sondu: "EXTINGUISHED",
+    },
+    sourceCount: "reported by {n} outlets",
+    trusted: "includes an established outlet",
+    disclaimer:
+      "Unverified news report — not a satellite detection. The location is inferred from a headline; the circle is an approximate area of about {km} km, not the fire itself.",
+  },
   banner: {
     offline:
       "You are offline — showing the last data stored on your device{when}. It refreshes on its own once you are back online.",
@@ -363,6 +375,7 @@ export const en: Dict = {
     staleConn: "Connection problem — showing the last data fetched at {clock}.",
     window120: "5-day",
     windowHours: "{n}-hour",
+    newsPopupHint: " · click a circle to see the report",
     newsCount: "{n} fires in the news",
     newsUnverified:
       " · unverified reports; the circle is the approximate area of the place, not counted as active fires",

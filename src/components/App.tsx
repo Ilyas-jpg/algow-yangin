@@ -656,6 +656,14 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           label: s.place === s.il ? s.place : `${s.place}, ${s.il}`,
           // Sönmüş ihbar soluk çizilir: hâlâ bilgi ama uyarı değil.
           done: s.status === "sondu" ? 1 : 0,
+          // Tıklanınca açılan kart için — dairenin hangi habere dayandığını
+          // kullanıcı görmeden "doğrulanmamış ihbar" demek yetmez.
+          title: s.title,
+          source: s.source,
+          link: s.link,
+          t: s.t,
+          sourceCount: s.sourceCount,
+          trusted: s.trusted ? 1 : 0,
         },
       })),
     };
@@ -1007,6 +1015,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
             {fill(t.banner.newsCount, { n: news.signals.length })}
           </span>
           <span className="text-ink-3">{t.banner.newsUnverified}</span>
+          <span className="text-ink-3">{t.banner.newsPopupHint}</span>
           {news.meta.unlocated > 0 && (
             <span className="text-ink-3">
               {fill(t.banner.newsUnlocated, { n: news.meta.unlocated })}

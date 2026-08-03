@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Map as MapGL } from "maplibre-gl";
+import { Map as MapGL, Popup } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type {
   ExpressionSpecification,
@@ -13,8 +13,77 @@ import type { LayerToggles, UserLocation, WindGrid } from "@/lib/types";
 import { CONE_MINZOOM, metersPerPixel } from "@/lib/geo";
 import type { Locale } from "@/lib/i18n";
 import type { ConeGeom } from "@/lib/wind";
-import { useLocale } from "./LocaleProvider";
+import { useLocale, useT } from "./LocaleProvider";
+import { fmtAgo } from "@/lib/format";
+import type { Dict } from "@/i18n/tr";
 import { WindParticleLayer } from "./WindParticles";
+
+/**
+ * Haber ihbarı kartı — daireye tıklanınca açılır.
+ *
+ * ⚠️ İçerik DIŞ BİR BESLEMEDEN geliyor. Kart bilerek DOM ile kuruluyor ve
+ * her metin `textContent` ile yazılıyor; HTML string birleştirmek burada
+ * doğrudan enjeksiyon yüzeyi olurdu. Bağlantı da şemasına bakılarak
+ * kabul ediliyor — `javascript:` bir başlıkla gelebilir.
+ */
+function newsCard(
+  p: Record<string, unknown>,
+  t: Dict,
+  locale: Locale,
+  now: number
+): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "haber-karti";
+
+  const bas = document.createElement("div");
+  bas.className = "haber-karti-ust";
+  const yer = document.createElement("strong");
+  yer.textContent = String(p.label ?? "");
+  bas.appendChild(yer);
+
+  const ham_durum = String(p.status ?? "devam");
+  const durum: keyof Dict["news"]["status"] =
+    ham_durum === "kontrol" || ham_durum === "sondu" ? ham_durum : "devam";
+  const rozet = document.createElement("span");
+  rozet.className = `haber-rozet haber-rozet-${durum}`;
+  rozet.textContent = t.news.status[durum];
+  bas.appendChild(rozet);
+  el.appendChild(bas);
+
+  const ham = String(p.link ?? "");
+  const guvenli = /^https?:\/\//i.test(ham);
+  const baslik = document.createElement(guvenli ? "a" : "div");
+  baslik.className = "haber-baslik";
+  baslik.textContent = String(p.title ?? "");
+  if (guvenli && baslik instanceof HTMLAnchorElement) {
+    baslik.href = ham;
+    baslik.target = "_blank";
+    baslik.rel = "noopener noreferrer";
+  }
+  el.appendChild(baslik);
+
+  const kaynak = document.createElement("div");
+  kaynak.className = "haber-kaynak";
+  const zaman = Number(p.t);
+  kaynak.textContent =
+    String(p.source ?? "") +
+    (Number.isFinite(zaman) ? ` · ${fmtAgo(zaman, now, locale)}` : "");
+  el.appendChild(kaynak);
+
+  const sayi = document.createElement("div");
+  sayi.className = "haber-kaynak";
+  sayi.textContent =
+    t.news.sourceCount.replace("{n}", String(p.sourceCount ?? 1)) +
+    (Number(p.trusted) === 1 ? ` · ${t.news.trusted}` : "");
+  el.appendChild(sayi);
+
+  const not = document.createElement("div");
+  not.className = "haber-not";
+  not.textContent = t.news.disclaimer.replace("{km}", String(p.radiusKm ?? ""));
+  el.appendChild(not);
+
+  return el;
+}
 
 /**
  * Yer adı alanı — açık olan dile göre.
@@ -164,10 +233,18 @@ export default function FireMap({
   const onSelectRef = useRef(onSelect);
   const onCenterRef = useRef(onCenterChange);
   const onZoomRef = useRef(onZoomChange);
+  // Harita bir kez kuruluyor; dil sonradan değişirse kart yine güncel
+  // metinle açılsın diye çeviri ref üzerinden okunuyor.
+  const t = useT();
+  const tRef = useRef(t);
+  const localeRef = useRef(locale);
+  const popupRef = useRef<Popup | null>(null);
   useEffect(() => {
     onSelectRef.current = onSelect;
     onCenterRef.current = onCenterChange;
     onZoomRef.current = onZoomChange;
+    tRef.current = t;
+    localeRef.current = locale;
   });
 
   // ── Harita kurulumu (bir kez)
@@ -922,6 +999,36 @@ export default function FireMap({
         map.getCanvas().style.cursor = "pointer";
       });
       map.on("mouseleave", "fires-circles", () => {
+        map.getCanvas().style.cursor = "";
+      });
+
+      // Haber dairesi: hangi haberden geldiğini göstermeden "doğrulanmamış
+      // ihbar" demek yetmiyor — kullanıcı kaynağı kendisi görebilmeli.
+      map.on("click", "news-area", (e: MapMouseEvent) => {
+        const f = map.queryRenderedFeatures(e.point, { layers: ["news-area"] })[0];
+        if (!f || f.geometry.type !== "Point") return;
+        popupRef.current?.remove();
+        popupRef.current = new Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: "300px",
+          className: "haber-popup",
+        })
+          .setLngLat(f.geometry.coordinates as [number, number])
+          .setDOMContent(
+            newsCard(
+              f.properties as Record<string, unknown>,
+              tRef.current,
+              localeRef.current,
+              Date.now()
+            )
+          )
+          .addTo(map);
+      });
+      map.on("mouseenter", "news-area", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "news-area", () => {
         map.getCanvas().style.cursor = "";
       });
 

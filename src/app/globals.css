@@ -279,3 +279,67 @@ input[type="range"].scrub::-moz-range-thumb {
   border-radius: 2px;
   background: var(--color-ink);
 }
+
+/* ── Haber ihbarı kartı (MapLibre popup)
+   MapLibre'ın varsayılan balonu beyaz; koyu haritada göz çıkarıyor.
+   İçerik dış beslemeden geldiği için DOM ile kuruluyor (bkz. newsCard). */
+.haber-popup .maplibregl-popup-content {
+  background: var(--color-obsidian-2, #131317);
+  border: 1px solid var(--color-line, #26262c);
+  border-radius: 4px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+}
+.haber-popup .maplibregl-popup-tip {
+  border-top-color: var(--color-line, #26262c);
+  border-bottom-color: var(--color-line, #26262c);
+}
+.haber-popup .maplibregl-popup-close-button {
+  color: var(--color-ink-3, #7e7e88);
+  font-size: 18px;
+  padding: 2px 7px;
+}
+.haber-popup .maplibregl-popup-close-button:hover {
+  background: transparent;
+  color: var(--color-ink, #e8e8ea);
+}
+.haber-karti-ust {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #bfdbfe;
+  font-size: 12px;
+}
+.haber-rozet {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+}
+.haber-rozet-devam { color: #f59e0b; }
+.haber-rozet-kontrol { color: #93c5fd; }
+.haber-rozet-sondu { color: #7e7e88; }
+.haber-baslik {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-ink, #e8e8ea);
+}
+a.haber-baslik:hover { text-decoration: underline; }
+.haber-kaynak {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-ink-2, #a8a8b3);
+}
+.haber-not {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--color-line, #26262c);
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--color-ink-3, #7e7e88);
+}

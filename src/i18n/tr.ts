@@ -330,6 +330,18 @@ export const tr = {
     accuracy: "konum ±{m} m · cihazından çıkmaz",
   },
 
+  /** Haber ihbarı kartı — haritadaki daireye tıklanınca açılır */
+  news: {
+    status: {
+      devam: "SÜRÜYOR",
+      kontrol: "KONTROL ALTINDA",
+      sondu: "SÖNDÜRÜLDÜ",
+    },
+    sourceCount: "{n} yayın yazdı",
+    trusted: "aralarında tanınan yayın var",
+    disclaimer:
+      "Doğrulanmamış haber ihbarı — uydu tespiti değil. Konum haber başlığından çıkarıldı; daire ~{km} km'lik yaklaşık bölgedir, yangının kendisi değil.",
+  },
   banner: {
     offline:
       "Çevrimdışısın — cihazında saklanan son veri gösteriliyor{when}. Bağlantı gelince kendiliğinden tazelenir.",
@@ -352,6 +364,7 @@ export const tr = {
       "Bağlantı sorunu — {clock} itibarıyla alınan son veri gösteriliyor.",
     window120: "5 günlük",
     windowHours: "{n} saatlik",
+    newsPopupHint: " · daireye tıkla, haberi gör",
     newsCount: "Haberde {n} yangın",
     newsUnverified:
       " · doğrulanmamış ihbar, daire yerin yaklaşık bölgesidir — aktif yangın sayısına dahil değil",
