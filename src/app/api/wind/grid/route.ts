@@ -39,7 +39,16 @@ export async function GET() {
 
   let obsTime: string | null = null;
 
+  // Dakikalık limit lokasyon sayısına bakıyor: 429 gelmişse kalan parçalar
+  // da kesin 429 yiyecek. Denemeye devam etmek kotayı daha çok tüketip
+  // hemen ardından çalışan duman ızgarasını da düşürüyordu.
+  let minutelyLimit = false;
+
   const fetchChunk = async (offset: number, attempt = 0): Promise<void> => {
+    if (minutelyLimit) {
+      failedChunks++;
+      return;
+    }
     const slice = coords.slice(offset, offset + CHUNK);
     const url =
       "https://api.open-meteo.com/v1/forecast" +
@@ -50,6 +59,11 @@ export async function GET() {
       // 1/3/6 saatlik projeksiyon için 3 saatlik bayat rüzgâr fazla:
       // deniz meltemi gün içinde yön değiştirebiliyor.
       const res = await fetch(url, { next: { revalidate: 1200 } });
+      if (res.status === 429) {
+        minutelyLimit = true;
+        failedChunks++;
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const arr = Array.isArray(data) ? data : [data];

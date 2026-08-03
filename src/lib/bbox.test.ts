@@ -8,6 +8,8 @@ import {
   GRID_STEP,
   REGION,
   REGION_BBOX,
+  SMOKE_NX,
+  SMOKE_NY,
   inRegion,
 } from "./bbox.ts";
 
@@ -30,6 +32,23 @@ test("kutu Türkiye'yi ve eski kapsamı korumaya devam ediyor", () => {
   assert.ok(inRegion(33.02, 34.71), "Limasol");
   assert.ok(!inRegion(18.5, 40.1), "Otranto/İtalya — kutunun dışında");
   assert.ok(!inRegion(46.2, 38.0), "Tebriz — kutunun dışında");
+});
+
+test("her ızgara Open-Meteo'nun dakikalık lokasyon tavanına sığıyor", () => {
+  // 3 Ağustos 2026'da canlıda ölçüldü: limit istek SAYISINA değil sorulan
+  // LOKASYON sayısına bakıyor ve tavan ~600. Kutu batıya genişleyince 0,5°
+  // rüzgâr ızgarası 1.026 hücreye çıktı ve 11 parçanın 5'i 429 yedi.
+  // Eksik hücre "kaba rüzgâr" değil HİÇ rüzgâr demek: sampleUV null döner,
+  // o yangına koni çizilmez. Bu testin işi o regresyonu bir daha yaşatmamak.
+  const TAVAN = 600;
+  assert.ok(
+    GRID_NX * GRID_NY <= TAVAN,
+    `rüzgâr ızgarası ${GRID_NX}x${GRID_NY}=${GRID_NX * GRID_NY} > ${TAVAN}`
+  );
+  assert.ok(
+    SMOKE_NX * SMOKE_NY <= TAVAN,
+    `duman ızgarası ${SMOKE_NX}x${SMOKE_NY}=${SMOKE_NX * SMOKE_NY} > ${TAVAN}`
+  );
 });
 
 test("meteorolojik ızgara kutuyu TAMAMEN kapsıyor", () => {

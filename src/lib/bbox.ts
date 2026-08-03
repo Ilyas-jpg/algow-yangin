@@ -58,13 +58,30 @@ export function gridGeometry(step: number) {
   };
 }
 
-/** Rüzgâr ızgarası — 0,5°, 54×19 = 1026 nokta */
-export const GRID_STEP = 0.5;
+/**
+ * Rüzgâr ızgarası — 0,7°, 40×13 = 520 nokta.
+ *
+ * 0,5° tercih edilirdi ama ÖLÇÜLDÜ ki mümkün değil: Open-Meteo'nun dakikalık
+ * limiti sorulan lokasyon sayısına bakıyor ve tavan ~600. Genişletilmiş
+ * kutuda 0,5° ızgara 1.026 hücre demek, yani her tazelemede son parçalar
+ * 429 yiyor — 3 Ağustos'ta canlıda görüldü: 600/1026 dolu, 5/11 parça düştü.
+ *
+ * Kritik nokta: eksik hücre "biraz kaba rüzgâr" değil, HİÇ rüzgâr demek.
+ * `sampleUV` dört komşusundan biri boşsa null döner ve o yangına koni
+ * çizilmez — kullanıcı sebebini bilmeden eksik harita görür. Yani seçim
+ * "0,5° mü 0,7° mü" değil, "eksik 0,5° mü tam 0,7° mü". Tam olan kazanıyor.
+ *
+ * Doğruluk bedeli ölçüldü: ızgara adımını kabalaştırmanın yön sapması
+ * ortalama ~11°. Koninin kendi yön hatası ortancası zaten 68° ve fiziksel
+ * tavanı 64° ([[not_algow_yangin_fiziksel_model_testi]]) — bu katkı o
+ * hatanın yanında küçük kalıyor.
+ */
+export const GRID_STEP = 0.7;
 const wind = gridGeometry(GRID_STEP);
-export const GRID_LON0 = wind.lon0; // 19.0
-export const GRID_LAT0 = wind.lat0; // 34.0
-export const GRID_NX = wind.nx; // 19.0 → 45.5
-export const GRID_NY = wind.ny; // 34.0 → 43.0
+export const GRID_LON0 = wind.lon0;
+export const GRID_LAT0 = wind.lat0;
+export const GRID_NX = wind.nx;
+export const GRID_NY = wind.ny;
 
 /**
  * Duman ızgarası bilerek daha seyrek: 0,75°, 37×13 = 481 nokta.
