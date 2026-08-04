@@ -132,35 +132,84 @@ export function coneHalfAngle(windKmh: number): number {
 export const DISC_THRESHOLD_DEG = 100;
 
 /**
- * ERİŞİM ŞEKLİ — ölçüldü (2026-08-02, 256 doğal-yakıt ilerlemesi).
+ * ERİŞİM ŞEKLİ — RÜZGÂRA BAĞLI (yeniden ölçüldü 2026-08-04, 5.719 yeni hücre).
  *
  * "Tahmin edilen yönden θ° sapan yönlerde yangın ne kadar ilerledi?" sorusunun
- * cevabı. Baş yönündeki erişime göre normalize edilmiş %90'lık dilim:
+ * cevabı. Baş yönündeki erişime göre normalize edilmiş %90'lık dilim.
  *
- *   0–30° → 1,00 · 30–60° → 0,93 · 60–90° → 0,68
- *   90–120° → 0,70 · 120–150° → 0,41 · 150–180° → 0,42
+ * 🔴 ESKİ SÜRÜM TEK ŞEKİL TAŞIYORDU (baş/geri 2,4×, rüzgâr ne olursa olsun) VE
+ * O ÖLÇÜM BOZUKTU. Sebep: vaka başına TEK açı kullanılıyordu ve o açı yangının
+ * KÜTLE MERKEZİNE çapalıydı — 30 km'lik bir yangında merkeze göre "geri" olan
+ * yön, cephenin kanadı olabiliyor. O çapayla güçlü rüzgârda baş/geri oranı
+ * 0,98× ölçülüyordu, yani asimetri tamamen kayboluyordu.
  *
- * Yani yangın başa doğru geriye göre **2,4 kat** uzağa gidiyor. Bu yüzden
- * simetrik daire yön bilgisini çöpe atar, keskin kama ise olmayan bir kesinlik
- * ima eder; doğru gösterim ikisinin arası olan bu damla şeklidir.
+ * Yeni ölçüm HÜCRE BAZINDA: her yeni 375 m hücresi ayrı bir gözlem, açısı
+ * KENDİ en yakın yanmış hücresinden. Yangının boyu ölçüme karışmıyor. Sonuç
+ * (orman+maki, olay-bazlı bootstrap %95 GA):
  *
- * Aşağıdaki değerler ölçülen kovaların hafifçe düzleştirilmiş hâli (60–120°
- * arasındaki iniş-çıkış örneklem gürültüsü; monoton hâle getirildi).
+ *   rüzgâr        baş/geri   GA            ölçülen profil (0→180°)
+ *   < 8 km/sa      1,19×     0,93–1,88     1,00 · 0,70 · 1,32 · 0,69 · 0,63 · 0,64
+ *   8–15           1,67×     0,56–2,65     1,00 · 0,61 · 0,70 · 0,84 · 0,52 · 0,50
+ *   ≥ 15           5,50×     2,66–7,15     1,00 · 0,88 · 0,83 · 0,93 · 0,18 · 0,17
+ *
+ * Trend MONOTON ARTAN — literatürdeki Anderson (1983) L/B eğrisinin yönü.
+ * Zayıf rüzgârda yangın gerçekten daireye yakın; güçlü rüzgârda geriye
+ * neredeyse hiç gitmiyor. Tek sabit şekil ikisini de yanlış çiziyordu:
+ * güçlü rüzgârda geriyi ~2,5 kat fazla, zayıf rüzgârda kanadı eksik.
+ *
+ * ✅ KAPSAMA SINANDI (19-kapsama2.mjs, aynı k=1,5 ölçeğiyle, hücre bazında):
+ *   eski tek şekil  hücre %87,8 · vaka %88 · 3sa alan @20 km/sa 1,569 km²
+ *   yeni şekil      hücre %89,0 · vaka %91 · 3sa alan @20 km/sa 1,061 km² (−%32)
+ * Yani kapsama YÜKSELDİ, şekil KÜÇÜLDÜ. %90 hücre kapsaması için eski şekil
+ * k=1,75 isterken yeni şekil k=1,5 ile yetiyor — çapalara dokunulmadı.
+ * ⚠️ Sezon-dışı sınamada 2021 (mega yangın sezonu) %73'te kalıyor; kapsama
+ * iddiası tipik yangın içindir, Manavgat ölçeğinde değil.
+ *
+ * Aşağıdaki iki profil, ölçülen kovaların monoton düzleştirilmiş hâli
+ * (60–120° arasındaki iniş-çıkışlar örneklem gürültüsü). Arada doğrusal geçiş.
  */
-const SHAPE_ANCHORS = [
+const SHAPE_ZAYIF = [
   [0, 1.0],
-  [30, 0.97],
-  [60, 0.8],
-  [90, 0.69],
-  [120, 0.55],
-  [150, 0.43],
-  [180, 0.42],
+  [30, 0.95],
+  [60, 0.92],
+  [90, 0.88],
+  [120, 0.84],
+  [150, 0.82],
+  [180, 0.8],
 ] as const;
 
-/** Baş yönüne göre θ° sapmadaki göreli erişim (0–1) */
-export function reachRatio(offsetDeg: number): number {
+const SHAPE_GUCLU = [
+  [0, 1.0],
+  [30, 0.94],
+  [60, 0.88],
+  [90, 0.82],
+  [120, 0.24],
+  [150, 0.17],
+  [180, 0.16],
+] as const;
+
+/** Şeklin tamamen "zayıf rüzgâr" hâlinde olduğu hız. */
+export const SHAPE_ZAYIF_KMH = 8;
+/** Şeklin tamamen "güçlü rüzgâr" hâlinde olduğu hız. */
+export const SHAPE_GUCLU_KMH = 15;
+
+/**
+ * Baş yönüne göre θ° sapmadaki göreli erişim (0–1).
+ *
+ * `windKmh` verilmezse ZAYIF profil kullanılır — bilinçli seçim: rüzgârı
+ * bilmediğimiz durumda daha yuvarlak, yani yön iddiası daha zayıf bir şekil
+ * çizmek doğru taraf. (Eski çağrı biçimi bu yüzden hâlâ güvenli.)
+ */
+export function reachRatio(offsetDeg: number, windKmh?: number): number {
   const a = Math.min(180, Math.abs(offsetDeg));
-  return interp(a, SHAPE_ANCHORS);
+  const zayif = interp(a, SHAPE_ZAYIF);
+  if (windKmh === undefined || !Number.isFinite(windKmh)) return zayif;
+  const guclu = interp(a, SHAPE_GUCLU);
+  const t = Math.max(
+    0,
+    Math.min(1, (windKmh - SHAPE_ZAYIF_KMH) / (SHAPE_GUCLU_KMH - SHAPE_ZAYIF_KMH))
+  );
+  return zayif + (guclu - zayif) * t;
 }
 
 /**
@@ -307,8 +356,15 @@ export function buildCone(
     for (let i = 0; i < h; i++) km += headSpreadKmh(series[i].kmh);
     const avg = avgTo(h);
     const d = dirFor(avg);
-    // Kapalı erişim zarfı: her yöne bir miktar, başa doğru 2,4 kat.
-    return { hours: h, ring: reachShape(apexPt.lon, apexPt.lat, d.spreadDeg, km, reachRatio) };
+    // Kapalı erişim zarfı: her yöne bir miktar, başa doğru daha çok.
+    // Şekil O HALKANIN kendi rüzgâr hızından türetilir — 6 saatlik halka
+    // rüzgâr düşerken yuvarlaklaşır, 1 saatlik halka o anın hızını taşır.
+    return {
+      hours: h,
+      ring: reachShape(apexPt.lon, apexPt.lat, d.spreadDeg, km, (off) =>
+        reachRatio(off, avg.kmh)
+      ),
+    };
   });
 
   let tipKm = 0;

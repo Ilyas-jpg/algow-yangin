@@ -12,7 +12,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clusterEvents } from "./cluster.ts";
+import { clusterEvents, sortEvents } from "./cluster.ts";
 import type { FirePoint } from "./types.ts";
 
 const T = Date.UTC(2026, 7, 2, 13, 8);
@@ -107,4 +107,64 @@ test("doyma yalnız SON geçişten okunur", () => {
     pk({ saturated: true }, 200),
   ]);
   assert.equal(yeni.events[0].saturated, true);
+});
+
+/* ── sortEvents: Ortadoğu en dibe (İlyas 2026-08-04) ── */
+
+const ev = (il: string, frpLast: number, status: "active" | "waning" | "old" = "active") =>
+  ({ il, frpLast, status }) as const;
+
+test("Ortadoğu olayları, şiddetleri ne olursa olsun listenin dibinde", () => {
+  const s = sortEvents([
+    ev("Irak", 1171),
+    ev("Suriye", 900),
+    ev("Çankırı", 512),
+    ev("İran", 800),
+    ev("Muğla", 120),
+  ]);
+  assert.deepEqual(
+    s.map((e) => e.il),
+    ["Çankırı", "Muğla", "Irak", "Suriye", "İran"],
+    "1.171 MW'lık Musul flare'i 120 MW'lık Muğla yangınının altında olmalı"
+  );
+});
+
+test("Yunanistan/Balkanlar dibe İNMEZ — gerçek yangın, şiddetine göre sıralanır", () => {
+  // 3 Ağustos'ta kaldırılan "yurt dışı koşulsuz sona" kuralı geri gelmedi:
+  // Korint'te 1.230 MW yanarken 182 MW'lık Çankırı'yı başa koymak bilgi gizler.
+  const s = sortEvents([ev("Çankırı", 182), ev("Yunanistan", 1230), ev("Irak", 500)]);
+  assert.deepEqual(
+    s.map((e) => e.il),
+    ["Yunanistan", "Çankırı", "Irak"]
+  );
+});
+
+test("Ortadoğu içinde durum ve FRP sırası korunur", () => {
+  const s = sortEvents([
+    ev("Irak", 100, "active"),
+    ev("Irak", 900, "old"),
+    ev("Irak", 400, "active"),
+  ]);
+  assert.deepEqual(
+    s.map((e) => [e.status, e.frpLast]),
+    [
+      ["active", 400],
+      ["active", 100],
+      ["old", 900],
+    ]
+  );
+});
+
+test("yurt içinde durum FRP'yi ezer — sönmüş büyük yangın aktifin altında", () => {
+  const s = sortEvents([ev("Muğla", 900, "old"), ev("Antalya", 50, "active")]);
+  assert.deepEqual(
+    s.map((e) => e.il),
+    ["Antalya", "Muğla"]
+  );
+});
+
+test("sortEvents girdiyi bozmaz (yerinde sıralama yok)", () => {
+  const girdi = [ev("Irak", 1000), ev("Muğla", 10)];
+  sortEvents(girdi);
+  assert.equal(girdi[0].il, "Irak", "çağıran dizinin sırası değişmemeli");
 });

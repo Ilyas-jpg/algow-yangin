@@ -265,11 +265,11 @@ export const en: Dict = {
       [": in nine out of ten fires we measured, "],
       ["even the furthest advancing point", "b"],
       [
-        " stayed inside this boundary — and that rate was tested on seasons the model had never seen. It reaches ",
+        " stayed inside this boundary — and that rate was tested on seasons the model had never seen. How teardrop-shaped it gets ",
       ],
-      ["2.4 times", "b"],
+      ["depends on the wind", "b"],
       [
-        " further ahead than behind; real fires draw a teardrop like this. Firefighting response is not accounted for.",
+        ": in light wind a fire advances almost equally in every direction (1.2× ahead vs behind — nearly a circle), above 15 km/h it barely moves backwards at all (5.5×). Firefighting response is not accounted for.",
       ],
     ] as Seg[],
     windTurn: [
@@ -592,6 +592,38 @@ export const en: Dict = {
     thThis: "this season",
     thPast: "past avg.",
     thPeak: "peak heat",
+    /* ── Live scorecard (see lib/karne.ts) ── */
+    h2Karne: "How our forecasts scored this season",
+    karneIntro: [
+      [
+        "These numbers are not from the archive: every cone we drew live this season was recorded, then compared with ",
+      ],
+      ["where the fire actually went", "b"],
+      [
+        " at the next satellite pass. So the scorecard below tests our claim against data that arrived AFTER the forecast. Updated every 15 minutes.",
+      ],
+    ] as Seg[],
+    karneMedian: "median direction error",
+    karneMedianNote: "a random guess gives 90°",
+    karneHit: "within 45°",
+    karneHitNote: "random would be 25%",
+    karneCover: "stayed inside the shape",
+    karneCoverNote: "the furthest advancing point",
+    karneCount:
+      "{n} forecasts could be measured · in {ilerlemedi} the satellite saw the fire but it advanced less than 1.5 km · {yok} had no detection at all at the next pass (fire out, or no overpass) — neither is counted as zero error · {ters}% pointed the opposite way",
+    karneRuler: [
+      ["The ruler matters: ", "b"],
+      [
+        "here the fire's direction is measured from each newly burnt point to its own nearest already-burnt neighbour. The archive figure on the About page anchors direction at the fire's centre of mass instead. We measured the same 228 cases both ways: centre ",
+      ],
+      ["67°", "m"],
+      [", neighbour "],
+      ["73°", "m"],
+      [
+        ". So this number being higher than the one there is not a regression — it is a different ruler.",
+      ],
+    ] as Seg[],
+
     h2NotWhat: "What these numbers are not",
     notWhat: [
       [

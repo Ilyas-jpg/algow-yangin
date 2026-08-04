@@ -12,7 +12,7 @@ import type {
   WindPoint,
   WindowHours,
 } from "@/lib/types";
-import { clusterEvents, statusOf } from "@/lib/cluster";
+import { clusterEvents, sortEvents, statusOf } from "@/lib/cluster";
 import { EV_PARAM, WIN_PARAM, eventPath, provincePath } from "@/lib/share";
 import { resolveEvent } from "@/lib/event-id";
 import { buildCone, type ConeGeom } from "@/lib/wind";
@@ -361,17 +361,25 @@ export default function App({ focus, embed = false }: AppProps = {}) {
    * kart kaydırmak gerekiyordu. Artık sıralama şiddete göre; hangi ülke
    * olduğunu kartın "YURT DIŞI" rozeti söylüyor.
    *
+   * ⚠️ TEK İSTİSNA (2026-08-04, İlyas: *"şu sol panelde suriye ırak en altta
+   * olsun bizi gram alakadar etmiyor"*): Ortadoğu komşuları en dibe. Sebep
+   * şiddet sıralamasının kendisi değil, o şiddetin NE OLDUĞU — oradaki büyük
+   * FRP kütlesi ağırlıkla petrol flare'i, yani hiç sönmeyen sanayi ısısı.
+   * Musul'daki 1.171 MW'lık flare, Çankırı'daki 512 MW'lık gerçek orman
+   * yangınını listenin altına itiyordu. Yunanistan/Balkanlar/Kafkasya bu
+   * istisnada DEĞİL — oradaki büyük yangın gerçek yangın, yukarıda kalıyor.
+   * Aynı ayrımı eğitim seti de yapıyor; liste `lib/places`'teki tek kaynak.
+   *
    * Sayaçlar bundan etkilenmiyor — "Türkiye'de N aktif" hâlâ yalnız yurt içi
    * olayları sayıyor, sınır ötesi ayrı yazılıyor.
    */
-  const events = useMemo(() => {
-    const rank = { active: 0, waning: 1, old: 2 } as const;
-    return rawEvents
-      .map((e) => ({ ...e, status: statusOf(e.lastSeen, now) }))
-      .sort(
-        (a, b) => rank[a.status] - rank[b.status] || b.frpLast - a.frpLast
-      );
-  }, [rawEvents, now]);
+  const events = useMemo(
+    () =>
+      sortEvents(
+        rawEvents.map((e) => ({ ...e, status: statusOf(e.lastSeen, now) }))
+      ),
+    [rawEvents, now]
+  );
 
   const alerts = useAlerts(events);
 

@@ -256,11 +256,11 @@ export const tr = {
       [": ölçtüğümüz yangınların onda dokuzunda, "],
       ["en uzağa ilerleyen nokta bile", "b"],
       [
-        " bu sınırın içinde kaldı — bu oran modelin görmediği sezonlarda sınandı. Baş yönüne doğru geriye göre ",
+        " bu sınırın içinde kaldı — bu oran modelin görmediği sezonlarda sınandı. Şeklin ne kadar damla olduğu ",
       ],
-      ["2,4 kat", "b"],
+      ["rüzgâra bağlı", "b"],
       [
-        " uzun; yangınlar gerçekte böyle bir damla çiziyor. Söndürme müdahalesi hesaba katılmaz.",
+        ": zayıf rüzgârda yangın her yöne benzer ilerliyor (baş/geri 1,2 kat, yani neredeyse daire), 15 km/sa üstünde geriye neredeyse hiç gitmiyor (5,5 kat). Söndürme müdahalesi hesaba katılmaz.",
       ],
     ] as Seg[],
     windTurn: [
@@ -585,6 +585,38 @@ export const tr = {
     thThis: "bu sezon",
     thPast: "geçmiş ort.",
     thPeak: "en yüksek ısı",
+    /* ── Canlı karne (bkz. lib/karne.ts) ── */
+    h2Karne: "Tahminlerimizin bu sezonki karnesi",
+    karneIntro: [
+      [
+        "Bu sayılar arşivden değil: bu sezon canlıda çizdiğimiz konilerin her biri kaydedildi, sonra bir sonraki uydu geçişinde ",
+      ],
+      ["yangının gerçekte nereye gittiğiyle karşılaştırıldı", "b"],
+      [
+        ". Yani aşağıdaki karne, iddiamızı kendi verimizle değil, tahminden SONRA gelen veriyle sınıyor. Sayılar 15 dakikada bir güncellenir.",
+      ],
+    ] as Seg[],
+    karneMedian: "ortanca yön hatası",
+    karneMedianNote: "rastgele tahmin 90° verir",
+    karneHit: "45° içinde",
+    karneHitNote: "rastgelede %25 olurdu",
+    karneCover: "şeklin içinde kaldı",
+    karneCoverNote: "en uzağa ilerleyen nokta",
+    karneCount:
+      "{n} tahmin ölçülebildi · {ilerlemedi} tahminde uydu gördü ama yangın 1,5 km'den fazla ilerlemedi · {yok} tahminde sonraki geçişte hiç tespit yok (yangın söndü ya da uydu uğramadı) — son ikisi hata 0 diye SAYILMIYOR · %{ters} tamamen ters yön",
+    karneRuler: [
+      ["Hangi cetvelle ölçüldüğü önemli: ", "b"],
+      [
+        "burada yangının gittiği yön, yeni yanan her noktanın kendi en yakın yanmış komşusundan hesaplanıyor. Hakkında sayfasındaki arşiv ölçümü ise yönü yangının kütle merkezinden alıyor. Aynı 228 vakayı iki cetvelle de ölçtük: merkez ",
+      ],
+      ["67°", "m"],
+      [", komşu "],
+      ["73°", "m"],
+      [
+        ". Yani buradaki sayının orada yazandan yüksek olması bir gerileme değil, farklı cetvel.",
+      ],
+    ] as Seg[],
+
     h2NotWhat: "Bu sayılar ne değildir",
     notWhat: [
       [

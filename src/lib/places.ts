@@ -24,6 +24,45 @@ export const FOREIGN = new Set([
   "Sırbistan",
 ]);
 
+/**
+ * ORTADOĞU KOMŞULARI — ısı sinyali ağırlıkla petrol flare'i ve tarla yakması.
+ *
+ * Haritada kalıyorlar (kamu bilgisi, uydu ne gördüyse o) ama:
+ *   ① yön modelinin eğitim setine girmiyorlar (`api/ml/cone`, `api/ml/export`)
+ *   ② olay listesinde en dibe sıralanıyorlar (`App.tsx`) — İlyas 2026-08-04:
+ *      *"şu sol panelde suriye ırak en altta olsun bizi gram alakadar etmiyor"*.
+ *      Musul'da 1.171 MW'lık bir flare, Çankırı'daki 512 MW'lık gerçek orman
+ *      yangınını listenin altına itiyordu.
+ *
+ * Avrupa komşuları (Yunanistan, Bulgaristan, Arnavutluk, K. Makedonya, Kosova,
+ * Sırbistan, Karadağ, Kıbrıs) ve Kafkasya (Gürcistan, Ermenistan, Azerbaycan)
+ * bu sette DEĞİL: oralarda anız yakma yaygın değil ve Yunanistan yangınları
+ * hem haritanın hem eğitim setinin en değerli verisi.
+ *
+ * 🔑 TEK KAYNAK. Aynı liste daha önce üç yerde ayrı yazılıydı (cone route,
+ * export route'ta düz metin, güneydoğu il listesi) — kutu sınırının beş rotaya
+ * kopyalanıp bayatlaması dersinin aynısı, o yüzden buraya taşındı.
+ */
+export const ORTADOGU = new Set(["Irak", "Suriye", "İran"]);
+
+/**
+ * GÜNEYDOĞU İLLERİ — aynı sebep, yurt içi hâli: ardışık tarla yakmaları 3 km
+ * kümeleme eşiğinde tek "olay"a düşüp "ilerleme" gibi görünüyor (ölçüldü:
+ * 260 olayın 90'ı tarım). Eğitim setinden çıkarılıyor; harita ve listede
+ * sıralaması DEĞİŞMİYOR — burada gerçek orman yangını da çıkıyor.
+ */
+export const GUNEYDOGU = new Set([
+  "Adıyaman",
+  "Batman",
+  "Diyarbakır",
+  "Gaziantep",
+  "Kilis",
+  "Mardin",
+  "Siirt",
+  "Şanlıurfa",
+  "Şırnak",
+]);
+
 export interface PlaceInfo {
   label: string;
   abroad: boolean;

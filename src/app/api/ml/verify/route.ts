@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { reachShape } from "@/lib/geo";
+import { havKm, reachShape } from "@/lib/geo";
 import { reachRatio } from "@/lib/wind";
 import { angleGap, pointInRing, progression } from "@/lib/progression";
 import { supabaseAdmin } from "@/lib/ml-db";
@@ -43,6 +43,8 @@ interface ConeRow {
   apex_lat: number;
   spread_deg: number;
   ring_6h_km: number | null;
+  /** Tahmin anındaki rüzgâr — erişim şekli buna bağlı, doğrulama da öyle olmalı. */
+  wind_kmh: number | null;
 }
 
 interface DetRow {
@@ -63,38 +65,72 @@ export async function GET(req: NextRequest) {
 
   const kesim = new Date(Date.now() - VERIFY_AFTER_HOURS * 3600_000).toISOString();
   const bekleyen = await db.select<ConeRow>(
-    "cone_forecast?select=id,event_id,issued_at,apex_lon,apex_lat,spread_deg,ring_6h_km" +
+    "cone_forecast?select=id,event_id,issued_at,apex_lon,apex_lat,spread_deg,ring_6h_km,wind_kmh" +
       `&verified_at=is.null&issued_at=lt.${kesim}&event_id=not.is.null` +
       `&order=issued_at.asc&limit=${BATCH}`
   );
   if ("error" in bekleyen) return NextResponse.json(bekleyen, { status: 502 });
   if (!bekleyen.rows.length) return NextResponse.json({ ok: true, verified: 0 });
 
-  // Tespitler olay bazında bir kez çekilir: aynı olayın birçok tahmini olabilir.
-  const olaylar = [...new Set(bekleyen.rows.map((c) => c.event_id))].join(",");
+  /*
+   * 🔴 TESPİTLER `event_id` İLE EŞLEŞTİRİLEMEZ — ÖLÇÜLDÜ (2026-08-04).
+   *
+   * Olay kimliği FIRMS penceresine bağlı: ID ilk geçişten türüyor, pencere
+   * kayınca ilk geçiş düşüyor ve aynı yangın YENİ bir `event_key` alıyor.
+   * Paylaşım linklerinde bu `lib/event-id.resolveEvent` ile çözülmüştü ama ML
+   * boru hattı tam eşleşme kullanmaya devam etmiş. Sonuç sessiz ve toptan:
+   * 3 Ağustos 20:06'da yazılan 14 tahminin hepsinde "sonraki geçişte tespit
+   * yok" çıktı, oysa aynı yangınların tespitleri 4 Ağustos 13:40'a kadar
+   * tabloda vardı — BAŞKA event_id altında. Doğrulanan 44 tahminin 44'ü
+   * "gözlem yok" oldu, yani karne hiçbir zaman sayı üretemezdi.
+   * Kanıt: `fire_event`'te aynı 0,05° hücrede 2 ayrı kimlik, anahtarları
+   * yalnız saat ekinde farklı (`21.21:42.53:496067` / `21.21:42.54:496066`).
+   *
+   * Çözüm: eşleştirme UZAYSAL. Tahminin tepe noktasının çevresindeki tüm
+   * tespitler çekiliyor, kimlik hiç kullanılmıyor.
+   * ⚠️ Bedeli açık: 15 km içindeki AYRI bir yangının pikselleri de bu
+   * yangının ayak izine karışabilir. Aynı takas arşiv ölçümünde de yapıldı
+   * (MAX_ILER_KM = 15) ve orada zincirlenmeyi ayıklayan şey bu yarıçaptı;
+   * kimlikle eşleştirmenin bedeli ise ölçümün TAMAMEN durması.
+   */
+  const YARICAP_KM = 15;
   const enErken = bekleyen.rows.reduce(
     (a, c) => (c.issued_at < a ? c.issued_at : a),
     bekleyen.rows[0].issued_at
   );
+  // Bekleyen tahminlerin tamamını kapsayan kutu (+ yarıçap payı)
+  const pad = YARICAP_KM / 111;
+  const lo = bekleyen.rows.reduce(
+    (a, c) => ({
+      lon: Math.min(a.lon, c.apex_lon - pad / Math.cos((c.apex_lat * Math.PI) / 180)),
+      lat: Math.min(a.lat, c.apex_lat - pad),
+    }),
+    { lon: 180, lat: 90 }
+  );
+  const hi = bekleyen.rows.reduce(
+    (a, c) => ({
+      lon: Math.max(a.lon, c.apex_lon + pad / Math.cos((c.apex_lat * Math.PI) / 180)),
+      lat: Math.max(a.lat, c.apex_lat + pad),
+    }),
+    { lon: -180, lat: -90 }
+  );
   const tespit = await db.select<DetRow>(
-    `fire_detection?select=event_id,dt,lon,lat&event_id=in.(${olaylar})` +
+    "fire_detection?select=event_id,dt,lon,lat" +
+      `&lon=gte.${lo.lon.toFixed(4)}&lon=lte.${hi.lon.toFixed(4)}` +
+      `&lat=gte.${lo.lat.toFixed(4)}&lat=lte.${hi.lat.toFixed(4)}` +
       `&dt=gte.${new Date(Date.parse(enErken) - 24 * 3600_000).toISOString()}` +
       "&order=dt.asc&limit=50000"
   );
   if ("error" in tespit) return NextResponse.json(tespit, { status: 502 });
 
-  const byEvent = new Map<number, DetRow[]>();
-  for (const d of tespit.rows) {
-    const arr = byEvent.get(d.event_id);
-    if (arr) arr.push(d);
-    else byEvent.set(d.event_id, [d]);
-  }
-
   const sonuc: Record<string, unknown>[] = [];
   let veriYok = 0;
 
   for (const c of bekleyen.rows) {
-    const hepsi = byEvent.get(c.event_id!) ?? [];
+    // Kimlik yerine yarıçap: tepe noktasının YARICAP_KM çevresindeki tespitler
+    const hepsi = tespit.rows.filter(
+      (d) => havKm(c.apex_lon, c.apex_lat, d.lon, d.lat) <= YARICAP_KM
+    );
     const t0 = Date.parse(c.issued_at);
     // Tahmin ANINDA yanmış olan alan (ayak izi) ve sonrasında görülenler
     const once = hepsi.filter((d) => Date.parse(d.dt) <= t0);
@@ -116,17 +152,26 @@ export async function GET(req: NextRequest) {
         observed_growth_km: null,
         error_deg: null,
         head_inside_shape: null,
-        new_pixels: 0,
-        new_pixels_inside: 0,
+        // 🔑 NULL, 0 DEĞİL. "Uydu bir daha görmedi" ile "gördü ama yangın
+        // ilerlemedi" farklı iki sonuç ve ikisi de yön hatası üretmiyor;
+        // ikisine de 0 yazmak karnede birbirine karışır. null = bilinmiyor.
+        new_pixels: null,
+        new_pixels_inside: null,
       });
       veriYok++;
       continue;
     }
 
     const il = progression(once, sonra);
+    // Şekil, tahmin ANINDA kaydedilen rüzgâr hızıyla yeniden kuruluyor:
+    // erişim zarfı 2026-08-04'ten beri rüzgâra bağlı (zayıfta daire, güçlüde
+    // damla). Sabit şekille puanlamak, çizilmemiş bir şekli doğrulamak olurdu.
+    // Eski satırlarda `wind_kmh` null olabilir → reachRatio zayıf profile düşer.
     const ring =
       c.ring_6h_km && c.ring_6h_km > 0
-        ? reachShape(c.apex_lon, c.apex_lat, c.spread_deg, c.ring_6h_km, reachRatio)
+        ? reachShape(c.apex_lon, c.apex_lat, c.spread_deg, c.ring_6h_km, (off) =>
+            reachRatio(off, c.wind_kmh ?? undefined)
+          )
         : null;
 
     sonuc.push({

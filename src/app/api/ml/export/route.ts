@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/ml-db";
+import { GUNEYDOGU, ORTADOGU } from "@/lib/places";
 
 /**
  * Eğitim seti dışa aktarımı — `ml_progression` görünümü, CSV ya da JSON.
@@ -57,10 +58,13 @@ export async function GET(req: NextRequest) {
   // "hangi ısı yangın değildi" sorusu ileride başka bir modelin eğitim
   // verisi olabilir. Uydu tespiti bir kez kaçarsa geri gelmiyor.
   // `?all=1` süzgeci kapatır.
+  //
+  // 🔑 Liste `lib/places`'ten geliyor: aynı ayrımı `api/ml/cone` (kaydetmeden
+  // önce) ve olay listesi sıralaması (Ortadoğu en dibe) da kullanıyor. Daha
+  // önce burada düz metin olarak duruyordu — üçüncü kopya.
   if (sp.get("all") !== "1") {
-    path +=
-      "&il=not.in.(Adıyaman,Batman,Diyarbakır,Gaziantep,Kilis,Mardin,Siirt,Şanlıurfa,Şırnak," +
-      "Irak,Suriye,İran)";
+    const haric = [...GUNEYDOGU, ...ORTADOGU].join(",");
+    path += `&il=not.in.(${haric})`;
   }
 
   const r = await db.select<Record<string, unknown>>(path);

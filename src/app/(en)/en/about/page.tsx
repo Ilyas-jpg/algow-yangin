@@ -281,6 +281,42 @@ export default function AboutPage() {
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
                   <b className="font-medium text-ink">
+                    The reach shape now changes with the wind — and our earlier
+                    measurement was broken.
+                  </b>{" "}
+                  We drew the shape as &quot;2.4 times longer ahead than
+                  behind&quot;, the same at every wind speed. When we measured
+                  that number we took the fire&apos;s direction from its{" "}
+                  <i>centre of mass</i>; in a 30-kilometre fire, the direction
+                  that looks &quot;backwards&quot; from the centre can be the
+                  flank of the front. We redid it per 375-metre cell, each cell
+                  measured from its own nearest burnt neighbour (5,719 cells):
+                  in light wind a fire really does advance almost equally in
+                  every direction (1.2×, nearly a circle), while above 15 km/h
+                  it{" "}
+                  <b className="font-medium text-ink">barely moves backwards</b>{" "}
+                  at all (5.5×). One fixed shape got both wrong. The new shape
+                  both covers more (88% → 91%) and is{" "}
+                  <b className="font-medium text-ink">smaller</b> — in strong
+                  wind the area we draw shrank by a third, because we no longer
+                  spend it on the side the fire does not go.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Heat sources in Syria and Iraq moved to the bottom of the
+                    list.
+                  </b>{" "}
+                  Our satellite window also covers neighbouring countries, and
+                  most of the large power readings there are not fires: it is
+                  gas flared at oil wells, industrial heat that never goes out.
+                  A 1,171-megawatt flare near Mosul was pushing a real
+                  512-megawatt forest fire in Çankırı down the list. We did not
+                  remove them from the map — we show what the satellite sees —
+                  but they now sort last. Greece and the Balkans are excluded
+                  from this: a large fire there is a real fire.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Fire weather had been broken for months in Greece and the
                     Balkans — now fixed.
                   </b>{" "}

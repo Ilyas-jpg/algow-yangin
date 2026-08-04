@@ -254,6 +254,42 @@ export default function HakkindaPage() {
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
                   <b className="font-medium text-ink">
+                    Erişim şekli artık rüzgâra göre değişiyor — ve önceki
+                    ölçümümüz bozukmuş.
+                  </b>{" "}
+                  Şekli &quot;baş yönüne doğru geriye göre 2,4 kat uzun&quot;
+                  diye çiziyorduk, rüzgâr ne olursa olsun aynı. O sayıyı
+                  ölçerken yangının yönünü{" "}
+                  <i>kütle merkezinden</i>{" "}
+                  hesaplamışız; 30 kilometrelik bir
+                  yangında merkeze göre &quot;geri&quot; olan yön, cephenin
+                  yanı olabiliyor. Ölçümü her 375 metrelik hücre için ayrı ayrı
+                  ve hücrenin kendi komşusundan yeniden yaptık (5.719 hücre):
+                  zayıf rüzgârda yangın gerçekten her yöne benzer ilerliyor
+                  (1,2 kat, yani neredeyse daire), 15 km/sa üstünde ise geriye
+                  <b className="font-medium text-ink"> neredeyse hiç</b>{" "}
+                  gitmiyor (5,5 kat). Tek sabit şekil ikisini de yanlış
+                  çiziyordu. Yeni şekil hem daha çok kapsıyor (%88 → %91) hem{" "}
+                  <b className="font-medium text-ink">daha küçük</b> — güçlü
+                  rüzgârda çizdiğimiz alan üçte bir küçüldü, çünkü artık alanı
+                  yangının gitmediği tarafa harcamıyoruz.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Suriye ve Irak&apos;taki ısı kaynakları listenin en altına
+                    indi.
+                  </b>{" "}
+                  Uydu kutumuz komşu ülkeleri de görüyor ve orada ölçülen büyük
+                  güçlerin çoğu yangın değil: petrol kuyularında yakılan gaz,
+                  yani hiç sönmeyen sanayi ısısı. Musul&apos;daki 1.171
+                  megavatlık bir baca, Çankırı&apos;daki 512 megavatlık gerçek
+                  orman yangınını listenin altına itiyordu. Haritadan
+                  kaldırmadık — uydu ne görüyorsa onu gösteriyoruz — ama
+                  sıralamada en dibe aldık. Yunanistan ve Balkanlar bu
+                  düzenlemenin dışında: oradaki büyük yangın gerçek yangın.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Yunanistan ve Balkanlar&apos;daki yangınlarda hava paneli
                     aylardır çalışmıyormuş — düzelttik.
                   </b>{" "}

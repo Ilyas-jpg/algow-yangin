@@ -1,5 +1,5 @@
 import { bearingDeg, havKm, toRad } from "./geo";
-import { nearestPlace } from "./places";
+import { ORTADOGU, nearestPlace } from "./places";
 import { fixedSourceAt } from "./fixed-sources";
 import { dusukGuven } from "./firms";
 import type { FirePoint, FireEvent, PassGroup } from "./types";
@@ -21,6 +21,37 @@ export interface ClusterResult {
 export function statusOf(lastSeen: number, now: number): FireEvent["status"] {
   const ageH = (now - lastSeen) / 3600_000;
   return ageH <= 12 ? "active" : ageH <= 24 ? "waning" : "old";
+}
+
+/**
+ * Olay listesinin görüntüleme sırası.
+ *
+ * Üç katman, sırayla:
+ *   ① Ortadoğu komşuları EN DİBE (İlyas 2026-08-04: *"suriye ırak en altta
+ *      olsun bizi gram alakadar etmiyor"*). Sebep şiddet değil o şiddetin ne
+ *      olduğu: oradaki büyük FRP kütlesi ağırlıkla petrol flare'i, yani hiç
+ *      sönmeyen sanayi ısısı. 1.171 MW'lık Musul flare'i, 512 MW'lık gerçek
+ *      Çankırı orman yangınını listenin altına itiyordu.
+ *   ② Durum: aktif → zayıflıyor → eski.
+ *   ③ Son geçişin FRP'si (büyük yangın yukarı).
+ *
+ * Yunanistan/Balkanlar/Kafkasya ①'de DEĞİL: oradaki büyük yangın gerçek
+ * yangındır ve şiddetine göre yukarıda kalır. Bu, 3 Ağustos'ta kaldırılan
+ * "yurt dışı koşulsuz sona" kuralının geri gelmesi değil — o kural Korint'te
+ * 1.230 MW yanarken 182 MW'lık Çankırı'yı başa koyuyordu ve bilgi gizliyordu.
+ *
+ * Sayaçlar bu sıradan etkilenmez (`!abroad` süzgeci ayrı çalışır).
+ */
+export function sortEvents<T extends { il: string; status: FireEvent["status"]; frpLast: number }>(
+  events: T[]
+): T[] {
+  const rank = { active: 0, waning: 1, old: 2 } as const;
+  return [...events].sort(
+    (a, b) =>
+      Number(ORTADOGU.has(a.il)) - Number(ORTADOGU.has(b.il)) ||
+      rank[a.status] - rank[b.status] ||
+      b.frpLast - a.frpLast
+  );
 }
 
 /**

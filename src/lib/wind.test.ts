@@ -98,26 +98,44 @@ test("koni yarım açısı rüzgârla daralır", () => {
   assert.ok(coneHalfAngle(18) < DISC_THRESHOLD_DEG, "güçlü rüzgârda yön anlamlı");
 });
 
-/* ══ 4. Erişim şekli (damla) ══ */
-test("erişim oranı başta 1, geride ~0,42 ve monoton azalır", () => {
-  yakin(reachRatio(0), 1, 1e-9, "baş yönü referans");
-  yakin(reachRatio(180), 0.42, 0.01, "geri yön ölçülen orana eşit");
-  let onceki = 2;
-  for (let a = 0; a <= 180; a += 15) {
-    const v = reachRatio(a);
-    assert.ok(v <= onceki + 1e-9, `oran monoton azalmalı (${a}°: ${v} > ${onceki})`);
-    onceki = v;
+/* ══ 4. Erişim şekli (rüzgâra bağlı damla) ══ */
+test("erişim oranı başta 1 ve her rüzgârda monoton azalır", () => {
+  for (const kmh of [undefined, 0, 4, 8, 11, 15, 30]) {
+    yakin(reachRatio(0, kmh), 1, 1e-9, `baş yönü referans (${kmh})`);
+    let onceki = 2;
+    for (let a = 0; a <= 180; a += 15) {
+      const v = reachRatio(a, kmh);
+      assert.ok(v <= onceki + 1e-9, `oran monoton azalmalı (${kmh} km/sa, ${a}°: ${v} > ${onceki})`);
+      onceki = v;
+    }
   }
 });
 test("erişim oranı yön işaretinden bağımsız (simetrik)", () => {
-  yakin(reachRatio(-60), reachRatio(60), 1e-9, "sol ve sağ sapma eşit");
+  yakin(reachRatio(-60, 20), reachRatio(60, 20), 1e-9, "sol ve sağ sapma eşit");
 });
-test("şekil kapalıdır ve baş/geri oranı ~2,4", () => {
-  const ring = reachShape(30, 39, 90, 10, reachRatio, 72);
+
+/**
+ * ÖLÇÜLEN REJİM AYRIMI (2026-08-04, hücre bazında n=5.719):
+ * zayıf rüzgârda yangın daireye yakın (baş/geri 1,19×), güçlüde damla (5,50×).
+ * Bu test yönü kilitliyor — eski tek şekil (her rüzgârda 2,4×) bu ayrımı
+ * yapmıyordu ve güçlü rüzgârda geriyi 2,5 kat fazla çiziyordu.
+ */
+test("zayıf rüzgârda şekil neredeyse daire, güçlüde belirgin damla", () => {
+  const oran = (kmh: number) => reachRatio(0, kmh) / reachRatio(180, kmh);
+  yakin(oran(4), 1.25, 0.1, "zayıf rüzgâr: ölçülen 1,19×");
+  assert.ok(oran(30) > 5, `güçlü rüzgâr belirgin asimetri (ölçülen 5,5×), bulunan ${oran(30).toFixed(1)}`);
+  assert.ok(oran(11) > oran(4) && oran(11) < oran(30), "arada geçiş monoton");
+});
+test("rüzgâr verilmezse zayıf (yuvarlak) profile düşer — yön iddiası zayıf taraf", () => {
+  yakin(reachRatio(180), reachRatio(180, 0), 1e-9, "rüzgârsız ile bilinmeyen aynı profil");
+  assert.ok(reachRatio(180) > reachRatio(180, 30), "bilinmeyen rüzgâr, güçlüden daha yuvarlak");
+});
+test("şekil kapalıdır ve baş yönü verilen bearing'e oturur", () => {
+  const ring = reachShape(30, 39, 90, 10, (o) => reachRatio(o, 20), 72);
   assert.deepEqual(ring[0], ring[ring.length - 1], "poligon kapalı olmalı");
   const bas = havKm(30, 39, ring[0][0], ring[0][1]);
   const geri = havKm(30, 39, ring[36][0], ring[36][1]);
-  yakin(bas / geri, 2.4, 0.15, "baş/geri oranı ölçülen değere yakın");
+  assert.ok(bas / geri > 4, "20 km/sa'te belirgin damla");
   yakin(bearingDeg(30, 39, ring[0][0], ring[0][1]), 90, 1, "başın yönü verilen bearing");
 });
 

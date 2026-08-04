@@ -1,4 +1,5 @@
 import Link from "next/link";
+import KarneRow from "./KarneRow";
 import { ilStats, fmtDate } from "@/lib/il-stats";
 import { slugifyTr } from "@/lib/slug";
 import { fmtNum } from "@/lib/format";
@@ -219,6 +220,10 @@ export default function StatsView({ locale }: { locale: Locale }) {
           </p>
         </div>
       </div>
+
+      {/* Canlı karne: tahminden SONRA gelen veriyle sınanmış sayılar.
+          Sayfanın statik kalması için istemcide yüklenir (bkz. KarneRow). */}
+      <KarneRow locale={locale} />
 
       <h2 className="mt-10 text-[18px] font-medium">{t.stats.h2Curve}</h2>
       <Egri

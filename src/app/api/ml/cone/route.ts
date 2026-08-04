@@ -5,6 +5,7 @@ import { buildCone } from "@/lib/wind";
 import { progression } from "@/lib/progression";
 import { havKm } from "@/lib/geo";
 import { inRegion } from "@/lib/bbox";
+import { GUNEYDOGU, ORTADOGU } from "@/lib/places";
 import { supabaseAdmin } from "@/lib/ml-db";
 import type { FireEvent, WindGrid, WindPoint } from "@/lib/types";
 import type { NewsSignal } from "@/lib/news";
@@ -54,31 +55,15 @@ const BOS_GECIS: Record<string, null> = Object.fromEntries(
 );
 
 /**
- * Güneydoğu Anadolu — eğitim setine ALINMAZ.
+ * Eğitim kapsamı: Güneydoğu illeri (ardışık anız ateşi tek olaya kümeleniyor —
+ * ölçüldü, 260 olayın 90'ı tarım) ve Ortadoğu komşuları (petrol flare) hariç.
  *
- * Ölçüldü (bkz. 0003 migration yorumu): 260 olayın 90'ı tarım ateşiydi ve bu
- * bölgede ardışık tarla yakmaları birbirine 3 km'den yakın düşüp tek "yangın"
- * gibi kümeleniyor. O ilerleme yangının yayılması değil, çiftçinin sıradaki
- * tarlası — yön modeline öğretilecek şey değil.
+ * İki liste de `lib/places`'te: aynı Ortadoğu ayrımını olay listesi sıralaması
+ * da kullanıyor (en dibe), o yüzden tek kaynak — beş rotaya kopyalanan kutu
+ * sınırının bayatlaması dersinin tekrarı olmasın.
  */
-const GUNEYDOGU = new Set([
-  "Adıyaman", "Batman", "Diyarbakır", "Gaziantep", "Kilis",
-  "Mardin", "Siirt", "Şanlıurfa", "Şırnak",
-]);
-
-/**
- * Eğitim setine ALINMAYAN ülkeler — yalnız Ortadoğu.
- *
- * Buradaki "aktif yangın" kütlesi ağırlıkla petrol flare'i ve tarla yakması;
- * haritada kalıyor (kamu bilgisi) ama yön modelinin öğreneceği şey değil.
- * Avrupa komşuları (Yunanistan, Bulgaristan, Arnavutluk, K. Makedonya,
- * Kosova, Sırbistan, Karadağ, Kıbrıs) ve Kafkasya (Gürcistan, Ermenistan,
- * Azerbaycan) İÇERİDE: oralarda anız yakma yaygın değil.
- */
-const HARIC_ULKE = new Set(["Irak", "Suriye", "İran"]);
-
 function egitimeUygun(e: FireEvent): boolean {
-  return !GUNEYDOGU.has(e.il) && !HARIC_ULKE.has(e.il);
+  return !GUNEYDOGU.has(e.il) && !ORTADOGU.has(e.il);
 }
 
 /**
