@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { inRegion } from "@/lib/bbox";
 
 /**
  * Koni halkaları için saatlik TAHMİN rüzgârı.
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     const lon = Math.round(parseFloat(lonS) * 10) / 10;
     const lat = Math.round(parseFloat(latS) * 10) / 10;
     if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
-    if (lat < 34.5 || lat > 42.7 || lon < 24.9 || lon > 45.6) continue;
+    if (!inRegion(lon, lat)) continue; // sınır lib/bbox'ta, elle yazılan kopya bayatlıyordu
     if (pts.some((p) => p.lon === lon && p.lat === lat)) continue;
     pts.push({ lon, lat });
     if (pts.length >= MAX_PTS) break;

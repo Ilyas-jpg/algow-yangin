@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   GRID_LAT0,
   GRID_LON0,
@@ -60,4 +62,53 @@ test("meteorolojik ızgara kutuyu TAMAMEN kapsıyor", () => {
   assert.ok(GRID_LAT0 <= REGION.south, `grid güneyi ${GRID_LAT0}`);
   assert.ok(lonMax >= REGION.east, `grid doğusu ${lonMax}`);
   assert.ok(latMax >= REGION.north, `grid kuzeyi ${latMax}`);
+});
+
+/**
+ * 🔴 CANLI HATA (4 Ağu 2026) — bu testin varlık sebebi.
+ *
+ * Kutu Yunanistan'ı kapsamak için batıya genişletildiğinde (25,0 → 19,2)
+ * `lib/bbox` tek kaynak yapılmıştı; ama BEŞ rota kendi elle yazdığı kopyayı
+ * taşımaya devam etti: wind/point, smoke, terrain, wind/forecast, ml/cone.
+ * Sonuç: 24,9°D'nin batısındaki her yangında hava paneli ve duman tahmini
+ * HTTP 400 dönüyor, eğim ve saatlik rüzgâr çekilemiyor, üstelik o yangınlar
+ * eğitim setine hiç yazılmıyordu — ml/cone'un kendi yorumu Yunanistan'ın
+ * "içeride" olduğunu söylediği hâlde. Korint yangınında canlıda yakalandı.
+ *
+ * Kopya sessiz bozuluyor: kimse hata vermiyor, veri yokmuş gibi görünüyor.
+ */
+test("hiçbir rota kendi kutusunu elle yazmıyor", () => {
+  const kok = join(process.cwd(), "src", "app", "api");
+  const suphe = /\b(24\.9|25\.0|34\.5|42\.7|45\.6)\b/;
+
+  const tara = (dizin: string): string[] => {
+    const cikti: string[] = [];
+    for (const g of readdirSync(dizin, { withFileTypes: true })) {
+      const yol = join(dizin, g.name);
+      if (g.isDirectory()) cikti.push(...tara(yol));
+      else if (g.name.endsWith(".ts") || g.name.endsWith(".tsx")) {
+        for (const [i, satir] of readFileSync(yol, "utf8").split("\n").entries()) {
+          // Yorum satırı serbest: hatayı ANLATAN metinler var.
+          const kirp = satir.trim();
+          if (kirp.startsWith("*") || kirp.startsWith("//") || kirp.startsWith("/*")) continue;
+          if (suphe.test(satir)) cikti.push(`${yol.split("api")[1]}:${i + 1}`);
+        }
+      }
+    }
+    return cikti;
+  };
+
+  const bulunan = tara(kok);
+  assert.deepEqual(
+    bulunan,
+    [],
+    `elle yazılmış kutu sınırı kalmış (inRegion kullan): ${bulunan.join(", ")}`
+  );
+});
+
+test("Yunanistan anakarası kapsam içinde — batı genişlemesi korunuyor", () => {
+  assert.ok(inRegion(22.93, 37.94), "Korint — canlıda 400 dönen yangın");
+  assert.ok(inRegion(23.73, 37.98), "Atina");
+  assert.ok(inRegion(20.02, 40.07), "Girokastra, Arnavutluk");
+  assert.ok(inRegion(21.43, 42.0), "Üsküp civarı");
 });

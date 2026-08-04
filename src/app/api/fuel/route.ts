@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corineAt, type FuelClass } from "@/lib/corine";
+import { inRegion } from "@/lib/bbox";
 
 /**
  * Toplu yakıt sınıflandırma — "anız mı orman mı" süzgeci için.
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     const lat = Math.round(parseFloat(latS) * 20) / 20;
     if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
     // Kapsam dışı koordinatlarla ücretsiz kota tüketilmesin
-    if (lat < 34.5 || lat > 42.7 || lon < 24.9 || lon > 45.6) continue;
+    if (!inRegion(lon, lat)) continue; // sınır lib/bbox'ta, elle yazılan kopya bayatlıyordu
     if (pts.some((p) => p.lon === lon && p.lat === lat)) continue;
     pts.push({ lon, lat });
     if (pts.length >= MAX_PTS) break;

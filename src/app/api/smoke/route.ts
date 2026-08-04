@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchJson } from "@/lib/fetch-retry";
+import { inRegion } from "@/lib/bbox";
 
 /**
  * Duman tahmini — saatlik PM2.5.
@@ -49,8 +50,10 @@ export async function GET(request: NextRequest) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     return NextResponse.json({ error: "koordinat geçersiz" }, { status: 400 });
   }
-  // Kapsam kontrolü: ücretsiz kota rastgele koordinatlarla tüketilmesin
-  if (lat < 34.5 || lat > 42.7 || lon < 24.9 || lon > 45.6) {
+  // Kapsam kontrolü: ücretsiz kota rastgele koordinatlarla tüketilmesin.
+  // Sınır `lib/bbox`'tan — elle yazılan kopya, kutu batıya genişletilince
+  // Yunanistan'daki yangınlarda duman tahminini 400'e düşürüyordu.
+  if (!inRegion(lon, lat)) {
     return NextResponse.json({ error: "kapsam dışı" }, { status: 400 });
   }
 

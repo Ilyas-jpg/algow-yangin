@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { WindPoint } from "@/lib/types";
 import { runFwiSeries, fwiLevel, type FwiDay } from "@/lib/fwi";
 import { fetchJson } from "@/lib/fetch-retry";
+import { inRegion } from "@/lib/bbox";
 
 /**
  * Tek nokta yangın meteorolojisi: rüzgar + hamle + nem + sıcaklık + VPD,
@@ -12,16 +13,18 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const lat = Math.round(parseFloat(sp.get("lat") ?? "") * 10) / 10;
   const lon = Math.round(parseFloat(sp.get("lon") ?? "") * 10) / 10;
-  // Kapsam dışı istekler reddedilir: aksi hâlde rastgele koordinatlarla
-  // Open-Meteo ücretsiz kotası tüketilip herkes için hava paneli düşürülebilir.
-  if (
-    !Number.isFinite(lat) ||
-    !Number.isFinite(lon) ||
-    lat < 34.5 ||
-    lat > 42.7 ||
-    lon < 24.9 ||
-    lon > 45.6
-  ) {
+  /**
+   * Kapsam dışı istekler reddedilir: aksi hâlde rastgele koordinatlarla
+   * Open-Meteo ücretsiz kotası tüketilip herkes için hava paneli düşürülebilir.
+   *
+   * 🔴 Sınır `lib/bbox`'tan geliyor, elle yazılmıyor. Eskiden burada
+   * `lon < 24.9` sabiti vardı; uydu kutusu Yunanistan'ı kapsamak için
+   * batıya (19,2) genişletildiğinde bu iki uç (wind/point ve smoke)
+   * güncellenmemişti. Sonuç: 24,9°D'nin batısındaki HER yangında hava
+   * paneli ve duman tahmini 400 dönüyordu — Korint'te canlıda yakalandı,
+   * ve orası o gün haritadaki en büyük yangınların bulunduğu bölgeydi.
+   */
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || !inRegion(lon, lat)) {
     return NextResponse.json({ error: "lat/lon kapsam dışı" }, { status: 400 });
   }
 

@@ -4,6 +4,7 @@ import { clusterEvents, statusOf } from "@/lib/cluster";
 import { buildCone } from "@/lib/wind";
 import { progression } from "@/lib/progression";
 import { havKm } from "@/lib/geo";
+import { inRegion } from "@/lib/bbox";
 import { supabaseAdmin } from "@/lib/ml-db";
 import type { FireEvent, WindGrid, WindPoint } from "@/lib/types";
 import type { NewsSignal } from "@/lib/news";
@@ -80,9 +81,15 @@ function egitimeUygun(e: FireEvent): boolean {
   return !GUNEYDOGU.has(e.il) && !HARIC_ULKE.has(e.il);
 }
 
-/** `/api/wind/point` ve `/api/terrain` kapsama kutusu — ikisi de aynı sınırı uygular. */
-const kapsamda = (e: { lon: number; lat: number }) =>
-  e.lat >= 34.5 && e.lat <= 42.7 && e.lon >= 24.9 && e.lon <= 45.6;
+/**
+ * `/api/wind/point` ve `/api/terrain` kapsama kutusu — ikisi de aynı sınırı uygular.
+ *
+ * 🔴 Elle yazılan kopyaydı ve bayatlamıştı (`lon >= 24.9`). Uydu kutusu
+ * Yunanistan'ı kapsamak için batıya genişletildiğinde güncellenmedi; sonuç
+ * olarak Yunanistan yangınları — yukarıdaki yorumun açıkça "içeride" dediği
+ * ülke — eğitim setine hiç yazılmadı. Artık `lib/bbox` tek kaynak.
+ */
+const kapsamda = (e: { lon: number; lat: number }) => inRegion(e.lon, e.lat);
 
 const key2 = (lon: number, lat: number) =>
   `${(Math.round(lon * 20) / 20).toFixed(2)},${(Math.round(lat * 20) / 20).toFixed(2)}`;
