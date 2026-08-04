@@ -248,6 +248,92 @@ export default function HakkindaPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                4 Ağustos 2026 — yeni bir uydu, piksel dürüstlüğü ve
+                sustuğumuzu fark ettiğimiz bir hata
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Yunanistan ve Balkanlar&apos;daki yangınlarda hava paneli
+                    aylardır çalışmıyormuş — düzelttik.
+                  </b>{" "}
+                  Kapsamı batıya genişlettiğimizde altı ayrı yerde sınırı elle
+                  yazmışız ve beşini güncellemeyi unutmuşuz. Sonuç: 24,9°
+                  doğunun batısındaki her yangında rüzgâr, nem, yangın hava
+                  indeksi, duman tahmini, eğim ve yakıt bilgisi sessizce boş
+                  geliyordu. Hiçbir hata mesajı çıkmadığı için &quot;veri
+                  yok&quot; gibi görünüyordu. Haritadaki en büyük yangınların
+                  bir kısmı tam da o bölgedeydi. Sınır artık tek yerde
+                  tanımlı ve bir daha kopyalanamasın diye teste bağlandı.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Uydu pikselinin gerçek büyüklüğünü çiziyoruz.
+                  </b>{" "}
+                  Yakınlaşınca her tespitin çevresinde kesikli bir elips
+                  görüyorsunuz: ısının içinde bulunduğu hücre bu. Nokta
+                  &quot;yangın tam burada&quot; demek değil. VIIRS uydusunda
+                  hücre en iyi durumda 375 metre, MODIS&apos;te tarama
+                  kenarında 4 kilometreye kadar çıkıyor — konumun neden bazen
+                  kaydığı artık gözle görünüyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Aktif yangın sayacı biraz düştü, çünkü eskisi biraz
+                    şişikti.
+                  </b>{" "}
+                  Uydu her tespite bir güven notu veriyor; biz bunu hiç
+                  kullanmıyorduk. Artık düşük güvenli <i>gündüz</i> tespitleri
+                  haritada soluk çiziliyor ve sayaca katılmıyor. Gündüz yanlış
+                  alarmların başlıca sebebi güneş yansıması: sera örtüsü,
+                  metal çatı, su yüzeyi. Gece bu mekanizma olmadığı için gece
+                  tespitleri düşürülmüyor — yangınlar gece de büyüyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Yeni uydu: Sentinel-3.
+                  </b>{" "}
+                  Avrupa&apos;nın SLSTR ölçeri günde dört ek geçiş getiriyor,
+                  hücresi 1 kilometre. Meteosat&apos;tan keskin ama ondan
+                  yavaş: taramadan yayına yaklaşık iki saat geçiyor (ölçtük).
+                  Yani kör aralığı kapatmıyor, keskin katmana ayrı bir geçiş
+                  ekliyor. Bu ölçüm kendi hata payını da veriyor, o yüzden
+                  &quot;30 ± 4 MW&quot; diyebiliyoruz.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Sensör doyduğunda söylüyoruz.
+                  </b>{" "}
+                  Yangın çok şiddetliyse uydunun ısı kanalı doyuyor ve ölçtüğü
+                  güç gerçeğin <i>alt sınırı</i> oluyor. Bu durumda kartta
+                  &quot;ÇOK ŞİDDETLİ&quot; yazıyor: gösterilen rakam
+                  yangının olabileceği en küçük değer.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Yangının yöneldiği yer yazıyla da görünüyor.
+                  </b>{" "}
+                  Erişim şekli haritada zaten vardı ama haritaya bakmayan için
+                  soyut kalıyordu. Artık &quot;bu yönde: X ~7 km&quot; diye
+                  okunuyor. Bu bir tahliye uyarısı değildir ve yangının oraya
+                  ulaşacağı anlamına gelmez — rüzgâr döner, ekipler müdahale
+                  eder.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Bağlantıyı paylaşınca açılış ekranımız görünüyor.
+                  </b>{" "}
+                  Sohbet uygulamalarında ve sosyal medyada çıkan önizleme
+                  kartı, siteyi açtığınızda gördüğünüz ilk ekranın aynısı.
+                  Ayrıca arama motorları ve JavaScript çalıştırmayan
+                  tarayıcılar için sayfanın özeti artık sunucudan geliyor:
+                  en yeni tespitin yaşı, aktif olay sayısı ve acil numaraları
+                  harita hiç yüklenmese de okunabiliyor.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 3 Ağustos 2026 — Yunanistan kapsama girdi, söndürme uçakları
                 haritada
               </p>

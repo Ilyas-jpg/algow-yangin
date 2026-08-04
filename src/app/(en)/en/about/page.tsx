@@ -275,6 +275,91 @@ export default function AboutPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                4 August 2026 — a new satellite, pixel honesty, and a failure we
+                had been silent about
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Fire weather had been broken for months in Greece and the
+                    Balkans — now fixed.
+                  </b>{" "}
+                  When we widened the map westwards we had written the boundary
+                  by hand in six separate places and forgot to update five of
+                  them. For every fire west of 24.9° east, wind, humidity, fire
+                  weather index, smoke forecast, slope and fuel type came back
+                  silently empty. Nothing errored, so it simply looked like
+                  &quot;no data&quot;. Some of the largest fires on the map were
+                  in exactly that area. The boundary now lives in one place and
+                  a test stops it being copied again.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    We now draw the satellite pixel at its real size.
+                  </b>{" "}
+                  Zoom in and each detection gets a dashed ellipse around it:
+                  that is the cell the heat sits inside. The dot does not mean
+                  &quot;the fire is exactly here&quot;. On VIIRS the cell is 375
+                  m at best; on MODIS it grows to 4 km at the edge of the swath
+                  — so you can now see why a position sometimes looks off.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    The active fire count dropped a little, because it used to be
+                    slightly inflated.
+                  </b>{" "}
+                  Every detection carries a confidence flag and we were ignoring
+                  it. Low-confidence <i>daytime</i> detections are now drawn
+                  faint and left out of the counter. Daytime false alarms are
+                  mostly sun glint: greenhouse sheeting, metal roofs, water. At
+                  night that mechanism does not exist, so night detections are
+                  not downgraded — fires grow at night too.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    A new satellite: Sentinel-3.
+                  </b>{" "}
+                  Europe&apos;s SLSTR adds about four passes a day at 1 km.
+                  Sharper than Meteosat but slower: we measured roughly two
+                  hours from sensing to publication. So it does not close the
+                  blind gap, it adds another pass to the sharp layer. It also
+                  reports its own error margin, which is why we can say
+                  &quot;30 ± 4 MW&quot;.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    We say so when the sensor saturates.
+                  </b>{" "}
+                  In a very intense fire the satellite&apos;s heat channel
+                  saturates and the power it reports becomes a <i>lower bound</i>.
+                  The card then reads &quot;VERY INTENSE&quot;: the figure shown
+                  is the smallest the fire could be.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Where a fire is heading is now written out, not just drawn.
+                  </b>{" "}
+                  The projected reach was already on the map but stayed abstract
+                  for anyone not looking at it. It now reads &quot;in this
+                  direction: X ~7 km&quot;. This is not an evacuation warning and
+                  does not mean the fire will get there — wind turns and crews
+                  intervene.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Sharing a link now shows our opening screen.
+                  </b>{" "}
+                  The preview card in chat apps and social media is the same
+                  screen you see when the site opens. And for search engines and
+                  browsers without JavaScript, the page summary now comes from
+                  the server: the age of the newest detection, the number of
+                  active events and the emergency numbers stay readable even if
+                  the map never loads.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 3 August 2026 — Greece now covered, firefighting aircraft on the
                 map
               </p>
