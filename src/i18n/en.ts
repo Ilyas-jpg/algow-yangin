@@ -311,6 +311,9 @@ export const en: Dict = {
     noPeak: "no marked rise expected over the next 48 hours",
     source:
       "We do not compute the dispersion: this is the output of the ECMWF/CAMS model. It also includes non-fire sources (traffic, industry, dust).",
+    station: "Ground measurement: {n} µg/m³ · {ad}, {km} km · {ago}",
+    noStation:
+      "No reporting station nearby, so this line is entirely model output.",
   },
 
   share: {

@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import type { SmokeResponse, SmokePoint } from "@/app/api/smoke/route";
-import { fmtClock, fmtNum } from "@/lib/format";
+import { fmtAgo, fmtClock, fmtNum } from "@/lib/format";
 import { fill, type Locale } from "@/lib/i18n";
 import type { Dict } from "@/i18n/tr";
 import { useLocale, useT } from "./LocaleProvider";
@@ -125,8 +125,23 @@ export default function SmokeForecast({
           {band && <span className={band.cls}> · {band.ad}</span>}
         </p>
       </div>
+      {/* Gözlem satırı. Yukarıdaki seri MODELDEN, bu satır ÖLÇÜMDEN geliyor —
+          ikisi karıştırılmasın diye ayrı ve etiketli. İstasyon yoksa satır
+          hiç çıkmaz ve altındaki kaynak notu zaten "model" olduğunu yazar. */}
+      {data.station && (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-ink-2">
+          {fill(t.smoke.station, {
+            n: fmtNum(data.station.value, 1, locale),
+            ad: data.station.name,
+            km: fmtNum(data.station.km, 0, locale),
+            ago: fmtAgo(data.station.at, data.fetchedAt, locale),
+          })}
+          {data.station.provider ? ` · ${data.station.provider}` : ""}
+        </p>
+      )}
       <p className="mt-1 text-[10px] leading-relaxed text-ink-3">
         {t.smoke.source}
+        {!data.station && ` ${t.smoke.noStation}`}
       </p>
     </div>
   );

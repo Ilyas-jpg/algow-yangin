@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchJson } from "@/lib/fetch-retry";
 import { inRegion } from "@/lib/bbox";
+import { nearestPm25, type StationPm25 } from "@/lib/openaq";
 
 /**
  * Duman tahmini — saatlik PM2.5.
@@ -32,6 +33,12 @@ export interface SmokeResponse {
   series: SmokePoint[];
   /** CAMS çıktısının üretim anı bilinmiyor; veri tazeliği için istek anı */
   fetchedAt: number;
+  /**
+   * Yakındaki yer istasyonunun ÖLÇÜMÜ — varsa. Seriyi değiştirmez:
+   * tahmin modelden, bu satır gözlemden gelir ve arayüz ikisini
+   * birbirinden ayırarak yazar. null = menzilde taze istasyon yok.
+   */
+  station: StationPm25 | null;
 }
 
 interface AirResp {
@@ -87,6 +94,10 @@ export async function GET(request: NextRequest) {
     null
   );
 
+  // Ölçüm modelin YERİNE geçmiyor, yanına geliyor. Bulunamazsa null döner
+  // ve arayüz "model" etiketiyle devam eder — sessizce boş kalmaz.
+  const station = await nearestPm25(lon, lat, now);
+
   const body: SmokeResponse = {
     lat,
     lon,
@@ -94,6 +105,7 @@ export async function GET(request: NextRequest) {
     peak,
     series,
     fetchedAt: now,
+    station,
   };
 
   return NextResponse.json(body, {

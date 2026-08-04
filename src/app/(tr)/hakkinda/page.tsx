@@ -321,6 +321,23 @@ export default function HakkindaPage() {
                 </li>
                 <li>
                   <b className="font-medium text-ink">
+                    Duman: ölçüm varsa ölçümü, yoksa modeli gösteriyoruz.
+                  </b>{" "}
+                  Duman satırı bugüne kadar tamamen bir modelin (ECMWF/CAMS)
+                  çıktısıydı ve bunu yazmıyorduk. Artık yangının 25 km
+                  çevresinde ölçüm yapan bir yer istasyonu varsa onun gerçek
+                  değeri ayrı satırda görünüyor. Dürüst olalım: Türkiye&apos;de
+                  bu satır çoğunlukla çıkmayacak, çünkü ulusal hava kalitesi
+                  ağının açık veri akışı{" "}
+                  <b className="font-medium text-ink">Mayıs 2023&apos;te
+                  durmuş</b>{" "}
+                  — kayıtlı 406 istasyondan yalnız 8&apos;i hâlâ veri veriyor ve
+                  hepsi İstanbul&apos;da. Yunanistan ve Avrupa tarafında
+                  çalışıyor. İstasyon yoksa satırın altında &quot;bu tamamen
+                  modeldir&quot; yazıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Bağlantıyı paylaşınca açılış ekranımız görünüyor.
                   </b>{" "}
                   Sohbet uygulamalarında ve sosyal medyada çıkan önizleme

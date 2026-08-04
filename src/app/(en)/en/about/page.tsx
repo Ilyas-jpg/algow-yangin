@@ -347,6 +347,22 @@ export default function AboutPage() {
                 </li>
                 <li>
                   <b className="font-medium text-ink">
+                    Smoke: a measurement when there is one, the model otherwise.
+                  </b>{" "}
+                  Until now the smoke line was entirely model output
+                  (ECMWF/CAMS) and we never said so. If a ground station within
+                  25 km of the fire is reporting, its real value now appears on
+                  its own line. To be honest about it: in Türkiye that line will
+                  usually be missing, because the national air quality
+                  network&apos;s open feed{" "}
+                  <b className="font-medium text-ink">stopped in May 2023</b> —
+                  of 406 registered stations only 8 still report and all of them
+                  are in Istanbul. It works in Greece and the rest of Europe.
+                  When there is no station, the line below says the figure is
+                  model output only.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Sharing a link now shows our opening screen.
                   </b>{" "}
                   The preview card in chat apps and social media is the same

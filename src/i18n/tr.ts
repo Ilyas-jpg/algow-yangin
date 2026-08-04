@@ -301,6 +301,11 @@ export const tr = {
     noPeak: "48 saat boyunca belirgin artış beklenmiyor",
     source:
       "Dağılımı biz hesaplamıyoruz: ECMWF/CAMS modelinin çıktısı. Yangın dışındaki kaynakları (trafik, sanayi, toz) da içerir.",
+    /** Yakındaki yer istasyonunun gerçek ölçümü — model DEĞİL, gözlem. */
+    station: "Yerdeki ölçüm: {n} µg/m³ · {ad}, {km} km · {ago}",
+    /** İstasyon bulunamadığında kaynak notuna eklenir. */
+    noStation:
+      "Yakında ölçüm yapan istasyon yok, bu satır tamamen modeldir.",
   },
 
   share: {
