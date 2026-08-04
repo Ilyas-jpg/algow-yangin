@@ -51,6 +51,9 @@ interface TopBarProps {
   onGeoToggle: () => void;
   alertCount: number;
   onAlertsToggle: () => void;
+  /** Sade görünüm: kenar panelleri kapalı (temiz harita / ekran görüntüsü) */
+  cleanView: boolean;
+  onCleanToggle: () => void;
   pass?: PassInfo;
 }
 
@@ -67,6 +70,8 @@ export default function TopBar({
   onGeoToggle,
   alertCount,
   onAlertsToggle,
+  cleanView,
+  onCleanToggle,
   pass,
 }: TopBarProps) {
   const t = useT();
@@ -204,6 +209,55 @@ export default function TopBar({
             </svg>
             {t.top.alerts}
             {alertCount > 0 ? ` (${alertCount})` : ""}
+          </button>
+          {/* SADE GÖRÜNÜM — kenar panellerini kapatır (İlyas 2026-08-04:
+              "kenardaki menüler kapalı şekilde ekran görüntüsü alınabilse").
+              Yalnız masaüstünde: kapatılan paneller (sol liste + lejant) zaten
+              `md:` altında görünüyor, mobilde bottom-sheet var.
+              ⚠️ Etiket bilerek TEK KELİME: üst bar 10. ve 12. düğmede taşmıştı,
+              "Söndürme uçağı" → "Uçak" dersi burada da geçerli. */}
+          <button
+            onClick={onCleanToggle}
+            title={t.top.cleanTitle}
+            aria-pressed={cleanView}
+            className={`tap-target hidden shrink-0 items-center gap-1.5 rounded border px-2.5 py-1 text-[11px] transition-colors active:scale-[0.98] md:flex ${
+              cleanView
+                ? "border-cobalt/60 bg-cobalt/10 text-ink"
+                : "border-line text-ink-3 hover:text-ink-2"
+            }`}
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
+              {/* Kapalıyken oklar içe (panelleri geri çağır), açıkken dışa */}
+              <rect
+                x="0.6"
+                y="1.2"
+                width="10.8"
+                height="9.6"
+                rx="1"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1"
+                opacity="0.5"
+              />
+              {cleanView ? (
+                <path
+                  d="M3.2 6H5.6M4.4 4.8 3.2 6l1.2 1.2M8.8 6H6.4M7.6 4.8 8.8 6 7.6 7.2"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.1"
+                  strokeLinecap="round"
+                />
+              ) : (
+                <path
+                  d="M2.8 3.2v5.6M9.2 3.2v5.6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.1"
+                  strokeLinecap="round"
+                />
+              )}
+            </svg>
+            {t.top.clean}
           </button>
         </div>
 

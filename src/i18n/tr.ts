@@ -83,6 +83,10 @@ export const tr = {
     myLocationTitle: "Kendi konumunu haritada göster (konum cihazından çıkmaz)",
     alerts: "Uyarı",
     alertsTitle: "Bir yeri izlemeye al, yakınında yangın çıkarsa haber ver",
+    /** Tek kelime: üst bar 10. ve 12. düğmede taşmıştı, uzun etiket kesiliyor. */
+    clean: "Sade",
+    cleanTitle:
+      "Kenar panellerini kapatır: harita tam görünür, ekran görüntüsü almak kolaylaşır. Geri açmak için aynı düğme ya da ESC. Tercih hatırlanır.",
     freshTitle: "En yeni uydu tespiti {clock} · veri {fetched} itibarıyla",
     waitingTitle: "Veri bekleniyor",
     lastDetection: "son tespit {ago}",

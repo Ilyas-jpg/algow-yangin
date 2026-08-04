@@ -276,6 +276,15 @@ export default function HakkindaPage() {
                 </li>
                 <li>
                   <b className="font-medium text-ink">
+                    &quot;Sade&quot; düğmesi: kenar panellerini kapatır.
+                  </b>{" "}
+                  Üst şeritteki bu düğme sol listeyi ve lejantı gizliyor,
+                  harita tam ekran kalıyor — haritanın ekran görüntüsünü almak
+                  ya da sadece haritaya bakmak isteyenler için. Aynı düğme veya
+                  ESC geri açıyor, tercihiniz hatırlanıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Suriye ve Irak&apos;taki ısı kaynakları listenin en altına
                     indi.
                   </b>{" "}

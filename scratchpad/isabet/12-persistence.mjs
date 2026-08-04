@@ -187,10 +187,12 @@ function harman(r, gt, w) {
   if (p === null || r.fizik === null) return null;
   return vecSum([[p, w], [r.fizik, 1 - w]]);
 }
-/** Yaşa bağlı w: genç yangında fizik, yaşlıda persistence (spec'in hipotezi). */
-function wOfAge(yasSa, wGenc, wYasli, esikSa) {
-  return yasSa >= esikSa ? wYasli : wGenc;
-}
+/*
+ * Spec'in "w yangın yaşıyla artsın" hipotezi için yaşa bağlı bir w fonksiyonu
+ * yazılmıştı; ölçüm o hipotezi çürüttüğü için (her yaş kovasında en iyi w ≈ 0,
+ * bkz. aşağıdaki "yaşa göre" tablosu) fonksiyon kaldırıldı. Yaş etkisi gerçek
+ * ama fiziğin hatasında — persistence ağırlığında değil.
+ */
 
 const forest = (r) => r.c.yakit !== "OT";
 

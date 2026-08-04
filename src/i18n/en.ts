@@ -85,6 +85,9 @@ export const en: Dict = {
       "Show your own position on the map (your location never leaves your device)",
     alerts: "Alerts",
     alertsTitle: "Watch a place and get notified if a fire starts near it",
+    clean: "Clean",
+    cleanTitle:
+      "Hides the side panels so the map is fully visible and easy to screenshot. Press the same button or ESC to bring them back. Your choice is remembered.",
     freshTitle: "Newest satellite detection {clock} · data as of {fetched}",
     waitingTitle: "Waiting for data",
     lastDetection: "last detection {ago}",

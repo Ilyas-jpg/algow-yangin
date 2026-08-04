@@ -95,6 +95,8 @@ function isThinConnection(): boolean {
 
 const DAYS_PARAM: Record<WindowHours, string> = { 24: "1", 48: "2", 120: "5" };
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+/** Sade görünüm tercihi — kullanıcı bir kez seçince kalsın. */
+const SADE_KEY = "algow-yangin-sade";
 
 export interface ProvinceOzet {
   /** sabit ısı kaynakları düşülmüş tespit sayısı */
@@ -159,6 +161,55 @@ export default function App({ focus, embed = false }: AppProps = {}) {
   const geo = useGeolocation();
   const userLoc = geo.state.status === "ready" ? geo.state.loc : null;
   const [alertsOpen, setAlertsOpen] = useState(false);
+
+  /**
+   * SADE GÖRÜNÜM — kenar panelleri kapalı, harita tam görünür.
+   *
+   * İlyas 2026-08-04: *"kenardaki menüler kapalı şekilde ekran görüntüsü
+   * alınabilse ... kapatıp açma seçeneği olsun"*. Ekran görüntüsü almak
+   * sunum/rapor işinin sürekli tekrarlayan adımı (tanıtım raporundaki dört
+   * görsel de CSS kırpmayla elde edilmişti); kalıcı bir düğme o adımı bitiriyor.
+   *
+   * Tercih localStorage'da tutuluyor: aynı iş için sayfayı her açışta tekrar
+   * tıklamak gerekmesin. ESC her zaman geri açıyor — düğme ekranın dışında
+   * kalırsa (dar pencere, kaydırılmış şerit) kullanıcı kilitlenmesin.
+   */
+  // Tercih ilk render'da okunuyor (effect'te değil): App `ssr:false` ile
+  // yüklendiği için `localStorage` burada var — `windowHours` da aynı kalıbı
+  // kullanıyor. Effect'te okumak bir kare "panel açık" gösterip çırpınmaya
+  // (ve `set-state-in-effect` uyarısına) yol açardı.
+  const [cleanView, setCleanView] = useState(() => {
+    try {
+      return localStorage.getItem(SADE_KEY) === "1";
+    } catch {
+      return false; // özel sekmede localStorage atabiliyor
+    }
+  });
+  const toggleClean = useCallback(() => {
+    setCleanView((v) => {
+      try {
+        localStorage.setItem(SADE_KEY, v ? "0" : "1");
+      } catch {
+        /* yoksay */
+      }
+      return !v;
+    });
+  }, []);
+  useEffect(() => {
+    if (!cleanView) return;
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCleanView(false);
+        try {
+          localStorage.setItem(SADE_KEY, "0");
+        } catch {
+          /* yoksay */
+        }
+      }
+    };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [cleanView]);
   const [mapCenter, setMapCenter] = useState<{ lon: number; lat: number } | null>(null);
   const [zoom, setZoom] = useState(5.35);
   const [now, setNow] = useState(() => Date.now());
@@ -1043,6 +1094,8 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           onGeoToggle={geo.toggle}
           alertCount={alerts.points.length}
           onAlertsToggle={() => setAlertsOpen((o) => !o)}
+          cleanView={cleanView}
+          onCleanToggle={toggleClean}
           pass={passInfo}
         />
       )}
@@ -1333,8 +1386,8 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           </div>
         )}
 
-        {/* Masaüstü sol panel */}
-        {!embed && (
+        {/* Masaüstü sol panel — sade görünümde kapalı */}
+        {!embed && !cleanView && (
           <aside className="absolute top-0 bottom-0 left-0 z-10 hidden w-[340px] flex-col border-r border-line bg-obsidian-1/95 md:flex">
             {focus?.ozet && (
               <ProvinceSummary ad={focus.ad} ozet={focus.ozet} />
@@ -1343,9 +1396,14 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           </aside>
         )}
 
-        {/* Masaüstü zaman çizgisi + lejant */}
+        {/* Masaüstü zaman çizgisi + lejant.
+            Sol/sağ boşluklar sol panel (340px) ve lejant (212px) genişliğine
+            göre; sade görünümde ikisi de kapalı olduğu için çizgi ortalanıyor,
+            yoksa ekranın sağına kaçık duruyordu. */}
         <div
-          className={`pointer-events-none absolute bottom-4 left-[352px] right-[240px] z-10 hidden justify-center ${embed ? "" : "md:flex"}`}
+          className={`pointer-events-none absolute bottom-4 z-10 hidden justify-center ${
+            cleanView ? "left-3 right-3" : "left-[352px] right-[240px]"
+          } ${embed ? "" : "md:flex"}`}
         >
           <TimelineBar
             className="pointer-events-auto w-full max-w-[620px]"
@@ -1368,7 +1426,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
         </div>
         {/* Açık ama görünür çıktısı olmayan katmanların sebebini söyle —
             aksi hâlde toggle "bozuk" gibi hissettiriyor. */}
-        {!embed && layerNotes.length > 0 && (
+        {!embed && !cleanView && layerNotes.length > 0 && (
           <div className="pointer-events-none absolute bottom-4 left-3 z-10 hidden max-w-[300px] space-y-1 md:block">
             {layerNotes.map((n) => (
               <p
@@ -1385,9 +1443,11 @@ export default function App({ focus, embed = false }: AppProps = {}) {
             duruyor ve bottom-4'te sözlükle 18 px çakışıyordu — ölçüldü.
             Şeridin üst kenarı ekran altından 34 px yukarıda; 44 px araya
             bir tık boşluk bırakıyor. Atıf gizlenemez (lisans şartı). */}
-        <div className="absolute right-3 bottom-11 z-10 hidden md:block">
-          <Legend />
-        </div>
+        {!cleanView && (
+          <div className="absolute right-3 bottom-11 z-10 hidden md:block">
+            <Legend />
+          </div>
+        )}
 
         {/* Mobil alt yığın: zaman çizgisi + olay listesi */}
         <div

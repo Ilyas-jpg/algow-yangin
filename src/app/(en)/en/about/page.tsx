@@ -303,6 +303,15 @@ export default function AboutPage() {
                 </li>
                 <li>
                   <b className="font-medium text-ink">
+                    A &quot;Clean&quot; button that hides the side panels.
+                  </b>{" "}
+                  This button in the top strip hides the list on the left and
+                  the legend, leaving the map full screen — for screenshots, or
+                  simply for looking at the map. The same button or ESC brings
+                  them back, and your choice is remembered.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
                     Heat sources in Syria and Iraq moved to the bottom of the
                     list.
                   </b>{" "}
