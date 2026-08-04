@@ -303,12 +303,27 @@ export default function AboutPage() {
                 </li>
                 <li>
                   <b className="font-medium text-ink">
-                    A &quot;Clean&quot; button that hides the side panels.
+                    A &quot;Clean&quot; button, and information bands you can
+                    dismiss.
                   </b>{" "}
-                  This button in the top strip hides the list on the left and
-                  the legend, leaving the map full screen — for screenshots, or
-                  simply for looking at the map. The same button or ESC brings
-                  them back, and your choice is remembered.
+                  Clean view hides the top strip, the list on the left, the
+                  legend and the data-source notes, leaving just the map — for
+                  screenshots, or simply for looking at the map. The small
+                  handle at the top right, or ESC, brings it all back. Each
+                  information band at the top now also has an × of its own, so
+                  you can dismiss the ones you have read; on a phone that gives
+                  the map noticeably more room.{" "}
+                  <b className="font-medium text-ink">
+                    One exception is the unverified heat source warning:
+                  </b>{" "}
+                  dismissing it applies only to that alert, and it returns when
+                  the satellite sees a new source. We did not want the site&apos;s
+                  earliest warning to be silenced for good. In clean view the
+                  Algow signature sits at the bottom left and a very faint{" "}
+                  <b className="font-medium text-ink">yangin.algow.net</b>{" "}
+                  watermark covers the map: the platform is free and open
+                  source, but its imagery should not be sold on as someone
+                  else&apos;s work.
                 </li>
                 <li>
                   <b className="font-medium text-ink">

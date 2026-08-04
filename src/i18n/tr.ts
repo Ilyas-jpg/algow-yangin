@@ -86,7 +86,8 @@ export const tr = {
     /** Tek kelime: üst bar 10. ve 12. düğmede taşmıştı, uzun etiket kesiliyor. */
     clean: "Sade",
     cleanTitle:
-      "Kenar panellerini kapatır: harita tam görünür, ekran görüntüsü almak kolaylaşır. Geri açmak için aynı düğme ya da ESC. Tercih hatırlanır.",
+      "Üst şeridi ve yan panelleri kapatır: harita tam görünür, ekran görüntüsü almak kolaylaşır. Geri açmak için sağ üstteki tutamak ya da ESC. Tercih hatırlanır.",
+    cleanExit: "Sade görünümden çık — üst şerit ve yan paneller geri gelir (ESC de çalışır)",
     freshTitle: "En yeni uydu tespiti {clock} · veri {fetched} itibarıyla",
     waitingTitle: "Veri bekleniyor",
     lastDetection: "son tespit {ago}",
@@ -401,6 +402,8 @@ export const tr = {
       "Doğrulanmamış haber ihbarı — uydu tespiti değil. Konum haber başlığından çıkarıldı; daire ~{km} km'lik yaklaşık bölgedir, yangının kendisi değil.",
   },
   banner: {
+    /** Bant kapatma düğmesinin erişilebilir adı (bkz. BantKapat) */
+    close: "Bu bilgi bandını kapat",
     offline:
       "Çevrimdışısın — cihazında saklanan son veri gösteriliyor{when}. Bağlantı gelince kendiliğinden tazelenir.",
     offlineWhen: " ({clock})",

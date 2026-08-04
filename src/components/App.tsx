@@ -47,6 +47,8 @@ import ProvinceSummary from "./ProvinceSummary";
 import EventPanel from "./EventPanel";
 import TimelineBar from "./TimelineBar";
 import Legend from "./Legend";
+import BantKapat from "./BantKapat";
+import Filigran from "./Filigran";
 
 /**
  * Harita motoru (MapLibre, ~290 KB) ayrı parçada yüklenir: zayıf bağlantıda
@@ -97,6 +99,8 @@ const DAYS_PARAM: Record<WindowHours, string> = { 24: "1", 48: "2", 120: "5" };
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 /** Sade görünüm tercihi — kullanıcı bir kez seçince kalsın. */
 const SADE_KEY = "algow-yangin-sade";
+/** Kapatılan bilgi bantları (kaynak açıklamaları) — bkz. BantKapat. */
+const BANT_KEY = "algow-yangin-bant";
 
 export interface ProvinceOzet {
   /** sabit ısı kaynakları düşülmüş tespit sayısı */
@@ -195,6 +199,42 @@ export default function App({ focus, embed = false }: AppProps = {}) {
       return !v;
     });
   }, []);
+  /**
+   * Kapatılan bilgi bantları.
+   *
+   * `kaynak` (Meteosat + haber açıklamaları) kalıcı: okununca bir daha
+   * gösterilmesi gerekmiyor. `alarmImza` ise O ANKİ ilk-alarm kümesini tutuyor;
+   * yeni bir ısı kaynağı belirince imza değişiyor ve bant geri geliyor — erken
+   * uyarıyı kalıcı olarak susturmak kabul edilemez.
+   */
+  const [kapaliBant, setKapaliBant] = useState<{
+    msg?: boolean;
+    news?: boolean;
+    alarmImza?: string;
+  }>(() => {
+    try {
+      const s = localStorage.getItem(BANT_KEY);
+      return s ? (JSON.parse(s) as { msg?: boolean; news?: boolean }) : {};
+    } catch {
+      return {};
+    }
+  });
+  const bantKapat = useCallback((k: "msg" | "news" | "alarmImza", deger: true | string) => {
+    setKapaliBant((p) => {
+      const yeni = { ...p, [k]: deger };
+      try {
+        // Alarm imzası KAYDEDİLMİYOR: yalnız bu oturum için geçerli.
+        localStorage.setItem(
+          BANT_KEY,
+          JSON.stringify({ msg: yeni.msg, news: yeni.news })
+        );
+      } catch {
+        /* yoksay */
+      }
+      return yeni;
+    });
+  }, []);
+
   useEffect(() => {
     if (!cleanView) return;
     const esc = (e: KeyboardEvent) => {
@@ -458,6 +498,17 @@ export default function App({ focus, embed = false }: AppProps = {}) {
       // Kıbrıs'taki bir ısı kaynağını oraya koymak bandı gürültüye boğar.
     ).filter((a) => !a.abroad);
   }, [live, layers.msg, msg, points]);
+
+  /**
+   * İlk-alarm bandının kimliği. Kullanıcı bandı kapattığında bu imza
+   * saklanıyor; uydu YENİ bir ısı kaynağı görünce imza değişiyor ve bant geri
+   * geliyor. Böylece "kapat" bir kez okuduğun uyarıyı susturuyor, uyarı
+   * mekanizmasını değil.
+   */
+  const alarmImza = useMemo(
+    () => firstAlarm.map((a) => a.id).sort().join("|"),
+    [firstAlarm]
+  );
 
   const selectedEvent = useMemo(
     () => events.find((e) => e.id === selectedId) ?? null,
@@ -1066,6 +1117,34 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           ? fill(t.province.srH1, { ad: focus.ad })
           : t.province.srH1Home}
       </h1>
+      {/* SADE GÖRÜNÜMDE ÜST BAR DA KAPANIYOR (İlyas 2026-08-04: "şu üst bar da
+          kapatılabilsin"). Kapatma düğmesi barın İÇİNDE olduğu için geri dönüş
+          yolu ayrı bir yerde olmak zorunda: sağ üstte küçük bir tutamak +
+          ESC. İkisi de olmasa kullanıcı kendini haritada kilitleyebilirdi. */}
+      {/* Sade görünümün marka katmanı: sol altta wordmark + soluk filigran.
+          Neden yalnız sade görünümde ve neden "yalnız ekran görüntüsünde"
+          yapılamadığı Filigran.tsx'in başında yazılı. */}
+      {!embed && cleanView && <Filigran />}
+      {!embed && cleanView && (
+        <button
+          type="button"
+          onClick={toggleClean}
+          title={t.top.cleanExit}
+          aria-label={t.top.cleanExit}
+          className="tap-target absolute top-2 right-2 z-30 hidden items-center gap-1 rounded border border-line bg-obsidian-1/80 px-2 py-1 text-[10px] text-ink-3 opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 md:flex"
+        >
+          <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden>
+            <path
+              d="M3.2 6H5.6M4.4 4.8 3.2 6l1.2 1.2M8.8 6H6.4M7.6 4.8 8.8 6 7.6 7.2"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.1"
+              strokeLinecap="round"
+            />
+          </svg>
+          {t.top.clean}
+        </button>
+      )}
       {embed ? (
         <EmbedBar
           meta={fires?.meta}
@@ -1076,7 +1155,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
               : localePath("home", locale)
           }
         />
-      ) : (
+      ) : cleanView ? null : (
         <TopBar
           windowHours={windowHours}
           onWindow={(w) => {
@@ -1154,7 +1233,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           {t.banner.windPartial}
         </div>
       )}
-      {thinMode && (
+      {thinMode && !cleanView && (
         <div
           role="status"
           className="relative z-20 flex items-center gap-3 border-b border-line bg-obsidian-2 px-3 py-1.5 text-[11px] text-ink-2"
@@ -1171,8 +1250,8 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           </button>
         </div>
       )}
-      {layers.msg && msg?.meta && (
-        <div className="relative z-20 border-b border-line bg-obsidian-2 px-3 py-1 text-[11px] text-ink-2">
+      {layers.msg && msg?.meta && !kapaliBant.msg && !cleanView && (
+        <div className="relative z-20 border-b border-line bg-obsidian-2 py-1 pr-7 pl-3 text-[11px] text-ink-2">
           <span className="font-mono text-warn">
             {fill(t.banner.msgSource, {
               src: msg.meta.kaynak ?? "MSG",
@@ -1188,12 +1267,13 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           ) : (
             <span className="text-ink-3">{t.banner.msgEmpty}</span>
           )}
+          <BantKapat onClose={() => bantKapat("msg", true)} label={t.banner.close} />
         </div>
       )}
-      {firstAlarm.length > 0 && (
+      {firstAlarm.length > 0 && kapaliBant.alarmImza !== alarmImza && (
         <div
           role="alert"
-          className="relative z-20 border-b border-warn/50 bg-warn/10 px-3 py-1.5 text-[11px] text-ink-2"
+          className="relative z-20 border-b border-warn/50 bg-warn/10 py-1.5 pr-7 pl-3 text-[11px] text-ink-2"
         >
           <span className="font-mono text-warn">
             {fill(t.banner.firstAlarm, { n: firstAlarm.length })}
@@ -1211,12 +1291,16 @@ export default function App({ focus, embed = false }: AppProps = {}) {
             </button>
           ))}
           <span className="text-ink-3">{t.banner.firstAlarmNote}</span>
+          <BantKapat
+            onClose={() => bantKapat("alarmImza", alarmImza)}
+            label={t.banner.close}
+          />
         </div>
       )}
-      {layers.news && news && (
+      {layers.news && news && !kapaliBant.news && !cleanView && (
         <div
           role="status"
-          className="relative z-20 border-b border-line bg-obsidian-2 px-3 py-1 text-[11px] text-ink-2"
+          className="relative z-20 border-b border-line bg-obsidian-2 py-1 pr-7 pl-3 text-[11px] text-ink-2"
         >
           <span className="font-mono text-[#93c5fd]">
             {fill(t.banner.newsCount, { n: news.signals.length })}
@@ -1228,6 +1312,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
               {fill(t.banner.newsUnlocated, { n: news.meta.unlocated })}
             </span>
           )}
+          <BantKapat onClose={() => bantKapat("news", true)} label={t.banner.close} />
         </div>
       )}
       {windError && (

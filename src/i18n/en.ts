@@ -87,7 +87,8 @@ export const en: Dict = {
     alertsTitle: "Watch a place and get notified if a fire starts near it",
     clean: "Clean",
     cleanTitle:
-      "Hides the side panels so the map is fully visible and easy to screenshot. Press the same button or ESC to bring them back. Your choice is remembered.",
+      "Hides the top strip and the side panels so the map is fully visible and easy to screenshot. Use the small handle at the top right or ESC to bring them back. Your choice is remembered.",
+    cleanExit: "Leave clean view — the top strip and side panels come back (ESC works too)",
     freshTitle: "Newest satellite detection {clock} · data as of {fetched}",
     waitingTitle: "Waiting for data",
     lastDetection: "last detection {ago}",
@@ -406,6 +407,7 @@ export const en: Dict = {
       "Unverified news report — not a satellite detection. The location is inferred from a headline; the circle is an approximate area of about {km} km, not the fire itself.",
   },
   banner: {
+    close: "Dismiss this information band",
     offline:
       "You are offline — showing the last data stored on your device{when}. It refreshes on its own once you are back online.",
     offlineWhen: " ({clock})",

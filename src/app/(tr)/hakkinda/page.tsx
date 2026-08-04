@@ -276,12 +276,25 @@ export default function HakkindaPage() {
                 </li>
                 <li>
                   <b className="font-medium text-ink">
-                    &quot;Sade&quot; düğmesi: kenar panellerini kapatır.
+                    &quot;Sade&quot; düğmesi ve kapatılabilir bilgi bantları.
                   </b>{" "}
-                  Üst şeritteki bu düğme sol listeyi ve lejantı gizliyor,
-                  harita tam ekran kalıyor — haritanın ekran görüntüsünü almak
-                  ya da sadece haritaya bakmak isteyenler için. Aynı düğme veya
-                  ESC geri açıyor, tercihiniz hatırlanıyor.
+                  Sade düğmesi üst şeridi, sol listeyi, lejantı ve veri kaynağı
+                  açıklamalarını gizliyor; ekranda yalnız harita kalıyor —
+                  ekran görüntüsü almak ya da sadece haritaya bakmak için. Geri
+                  dönmek için sağ üstteki küçük tutamak veya ESC. Ayrıca üstteki
+                  her bilgi bandının sağında artık bir çarpı var: hangisini
+                  okuduysanız kapatabiliyorsunuz, telefonda haritaya kalan yer
+                  belirgin biçimde artıyor.{" "}
+                  <b className="font-medium text-ink">
+                    Tek istisna doğrulanmamış ısı kaynağı uyarısı:
+                  </b>{" "}
+                  onu kapatmak yalnız o anki uyarı için geçerli, uydu yeni bir
+                  kaynak gördüğünde geri geliyor. Sitenin en erken uyarısını
+                  kalıcı olarak susturmak istemedik. Sade görünümde sol altta
+                  Algow imzası ve haritanın üzerinde çok soluk bir{" "}
+                  <b className="font-medium text-ink">yangin.algow.net</b>{" "}
+                  filigranı duruyor: platform ücretsiz ve açık kaynak, ama
+                  görüntüsü başkasının malı gibi satılmasın.
                 </li>
                 <li>
                   <b className="font-medium text-ink">
