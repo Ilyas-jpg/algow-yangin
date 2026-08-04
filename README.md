@@ -51,6 +51,12 @@ FIRMS_MAP_KEY=...
 - `src/app/api/wind/point` — nokta yangın meteorolojisi (rüzgâr/hamle/nem/sıcaklık/VPD)
 - `src/lib/cluster.ts` — olay kümeleme + uydu geçişi grupları + sürüklenme vektörü
 - `src/lib/wind.ts` — grid örnekleme, yayılma hızı heuristiği, tahmin konisi
+- `src/lib/progression.ts` — iki geçiş arasında yangının gerçekte nereye taştığı
+  (yön modelinin etiketi; ölçüm ve üretim aynı tanımı paylaşır)
+- `src/app/api/ml/cone` — çizilen koniyi özellikleriyle kaydeder (tahmin günlüğü)
+- `src/app/api/ml/verify` — sonraki geçiş gelince tahmini gözlemle karşılaştırır
+- `src/app/api/ml/export` — eğitim seti dışa aktarımı (CSV/JSON)
+- `src/app/api/archive` — arşive programatik erişim (olay + geçiş + ham piksel)
 - `src/components/FireMap.tsx` — MapLibre katmanları
 - `src/components/WindParticles.ts` — rüzgâr akış animasyonu
 - `public/sw.js` — çevrimdışı önbellek stratejileri

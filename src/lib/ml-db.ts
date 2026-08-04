@@ -53,11 +53,18 @@ export interface DbError {
 
 export interface Db {
   select<T>(path: string): Promise<{ rows: T[] } | DbError>;
-  upsert(
+  /**
+   * `ret: "representation"` yazılan satırları geri ister — üretilen `id`'ye
+   * ihtiyaç duyan çağrılar için (olay yazıp geçişleri ona bağlamak gibi).
+   * Varsayılan `minimal`: gövde taşımamak hem hızlı hem de büyük toplu
+   * yazımlarda yanıtı şişirmiyor.
+   */
+  upsert<T = never>(
     path: string,
     rows: unknown[],
-    resolution: "merge-duplicates" | "ignore-duplicates"
-  ): Promise<{ ok: true } | DbError>;
+    resolution: "merge-duplicates" | "ignore-duplicates",
+    ret?: "minimal" | "representation"
+  ): Promise<{ ok: true; rows: T[] } | DbError>;
   rpc<T>(fn: string, args: Record<string, unknown>): Promise<{ result: T } | DbError>;
 }
 
@@ -85,17 +92,18 @@ export function supabaseAdmin(): Db | DbError {
       }
       return { rows: (await res.json()) as T[] };
     },
-    async upsert(path, rows, resolution) {
+    async upsert(path, rows, resolution, ret = "minimal") {
       const res = await fetch(`${url}/rest/v1/${path}`, {
         method: "POST",
-        headers: { ...headers, Prefer: `resolution=${resolution},return=minimal` },
+        headers: { ...headers, Prefer: `resolution=${resolution},return=${ret}` },
         body: JSON.stringify(rows),
       });
       if (!res.ok) {
         console.error("supabase upsert", res.status, await res.text());
         return { error: "yazılamadı", detay: String(res.status) };
       }
-      return { ok: true as const };
+      const body = ret === "representation" ? await res.json() : [];
+      return { ok: true as const, rows: body };
     },
     async rpc<T>(fn: string, args: Record<string, unknown>) {
       const res = await fetch(`${url}/rest/v1/rpc/${fn}`, {

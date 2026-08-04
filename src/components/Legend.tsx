@@ -72,6 +72,28 @@ export default function Legend() {
         </span>
       </div>
 
+      {/* Tehlike katmanının skalası. Katman açıkken haritayı baştan başa
+          renklendiriyor ve neyin ne demek olduğu hiçbir yerde yazmıyordu —
+          kullanıcı turuncu bir alanı "yangın var" diye okuyabiliyor.
+          Renkler TAHMİN EDİLMEDİ, katmanın kendi karosundan örneklendi
+          (GWIS ecmwf.fwi, 512×512 karo, 6 ayrık sınıf); sözlükteki şerit ile
+          haritadaki renk birebir aynı olsun diye. Sınıf adları `fwiLevels`. */}
+      <p className="mt-2.5 text-[10px] text-ink-3">{t.legend.danger}</p>
+      <div
+        className="mt-1.5 flex h-1.5 overflow-hidden rounded-sm"
+        aria-hidden
+      >
+        {["#9cffc0", "#cde24e", "#e6ac00", "#d97010", "#ad060e", "#3a0015"].map(
+          (c) => (
+            <span key={c} className="flex-1" style={{ background: c }} />
+          )
+        )}
+      </div>
+      <div className="mt-0.5 flex justify-between font-mono text-[8px] text-ink-3">
+        <span>{t.fwiLevels[0]}</span>
+        <span>{t.fwiLevels[5]}</span>
+      </div>
+
       <p className="mt-2.5 border-t border-line pt-2 text-[10px] leading-relaxed text-ink-3">
         <Rich segs={t.legend.note} />
       </p>

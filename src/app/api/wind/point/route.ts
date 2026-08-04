@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
   const weatherUrl =
     "https://api.open-meteo.com/v1/forecast?" +
     ll +
-    "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m" +
+    "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m," +
+    "wind_gusts_10m,surface_pressure" +
     "&hourly=vapour_pressure_deficit" +
     "&daily=temperature_2m_max,relative_humidity_2m_min,wind_speed_10m_max,precipitation_sum" +
     "&past_days=21&forecast_days=1&wind_speed_unit=kmh&timezone=UTC";
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
       wind_speed_10m?: number;
       wind_direction_10m?: number;
       wind_gusts_10m?: number;
+      surface_pressure?: number;
     };
     hourly?: { time?: string[]; vapour_pressure_deficit?: number[] };
     daily?: {
@@ -156,6 +158,7 @@ export async function GET(request: NextRequest) {
     windDirDeg: cur.wind_direction_10m ?? null,
     gustKmh: cur.wind_gusts_10m ?? null,
     vpdKpa: vpd,
+    pressureHpa: cur.surface_pressure ?? null,
     pm25: air.current?.pm2_5 ?? null,
     pm10: air.current?.pm10 ?? null,
     aqi: air.current?.us_aqi ?? null,
