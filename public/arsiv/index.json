@@ -1,20 +1,5 @@
 [
  {
-  "slug": "bayramic-2026",
-  "ad": "Bayramiç yangını",
-  "adEn": "Bayramiç fire",
-  "il": "Çanakkale",
-  "ozet": "2 Ağustos 2026'da Bayramiç'te çıkan yangını kutup yörüngeli uydular (VIIRS/MODIS) hiç görmedi — yangın onların geçişleri arasında doğdu ve aynı aralıkta söndürüldü. Jeostasyoner Meteosat (MTG) ise saat 16:08'de, ilk haber bültenlerinden 91 dakika önce gördü. Arşivdeki bu tek kayıt tümüyle MTG tespitlerinden kuruldu.",
-  "ozetEn": "The fire that broke out at Bayramiç on 2 August 2026 was never seen by the polar-orbiting satellites (VIIRS/MODIS): it started and was contained between their passes. The geostationary Meteosat (MTG) saw it at 16:08 local time, 91 minutes before the first news report. This is the only archive record built entirely from MTG detections.",
-  "ilk": 1785676106000,
-  "son": 1785686306000,
-  "tespit": 73,
-  "maxFrp": 303,
-  "sats": [
-   "MTG"
-  ]
- },
- {
   "slug": "seydikemer-2026",
   "ad": "Seydikemer yangını",
   "adEn": "Seydikemer fire",
@@ -24,12 +9,7 @@
   "ilk": 1785195180000,
   "son": 1785501840000,
   "tespit": 747,
-  "maxFrp": 2639,
-  "sats": [
-   "N",
-   "1",
-   "M"
-  ]
+  "maxFrp": 2639
  },
  {
   "slug": "burhaniye-ayvalik-2026",
@@ -41,46 +21,7 @@
   "ilk": 1784505780000,
   "son": 1785582120000,
   "tespit": 714,
-  "maxFrp": 1096,
-  "sats": [
-   "N",
-   "1",
-   "M"
-  ]
- },
- {
-  "slug": "milas-2021",
-  "ad": "Milas yangını",
-  "adEn": "Milas fire",
-  "il": "Muğla",
-  "ozet": "Milas'taki yangın, Kemerköy Termik Santrali'nin çevresine ulaşarak ülke gündemine oturdu.",
-  "ozetEn": "The Milas fire reached the grounds of the Kemerköy thermal power plant and dominated the national news.",
-  "ilk": 1627776360000,
-  "son": 1628762100000,
-  "tespit": 2537,
-  "maxFrp": 2355,
-  "sats": [
-   "N",
-   "1",
-   "M"
-  ]
- },
- {
-  "slug": "marmaris-2021",
-  "ad": "Marmaris yangını",
-  "adEn": "Marmaris fire",
-  "il": "Muğla",
-  "ozet": "Marmaris ve çevresinde Temmuz sonunda başlayan yangın, kıyı yerleşimlerinin tahliyesine yol açtı.",
-  "ozetEn": "The fire that broke out in and around Marmaris in late July led to the evacuation of coastal settlements.",
-  "ilk": 1627555380000,
-  "son": 1628641140000,
-  "tespit": 3948,
-  "maxFrp": 2027,
-  "sats": [
-   "N",
-   "1",
-   "M"
-  ]
+  "maxFrp": 1096
  },
  {
   "slug": "manavgat-2021",
@@ -92,11 +33,174 @@
   "ilk": 1627432260000,
   "son": 1628855520000,
   "tespit": 9204,
-  "maxFrp": 4856,
-  "sats": [
-   "N",
-   "1",
-   "M"
-  ]
+  "maxFrp": 4856
+ },
+ {
+  "slug": "marmaris-2021",
+  "ad": "Marmaris yangını",
+  "adEn": "Marmaris fire",
+  "il": "Muğla",
+  "ozet": "Marmaris ve çevresinde Temmuz sonunda başlayan yangın, kıyı yerleşimlerinin tahliyesine yol açtı.",
+  "ozetEn": "The fire that broke out in and around Marmaris in late July led to the evacuation of coastal settlements.",
+  "ilk": 1627555380000,
+  "son": 1628641140000,
+  "tespit": 3948,
+  "maxFrp": 2027
+ },
+ {
+  "slug": "milas-2021",
+  "ad": "Milas yangını",
+  "adEn": "Milas fire",
+  "il": "Muğla",
+  "ozet": "Milas'taki yangın, Kemerköy Termik Santrali'nin çevresine ulaşarak ülke gündemine oturdu.",
+  "ozetEn": "The Milas fire reached the grounds of the Kemerköy thermal power plant and dominated the national news.",
+  "ilk": 1627776360000,
+  "son": 1628762100000,
+  "tespit": 2537,
+  "maxFrp": 2355
+ },
+ {
+  "slug": "marmaris-2022",
+  "ad": "Marmaris yangını (2022)",
+  "adEn": "Marmaris fire (2022)",
+  "il": "Muğla",
+  "ozet": "2021'den bir yıl sonra aynı bölgede, Marmaris çevresinde yeniden büyük bir yangın görüldü. İki sezonu yan yana oynatmak, aynı arazinin tekrar yanmasının ne anlama geldiğini gösteriyor.",
+  "ozetEn": "A year after 2021, another large fire was observed around Marmaris in the same area. Playing the two seasons side by side shows what it means for the same ground to burn again.",
+  "ilk": 1655810280000,
+  "son": 1656030300000,
+  "tespit": 594,
+  "maxFrp": 1853
+ },
+ {
+  "slug": "canakkale-kepez-2023",
+  "ad": "Çanakkale – Kepez yangını",
+  "adEn": "Çanakkale – Kepez fire",
+  "il": "Çanakkale",
+  "ozet": "Çanakkale'nin Kepez çevresinde Ağustos 2023'te görülen yangın, Boğaz'ın iki yakasındaki yerleşimlere yakınlığıyla dikkat çekti.",
+  "ozetEn": "The fire observed around Kepez in Çanakkale in August 2023 stood out for how close it came to settlements on both sides of the strait.",
+  "ilk": 1692490320000,
+  "son": 1693096260000,
+  "tespit": 459,
+  "maxFrp": 3773
+ },
+ {
+  "slug": "izmir-yamanlar-2024",
+  "ad": "İzmir – Yamanlar yangını",
+  "adEn": "İzmir – Yamanlar fire",
+  "il": "İzmir",
+  "ozet": "Yamanlar ve Karşıyaka sırtlarında Ağustos 2024'te görülen yangın, şehir içi bir yerleşimin hemen üstündeki ormanda ilerledi.",
+  "ozetEn": "The August 2024 fire on the Yamanlar and Karşıyaka ridges advanced through forest directly above an urban settlement.",
+  "ilk": 1723509060000,
+  "son": 1724022120000,
+  "tespit": 369,
+  "maxFrp": 299
+ },
+ {
+  "slug": "seferihisar-2025",
+  "ad": "Seferihisar – Menderes yangını",
+  "adEn": "Seferihisar – Menderes fire",
+  "il": "İzmir",
+  "ozet": "Haziran 2025'te Seferihisar ile Menderes arasında görülen yangın, sezonun erken başladığı bir yılın ilk büyük olaylarından biriydi.",
+  "ozetEn": "Observed between Seferihisar and Menderes in June 2025, this was one of the first large events of a season that started early.",
+  "ilk": 1751071860000,
+  "son": 1751630400000,
+  "tespit": 1109,
+  "maxFrp": 1289
+ },
+ {
+  "slug": "odemis-kiraz-2025",
+  "ad": "Ödemiş – Kiraz yangını",
+  "adEn": "Ödemiş – Kiraz fire",
+  "il": "İzmir",
+  "ozet": "Temmuz 2025'te Ödemiş ve Kiraz çevresinde görülen yangın, İzmir'in iç kesimindeki dağlık arazide ilerledi.",
+  "ozetEn": "The July 2025 fire around Ödemiş and Kiraz advanced through the mountainous terrain of inland İzmir.",
+  "ilk": 1751504160000,
+  "son": 1751802300000,
+  "tespit": 283,
+  "maxFrp": 1562
+ },
+ {
+  "slug": "bursa-kestel-2025",
+  "ad": "Bursa – Kestel yangını",
+  "adEn": "Bursa – Kestel fire",
+  "il": "Bursa",
+  "ozet": "Kestel ve Gürsu çevresinde Temmuz 2025'te görülen yangın, büyük bir şehrin doğu sırtlarında ilerledi.",
+  "ozetEn": "The July 2025 fire around Kestel and Gürsu advanced along the eastern ridges of a major city.",
+  "ilk": 1751242380000,
+  "son": 1752967200000,
+  "tespit": 114,
+  "maxFrp": 29
+ },
+ {
+  "slug": "karabuk-2025",
+  "ad": "Karabük yangını",
+  "adEn": "Karabük fire",
+  "il": "Karabük",
+  "ozet": "Temmuz sonunda Karabük çevresinde başlayan yangın günlerce sürdü. Batı Karadeniz'in yoğun ormanında çıkan yangınlar, kanopi altında ilerlediği için uydudan görülmesi en zor olanlar arasında.",
+  "ozetEn": "The fire that began around Karabük in late July burned for days. Fires in the dense forest of the western Black Sea region are among the hardest to see from orbit, because they advance beneath the canopy.",
+  "ilk": 1753489500000,
+  "son": 1754696700000,
+  "tespit": 514,
+  "maxFrp": 1472
+ },
+ {
+  "slug": "eskisehir-2025",
+  "ad": "Eskişehir yangını",
+  "adEn": "Eskişehir fire",
+  "il": "Eskişehir",
+  "ozet": "Haziran 2025'te Eskişehir çevresinde çıkan yangında can kayıpları oldu. Bu kayıt bir gösteri değil: uydunun o günlerde ne gördüğünü, yangının hangi saatlerde nereye ilerlediğini kayda geçiriyor. Ölçemediğimiz her şey — müdahalenin seyri, kaybedilenler — bu verinin dışındadır ve öyle kalmalıdır.",
+  "ozetEn": "Lives were lost in the fire that broke out around Eskişehir in June 2025. This record is not a spectacle: it documents what the satellite saw on those days, and where the fire advanced hour by hour. Everything we cannot measure — how the response unfolded, those who were lost — lies outside this data and should stay outside it.",
+  "ilk": 1750724760000,
+  "son": 1752102480000,
+  "tespit": 166,
+  "maxFrp": 169
+ },
+ {
+  "slug": "evia-2021",
+  "ad": "Eğriboz (Evia) yangını",
+  "adEn": "Evia fire",
+  "il": "Yunanistan",
+  "ozet": "Ağustos 2021'de Eğriboz adasının kuzeyinde günlerce süren yangın, Akdeniz havzasının uydudan en iyi kaydedilmiş mega yangınlarından biri. İlerleme verisi bu yüzden çok zengin.",
+  "ozetEn": "Burning for days in northern Evia in August 2021, this is one of the best satellite-documented mega-fires in the Mediterranean basin — which is why its progression record is so rich.",
+  "ilk": 1627864620000,
+  "son": 1629161760000,
+  "tespit": 8334,
+  "maxFrp": 5285
+ },
+ {
+  "slug": "rodos-2023",
+  "ad": "Rodos yangını",
+  "adEn": "Rhodes fire",
+  "il": "Yunanistan",
+  "ozet": "Temmuz 2023'te Rodos'ta günlerce süren yangın, ada içindeki dağlık kesimden kıyıya doğru ilerledi.",
+  "ozetEn": "The July 2023 fire on Rhodes burned for days, advancing from the island's mountainous interior towards the coast.",
+  "ilk": 1689707460000,
+  "son": 1690457880000,
+  "tespit": 2023,
+  "maxFrp": 3108
+ },
+ {
+  "slug": "evros-dadia-2023",
+  "ad": "Evros – Dadia yangını",
+  "adEn": "Evros – Dadia fire",
+  "il": "Yunanistan",
+  "ozet": "Ağustos 2023'te Evros'ta, Dadia ormanı çevresinde başlayan yangın haftalarca sürdü ve Avrupa'da uydudan ölçülmüş en büyük yangınlar arasına girdi. Türkiye sınırının hemen batısında olması, aynı iklim ve yakıt tipinde bir yangının nasıl ilerlediğini göstermesi bakımından ayrıca değerli.",
+  "ozetEn": "Beginning around the Dadia forest in Evros in August 2023, this fire burned for weeks and became one of the largest measured from orbit in Europe. Sitting just west of the Turkish border, it is also valuable for showing how a fire advances in the same climate and fuel type.",
+  "ilk": 1692434280000,
+  "son": 1693731660000,
+  "tespit": 10158,
+  "maxFrp": 4612
+ },
+ {
+  "slug": "varnavas-2024",
+  "ad": "Varnavas – Atina yangını",
+  "adEn": "Varnavas – Athens fire",
+  "il": "Yunanistan",
+  "ozet": "Ağustos 2024'te Varnavas'ta başlayan yangın Atina'nın kuzey banliyölerine doğru ilerledi — büyük bir metropolün eşiğinde ilerleyen bir orman yangınının kaydı.",
+  "ozetEn": "The August 2024 fire that began at Varnavas advanced towards the northern suburbs of Athens — the record of a forest fire moving up to the edge of a major metropolis.",
+  "ilk": 1723248660000,
+  "son": 1723857600000,
+  "tespit": 1186,
+  "maxFrp": 2768
  }
 ]
