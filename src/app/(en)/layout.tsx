@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "../globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
+import Preconnect from "@/components/Preconnect";
 import { Analytics } from "@vercel/analytics/next";
 import { getDict } from "@/i18n";
-import { HTML_LANG, OG_LOCALE } from "@/lib/i18n";
+import { HTML_LANG } from "@/lib/i18n";
+import { siteOpenGraph, siteTwitter } from "@/lib/og";
 
 /** İngilizce kök düzeni — `<html lang="en">` için ayrı kök (bkz. (tr)/layout). */
 const inter = Inter({
@@ -20,12 +22,8 @@ export const metadata: Metadata = {
   title: t.meta.homeTitle,
   description: t.meta.homeDescription,
   metadataBase: new URL("https://yangin.algow.net"),
-  openGraph: {
-    title: t.meta.homeOgTitle,
-    description: t.meta.homeOgDescription,
-    locale: OG_LOCALE.en,
-    type: "website",
-  },
+  openGraph: siteOpenGraph("en"),
+  twitter: siteTwitter("en"),
   manifest: "/manifest.en.webmanifest",
   appleWebApp: {
     capable: true,
@@ -56,6 +54,7 @@ export default function EnRootLayout({
   return (
     <html lang={HTML_LANG.en}>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <Preconnect />
         {children}
         <ServiceWorker />
         <Analytics />

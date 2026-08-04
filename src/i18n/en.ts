@@ -48,6 +48,11 @@ export const en: Dict = {
         title:
           "Meteosat: scans every 15 minutes and fills the gap between polar satellite passes. The location is coarse (pixel 15-25 km²); the ring shows that uncertainty.",
       },
+      s3: {
+        label: "S3 1km",
+        title:
+          "Sentinel-3 SLSTR: 1 km pixels, roughly 4 extra passes a day. Sharper than Meteosat but SLOWER — the measured lag between sensing and publication is about 2 hours. It does not close the blind gap; it adds another pass to the sharp layer. It also carries its own measurement error (± MW). Not counted towards active fires.",
+      },
       news: {
         label: "News reports",
         title:
@@ -93,6 +98,8 @@ export const en: Dict = {
     burned: "Burned area (history of the selected fire)",
     reach: "Possible reach (1·3·6 h · 90%) — the wide end is where the fire is heading",
     smoke: "Smoke (PM2.5) — darker means denser; field from the CAMS model, coarse grid",
+    danger:
+      "Fire danger (FWI) — from weather; it does not mean there is a fire, but that one would spread easily",
     recent: "Detection seen in the last 6 hours",
     note: [
       ["A satellite does not see flames, it sees "],
@@ -131,6 +138,9 @@ export const en: Dict = {
   card: {
     status: { active: "ACTIVE", waning: "WANING", old: "OLD" },
     abroad: "ABROAD",
+    saturated: "VERY INTENSE",
+    saturatedTitle:
+      "The satellite's heat channel saturated (≈367 K): the measured fire radiative power is a lower bound — the fire may be stronger than the figure shown.",
     fixedSource: "FIXED SOURCE",
     meta: "{count} detections · {mw} MW · {ago}",
     trend: { up: "heat rose", down: "heat fell", flat: "heat flat" },
@@ -243,6 +253,10 @@ export const en: Dict = {
     ] as Seg[],
     coneWeak: " — but the wind is weak, so the direction is not strong",
     coneSpread: " · margin ±{deg}°",
+    conePlaces: "In this direction: {yerler}",
+    conePlacesItem: "{ad} ~{km} km",
+    conePlacesNote:
+      "This does NOT mean the fire will get there — it only says its current heading points that way; wind turns and crews intervene. Not an evacuation warning. The list is made of district centres; villages and neighbourhoods are not in it.",
     coneMean: [
       ["The shape is the 1·3·6 hour "],
       ["90% reach", "b"],
@@ -607,6 +621,18 @@ export const en: Dict = {
       "Data: NASA FIRMS (VIIRS 375 m). This page is generated automatically from satellite records and updates as the season goes on; it is not an official statistic.",
   },
 
+  seo: {
+    h1: "Live wildfire map of Türkiye",
+    lead: "Heat detections recorded by NASA FIRMS satellites over Türkiye and its surroundings, together with where each fire has advanced from and the area it may reach given the wind. Satellites see heat anomalies — not every detection is a wildfire, and this map is not an official warning.",
+    lastSeen: "Newest satellite detection: {n} hours ago.",
+    lastSeenFresh: "Newest satellite detection: less than an hour ago.",
+    lastSeenUnknown: "Satellite data is currently unavailable.",
+    active: "{n} active events are being tracked inside Türkiye right now.",
+    emergency: "Report a forest fire: 177 · Emergency: 112",
+    landing: "How does this map work? Data sources, latency and accuracy",
+    mapNote: "The map covers this summary once it loads.",
+  },
+
   og: {
     status: { active: "ACTIVE", waning: "WANING", old: "OLD" },
     detections: "{n} satellite detections · {span}",
@@ -615,6 +641,7 @@ export const en: Dict = {
     fallbackSub:
       "Satellite detections, wind flow and direction forecast on one map",
     footer: "NASA FIRMS · not an official warning · 112 / 177",
+    north: "N",
   },
 
   shareMeta: {
@@ -629,7 +656,7 @@ export const en: Dict = {
   },
 
   meta: {
-    homeTitle: "Algow Wildfire — live wildfire map of Türkiye and spread forecast",
+    homeTitle: "Live Wildfire Map — Algow Wildfire",
     homeDescription:
       "Track wildfires across Türkiye on a map using NASA FIRMS satellite detections and Open-Meteo wind data; see how a fire has advanced and where the wind points it next. The satellite detects heat anomalies, so not every dot is a fire. Free, built for the public good.",
     homeOgTitle: "Algow Wildfire — live wildfire map of Türkiye",

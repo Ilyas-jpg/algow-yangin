@@ -4,6 +4,7 @@ import ProvinceView, { provinceSummary } from "@/components/ProvinceView";
 import { PROVINCES, provinceBySlug } from "@/lib/provinces";
 import { ilStat, ilStats } from "@/lib/il-stats";
 import { OG_LOCALE, alternates, fill } from "@/lib/i18n";
+import { ogIntroImage } from "@/lib/og";
 import { getDict } from "@/i18n";
 
 const LOCALE = "tr" as const;
@@ -48,6 +49,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "website",
       locale: OG_LOCALE.tr,
       url: `/yangin/${p.slug}`,
+      // Kendi görseli yok; marka kartı taşısın — yoksa il bağlantısı
+      // sohbet uygulamalarında görselsiz düz satır olarak çıkıyor.
+      images: ogIntroImage(LOCALE),
     },
   };
 }

@@ -45,6 +45,11 @@ export const tr = {
         title:
           "Meteosat: 15 dakikada bir tarar, uydu geçişleri arasındaki boşluğu doldurur. Konum kabadır (piksel 15-25 km²), halka o belirsizliği gösterir.",
       },
+      s3: {
+        label: "S3 1km",
+        title:
+          "Sentinel-3 SLSTR: 1 km piksel, günde ~4 ek geçiş. Meteosat'tan keskin ama ondan YAVAŞ — tarama ile yayın arasında ölçülen gecikme ~2 saat. Yani kör aralığı kapatmaz, keskin katmana ayrı bir geçiş ekler. Ölçümün kendi hata payı da geliyor (± MW). Aktif yangın sayacına karışmaz.",
+      },
       news: {
         label: "Haber ihbarı",
         title:
@@ -91,6 +96,8 @@ export const tr = {
     burned: "Yanmış alan (seçili yangının geçmişi)",
     reach: "Olası erişim (1·3·6 sa · %90) — geniş ucu yangının gideceği yön",
     smoke: "Duman (PM2.5) — koyulaştıkça yoğun; alan CAMS modelinden, ızgara kaba",
+    danger:
+      "Yangın tehlikesi (FWI) — hava koşullarından; yangın olduğu değil, çıkarsa kolay yayılacağı anlamına gelir",
     recent: "Son 6 saatte görülen tespit",
     note: [
       ["Uydu alev değil "],
@@ -129,6 +136,9 @@ export const tr = {
     status: { active: "AKTİF", waning: "SÖNÜYOR", old: "ESKİ" },
     abroad: "YURT DIŞI",
     fixedSource: "SABİT KAYNAK",
+    saturated: "ÇOK ŞİDDETLİ",
+    saturatedTitle:
+      "Uydunun ısı kanalı doydu (≈367 K): ölçülen yangın ışıma gücü gerçeğin alt sınırıdır, yangın gösterilen değerden daha güçlü olabilir.",
     meta: "{count} tespit · {mw} MW · {ago}",
     trend: { up: "ısı arttı", down: "ısı azaldı", flat: "ısı yatay" },
     drift: "{dir} yönünde {km} km",
@@ -233,6 +243,11 @@ export const tr = {
     cone: [["En olası yön: "], ["{dir}", "m"], [" · rüzgâr ve eğimin bileşkesi"]] as Seg[],
     coneWeak: " — ama rüzgâr zayıf, yön kuvvetli değil",
     coneSpread: " · sapma payı ±{deg}°",
+    /** Koninin işaret ettiği yerleşimler — bkz. lib/cone-places.ts */
+    conePlaces: "Bu yönde: {yerler}",
+    conePlacesItem: "{ad} ~{km} km",
+    conePlacesNote:
+      "Yangının oraya ulaşacağı anlamına GELMEZ — yalnız şu anki yöneliminin o tarafı gösterdiğini söyler; rüzgâr döner, müdahale eder. Tahliye uyarısı değildir. Liste ilçe merkezlerinden oluşuyor, köy ve mahalleler yok.",
     coneMean: [
       ["Şekil 1·3·6 saatlik "],
       ["%90'lık erişim", "b"],
@@ -597,6 +612,26 @@ export const tr = {
       "Veri: NASA FIRMS (VIIRS 375 m). Bu sayfa uydu kayıtlarından otomatik üretilir ve sezon ilerledikçe güncellenir; resmi istatistik yerine geçmez.",
   },
 
+  /**
+   * Sunucuda render edilen özet.
+   *
+   * Harita tamamen tarayıcı tarafı olduğu için kök sayfa `next/dynamic`
+   * ssr:false ile client'a düşüyordu ve JS çalıştırmayan ziyaretçi (arama
+   * motoru tarayıcısı, sohbet uygulaması önizlemesi, JS'i kapalı kullanıcı)
+   * bomboş bir belge alıyordu. Bu metinler o boşluğu dolduruyor.
+   */
+  seo: {
+    h1: "Türkiye canlı orman yangını haritası",
+    lead: "NASA FIRMS uydularının Türkiye ve çevresinde kaydettiği ısı tespitleri, yangının geldiği yön ve rüzgâra göre olası yayılma alanıyla birlikte tek haritada. Uydu ısı anomalisi görür — her tespit yangın değildir ve bu harita resmi uyarı yerine geçmez.",
+    lastSeen: "En yeni uydu tespiti: {n} saat önce.",
+    lastSeenFresh: "En yeni uydu tespiti: 1 saatten daha yeni.",
+    lastSeenUnknown: "Uydu verisine şu anda ulaşılamıyor.",
+    active: "Şu an yurt içinde {n} aktif olay izleniyor.",
+    emergency: "Orman yangını ihbarı 177 · Acil çağrı 112",
+    landing: "Bu harita nasıl çalışıyor? Veri kaynakları, güncellik ve doğruluk",
+    mapNote: "Harita yüklendiğinde bu özetin üstünü kaplar.",
+  },
+
   og: {
     status: { active: "AKTİF", waning: "SÖNÜYOR", old: "ESKİ" },
     detections: "{n} uydu tespiti · {span}",
@@ -604,6 +639,8 @@ export const tr = {
     fallbackTitle: "Türkiye canlı yangın haritası",
     fallbackSub: "Uydu tespitleri, rüzgâr akışı ve yön tahmini tek haritada",
     footer: "NASA FIRMS · resmi uyarı değildir · 112 / 177",
+    /** Bağlam haritasındaki kuzey oku */
+    north: "K",
   },
 
   shareMeta: {
@@ -618,7 +655,12 @@ export const tr = {
   },
 
   meta: {
-    homeTitle: "Algow Yangın — Türkiye canlı yangın haritası ve yön tahmini",
+    /**
+     * Başlık bilerek araç odaklı ve kısa: landing (algow.net/yangin) bilgi
+     * sorgusunu ("nasıl çalışır, veri, doğruluk") hedefliyor. İkisi de
+     * "Türkiye yangın haritası" cümlesini kovalayınca birbirini yiyorlardı.
+     */
+    homeTitle: "Canlı Yangın Haritası — Algow Yangın",
     homeDescription:
       "NASA FIRMS uydu tespitleri ve Open-Meteo rüzgar verisiyle Türkiye'deki orman yangınlarını harita üzerinde izleyin; geçmiş ilerleyişi ve rüzgara göre tahmini yönelimi görün. Uydu ısı anomalisi tespit eder, her nokta yangın olmayabilir. Toplum ve doğa yararına, ücretsiz.",
     homeOgTitle: "Algow Yangın — Türkiye canlı yangın haritası",

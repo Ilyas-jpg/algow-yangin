@@ -4,6 +4,38 @@ import { REGION_BBOX } from "./bbox";
 /** TR + Kıbrıs + Yunanistan + sınır bölgeleri — kutu `lib/bbox.ts`'te tanımlı */
 export const TR_BBOX = REGION_BBOX;
 
+/**
+ * VIIRS I-4 kanalının doyma sıcaklığı (K).
+ *
+ * Bu eşiğin üstünde sensör "daha sıcağını ayırt edemiyorum" diyor; ölçülen FRP
+ * gerçeğin ALT sınırı oluyor. Yani doyma, yangının küçüklüğünü değil
+ * büyüklüğünü gösteren bir işaret.
+ */
+export const VIIRS_TI4_DOYMA = 367;
+
+/**
+ * MODIS `type` alanı — kendi sınıflandırması.
+ * Sabit-kaynak listemize (elle pişirilmiş 50 tesis) bedava çapraz doğrulama.
+ */
+export const MODIS_TYPE = {
+  BITKI: 0,
+  VOLKAN: 1,
+  STATIK_KARA: 2,
+  DENIZ: 3,
+} as const;
+
+/**
+ * Zayıf tespit: haritada soluk çizilir, aktif sayacından düşülür.
+ *
+ * 🌙 GECE İSTİSNASI — kural bilerek `dn === "D"` şartlı. VIIRS'te gündüz
+ * yanlış pozitiflerin başlıca sebebi güneş yansımasıdır (sera örtüsü, metal
+ * çatı, su yüzeyi, açık kum); gece o mekanizma yok, `l` tespiti bile gerçek
+ * bir ısıya işaret ediyor. Geceyi de düşürmek büyüyen bir yangını tam da
+ * kimsenin bakmadığı saatte gizlemek olurdu.
+ */
+export const dusukGuven = (p: { conf: string; dn: string }): boolean =>
+  p.conf === "l" && p.dn === "D";
+
 export const FIRMS_SOURCES = [
   "VIIRS_SNPP_NRT",
   "VIIRS_NOAA20_NRT",
@@ -48,6 +80,24 @@ export function parseFirmsCsv(csv: string): FirePoint[] {
   const iConf = idx("confidence");
   const iFrp = idx("frp");
   const iDn = idx("daynight");
+  // Piksel ayak izi: VIIRS nadirde 375 m ama tarama kenarında ~800 m'ye
+  // büyüyor. Noktayı sabit boyda çizmek "konum sapması normaldir" cümlesini
+  // görselleştirmemek demek.
+  const iScan = idx("scan");
+  const iTrack = idx("track");
+  // Sensör doyması: VIIRS I-4 kanalı ≈367 K'de doyuyor. Doyduysa ölçülen FRP
+  // gerçeğin ALT sınırı — "çok şiddetli" demenin veriye dayalı yolu.
+  // Bilerek YALNIZ VIIRS: MODIS'in karşılığı `brightness` (T21) ve ~500 K'de
+  // doyuyor; ikisini aynı eşikle karıştırmak MODIS'i sürekli doymuş gösterirdi.
+  const iTi4 = idx("bright_ti4");
+  // ⚠️ ÖLÇÜLDÜ (2026-08-04): `type` sütunu **NRT ürününde YOK**. Dört kaynağın
+  // da canlı başlığı çekildi; MODIS_NRT şöyle geliyor:
+  //   latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,
+  //   instrument,confidence,version,bright_t31,frp,daynight
+  // Alan yalnız standart/arşiv (SP) ürününde var. Parse burada duruyor çünkü
+  // arşiv pişiricisi de aynı fonksiyonu çağırıyor — ama CANLI haritada sabit
+  // kaynak çapraz doğrulaması bu alandan kurulamaz.
+  const iType = idx("type");
   if (iLat < 0 || iLon < 0 || iDate < 0 || iTime < 0) return [];
 
   const out: FirePoint[] = [];
@@ -79,6 +129,15 @@ export function parseFirmsCsv(csv: string): FirePoint[] {
     const sat = (c[iSat] ?? "?").trim();
     const dnRaw = (c[iDn] ?? "D").trim().toUpperCase();
 
+    const sayi = (i: number): number | undefined => {
+      if (i < 0) return undefined;
+      const v = parseFloat(c[i]);
+      return isFinite(v) ? v : undefined;
+    };
+
+    const ti4 = sayi(iTi4);
+    const tip = iType < 0 ? undefined : parseInt(c[iType], 10);
+
     out.push({
       id: `${sat}:${lat.toFixed(4)}:${lon.toFixed(4)}:${dt}`,
       lon,
@@ -88,6 +147,10 @@ export function parseFirmsCsv(csv: string): FirePoint[] {
       sat,
       dt,
       dn: dnRaw === "N" ? "N" : "D",
+      scan: sayi(iScan),
+      track: sayi(iTrack),
+      saturated: ti4 !== undefined && ti4 >= VIIRS_TI4_DOYMA,
+      type: Number.isFinite(tip) ? tip : undefined,
     });
   }
   return out;

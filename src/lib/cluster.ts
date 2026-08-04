@@ -1,6 +1,7 @@
 import { bearingDeg, havKm, toRad } from "./geo";
 import { nearestPlace } from "./places";
 import { fixedSourceAt } from "./fixed-sources";
+import { dusukGuven } from "./firms";
 import type { FirePoint, FireEvent, PassGroup } from "./types";
 
 const EPS_KM = 3;
@@ -149,9 +150,16 @@ export function clusterEvents(points: FirePoint[]): ClusterResult {
     }
 
     const lastCut = last.t - PASS_GAP_MS;
-    const lastPassPoints = pts
-      .filter((p) => p.dt >= lastCut)
-      .map((p) => ({ lon: p.lon, lat: p.lat }));
+    const sonGecis = pts.filter((p) => p.dt >= lastCut);
+    const lastPassPoints = sonGecis.map((p) => ({ lon: p.lon, lat: p.lat }));
+
+    // Tespitlerin HEPSİ düşük güvenli gündüz kaydıysa olay aktif sayılmaz.
+    // Tek bir güvenilir (ya da gece) tespit varsa olay sayılır — eşik
+    // bilerek "hepsi", çoğunluk değil: gerçek yangını gizlemek, şüpheliyi
+    // saymaktan daha kötü.
+    const lowConfidence = pts.every(dusukGuven);
+    // Şiddet göstergesi güncel olmalı: dünkü doyma bugünkü yangını anlatmaz.
+    const saturated = sonGecis.some((p) => p.saturated === true);
 
     const frpMax = Math.max(...passes.map((p) => p.frp));
 
@@ -176,6 +184,8 @@ export function clusterEvents(points: FirePoint[]): ClusterResult {
       passes,
       drift,
       lastPassPoints,
+      lowConfidence,
+      saturated,
       status: "active",
     });
   }

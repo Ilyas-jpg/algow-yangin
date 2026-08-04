@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { FireEvent, WindPoint } from "@/lib/types";
 import { foldTr } from "@/lib/slug";
 import type { ConeGeom } from "@/lib/wind";
+import { targetsInDirection } from "@/lib/cone-places";
 import type { Footprint } from "@/lib/footprint";
 import { compass } from "@/lib/geo";
 import { angDiff, fmtAgo, fmtDayTime, fmtNum } from "@/lib/format";
@@ -89,8 +90,11 @@ export default function EventPanel(props: EventPanelProps) {
   const [q, setQ] = useState("");
   // Sabit ısı kaynakları (rafineri, çelik, santral) yangın değil — sayacı
   // şişiriyorlardı. Haritada kalıyorlar ama "aktif yangın" sayılmıyorlar.
+  // `lowConfidence`: tüm tespitleri düşük güvenli GÜNDÜZ kaydı olan olay
+  // (güneş yansıması en olası açıklama). Listede duruyor, sayaca girmiyor.
   const activeCount = events.filter(
-    (e) => e.status === "active" && !e.abroad && !e.fixedSource
+    (e) =>
+      e.status === "active" && !e.abroad && !e.fixedSource && !e.lowConfidence
   ).length;
   const fixedCount = events.filter((e) => e.fixedSource && !e.abroad).length;
   const abroadCount = events.filter((e) => e.abroad).length;
@@ -226,6 +230,17 @@ function EventCard({
           {ev.abroad && (
             <span className="shrink-0 rounded border border-line px-1.5 py-px font-mono text-[9px] tracking-wide text-ink-3">
               {t.card.abroad}
+            </span>
+          )}
+          {/* Sensör doyması: ölçülen FRP gerçeğin ALT sınırı. Sabit ısı
+              kaynağında gösterilmiyor — baca da doyurur, "şiddetli yangın"
+              diye okunması yanlış olurdu. */}
+          {ev.saturated && !ev.fixedSource && (
+            <span
+              className="shrink-0 rounded border border-danger/60 px-1.5 py-px font-mono text-[9px] tracking-wide text-danger"
+              title={t.card.saturatedTitle}
+            >
+              {t.card.saturated}
             </span>
           )}
           <span
@@ -613,6 +628,31 @@ function Assessment({
         <Rich segs={t.assess.coneMean} />
       </span>
     );
+    /**
+     * Koninin işaret ettiği yerleşimler.
+     *
+     * Koni haritada zaten var ama haritaya bakmayan biri için soyut kalıyor;
+     * yer adı "bana doğru mu geliyor" sorusunu okunur kılıyor.
+     * Dil bilerek nötr: yönelim bildirimi, TAHLİYE DEĞİL.
+     */
+    const hedefler = targetsInDirection(cone);
+    if (hedefler.length > 0) {
+      lines.push(
+        <span key="cone-places">
+          {fill(t.assess.conePlaces, {
+            yerler: hedefler
+              .map((p) =>
+                fill(t.assess.conePlacesItem, {
+                  ad: p.name,
+                  km: fmtNum(p.km, 0, locale),
+                })
+              )
+              .join(" · "),
+          })}
+          <span className="text-ink-3"> {t.assess.conePlacesNote}</span>
+        </span>
+      );
+    }
     // Rüzgârın dönmesi, doğrulama testinde tahmin hatasının kalemlerinden
     // biriydi; halkalar artık saatlik tahminle çiziliyor, kullanıcı görsün.
     if (cone.driftDeg >= 30) {

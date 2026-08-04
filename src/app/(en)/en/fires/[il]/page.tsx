@@ -4,6 +4,7 @@ import ProvinceView, { provinceSummary } from "@/components/ProvinceView";
 import { PROVINCES, provinceBySlug } from "@/lib/provinces";
 import { ilStat, ilStats } from "@/lib/il-stats";
 import { OG_LOCALE, alternatesEn, fill } from "@/lib/i18n";
+import { ogIntroImage } from "@/lib/og";
 import { getDict } from "@/i18n";
 
 const LOCALE = "en" as const;
@@ -50,6 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "website",
       locale: OG_LOCALE.en,
       url: `/en/fires/${p.slug}`,
+      images: ogIntroImage(LOCALE),
     },
   };
 }

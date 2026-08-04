@@ -146,6 +146,10 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     danger: false,
     smoke: false,
     msg: true,
+    // Kapalı başlıyor: yangın tespiti ama ~2 saat gecikmeli ve günde ~4
+    // geçiş. Varsayılan açık olsa haritada "eski" noktalar canlı sanılırdı;
+    // isteyen açar. Kapalıyken hiç çekilmiyor (EUMETSAT kotasına da saygı).
+    s3: false,
     news: true,
     // Kapalı başlıyor: gönüllü işletilen ücretsiz bir beslemeye 60 saniyede
     // bir soruyor ve çoğu gün sonuç boş. Duman/yanan alan gibi, isteyen açar.
@@ -241,6 +245,16 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     revalidateOnFocus: true,
   });
 
+  /**
+   * Sentinel-3 SLSTR FRP. Meteosat'tan keskin (1 km), ondan yavaş (~2 sa).
+   * 15 dakikada bir yenilemek anlamsız — granüller ~3 saatte bir düşüyor.
+   */
+  const { data: s3 } = useSWR<{ features?: GeoJSON.Feature[] }>(
+    layers.s3 ? "/api/sentinel3" : null,
+    fetcher,
+    { refreshInterval: 900_000, keepPreviousData: true, revalidateOnFocus: false }
+  );
+
   // Haber ihbarı: uydunun hiç göremediği yangınların tek kanalı. Katman
   // kapalıyken çekilmez — kapalı katmanın kimseye maliyeti olmasın.
   const { data: news } = useSWR<NewsResponse>(
@@ -315,11 +329,21 @@ export default function App({ focus, embed = false }: AppProps = {}) {
   // ── Türetilmiş veri
   const points = useMemo<FirePoint[]>(() => {
     if (!fires) return [];
-    return fires.features.map((f) => ({
-      ...f.properties,
-      lon: f.geometry.coordinates[0],
-      lat: f.geometry.coordinates[1],
-    }));
+    // Tel üzerindeki kısa adlar (yük kısma) burada tam adlarına çevriliyor:
+    // kümeleme ve türetimler sunucudaki `FirePoint` ile AYNI alanları görsün,
+    // yoksa `saturated` sunucuda dolu istemcide sessizce undefined kalırdı.
+    return fires.features.map((f) => {
+      const { sc, tk, x, ty, ...kalan } = f.properties;
+      return {
+        ...kalan,
+        lon: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+        scan: sc,
+        track: tk,
+        saturated: x === 1,
+        type: ty,
+      };
+    });
   }, [fires]);
 
   const { events: rawEvents, pointEvent } = useMemo(
@@ -687,6 +711,14 @@ export default function App({ focus, embed = false }: AppProps = {}) {
         ? { type: "FeatureCollection", features: msg.features }
         : EMPTY_FC,
     [msg]
+  );
+
+  const s3FC = useMemo<GeoJSON.FeatureCollection>(
+    () =>
+      s3?.features?.length
+        ? { type: "FeatureCollection", features: s3.features }
+        : EMPTY_FC,
+    [s3]
   );
 
   /**
@@ -1177,6 +1209,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
           trailFC={trailFC}
           burnedFC={burnedFC}
           msgFC={msgFC}
+          s3FC={s3FC}
           newsFC={newsFC}
           aircraftFC={aircraftFC}
           smokeFC={smokeFC}

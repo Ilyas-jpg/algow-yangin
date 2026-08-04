@@ -140,6 +140,8 @@ function sahteOlay(): FireEvent {
     passes: [{ t, t0: t, lon: 30, lat: 39, frp: 50, count: 1 }],
     drift: null,
     lastPassPoints: [{ lon: 30, lat: 39 }],
+    lowConfidence: false,
+    saturated: false,
     status: "active",
   };
 }

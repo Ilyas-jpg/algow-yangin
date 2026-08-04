@@ -10,6 +10,17 @@ export interface FirePoint {
   /** tespit zamanı, epoch ms (UTC) */
   dt: number;
   dn: "D" | "N";
+  /**
+   * Piksel ayak izinin tarama (scan) ve iz (track) yönündeki ölçüsü, km.
+   * VIIRS nadirde 0,375 ama tarama kenarında ~0,8'e büyür — noktayı sabit
+   * boyda çizmek konum belirsizliğini gizlemek olurdu.
+   */
+  scan?: number;
+  track?: number;
+  /** Sensör doydu (VIIRS bright_ti4 ≥ 367 K): FRP gerçeğin alt sınırı. */
+  saturated?: boolean;
+  /** MODIS sınıflandırması — bkz. firms.MODIS_TYPE. VIIRS'te yok. */
+  type?: number;
 }
 
 export interface FiresMeta {
@@ -27,6 +38,12 @@ export interface FiresResponse {
   meta: FiresMeta;
 }
 
+/**
+ * İstemciye giden nokta özellikleri.
+ *
+ * Alan adları kısa ve opsiyoneller yokken hiç yazılmıyor: 5 günlük pencerede
+ * ~7.700 nokta gidiyor ve hedef kitle kırsalda zayıf bağlantıda.
+ */
 export interface FirePointProps {
   id: string;
   frp: number;
@@ -34,6 +51,13 @@ export interface FirePointProps {
   sat: string;
   dt: number;
   dn: "D" | "N";
+  /** scan / track — piksel ayak izi km (yalnız elde varsa) */
+  sc?: number;
+  tk?: number;
+  /** sensör doydu (bright_ti4 ≥ 367 K) */
+  x?: 1;
+  /** MODIS type — yalnız 0 (bitki örtüsü) DIŞINDA yazılır */
+  ty?: number;
 }
 
 export interface PassGroup {
@@ -89,6 +113,16 @@ export interface FireEvent {
   drift: Drift | null;
   /** son geçişe ait noktalar (öncü kenar hesabı için) */
   lastPassPoints: { lon: number; lat: number }[];
+  /**
+   * Olayın TÜM tespitleri düşük güvenli ve gündüz — aktif sayacına katılmaz.
+   * Haritadan silinmez: uydu orada bir şey gördü, yalnız güvenimiz zayıf.
+   */
+  lowConfidence: boolean;
+  /**
+   * Son geçişte sensör doydu (VIIRS bright_ti4 ≥ 367 K). FRP gerçeğin ALT
+   * sınırı demek — yani "çok şiddetli".
+   */
+  saturated: boolean;
   status: "active" | "waning" | "old";
 }
 
@@ -116,6 +150,12 @@ export interface WindPoint {
   windDirDeg: number | null;
   gustKmh: number | null;
   vpdKpa: number | null;
+  /**
+   * Yüzey basıncı, hPa. Arayüzde gösterilmiyor; tahmin günlüğüne (ML özelliği)
+   * yazılıyor. 10 m rüzgâr yerel ve anlıktır, basınç ise hava kütlesinin
+   * nereye gittiğini taşır — yön modelinin öğrenebileceği bir bağlam.
+   */
+  pressureHpa: number | null;
   /** duman göstergesi — CAMS tabanlı yüzey konsantrasyonu, µg/m³ */
   pm25: number | null;
   pm10: number | null;
@@ -191,6 +231,12 @@ export interface LayerToggles {
   smoke: boolean;
   /** Meteosat 15 dakikalık tespitler (kaba çözünürlük, kör aralığı doldurur) */
   msg: boolean;
+  /**
+   * Sentinel-3 SLSTR FRP. Meteosat'ın tersi takas: 1 km ile ondan KESKİN
+   * ama ~2 saat gecikmeyle ondan YAVAŞ. Kör aralığı kapatmaz; keskin
+   * katmana günde ~4 ek geçiş koyar. Aktif yangın sayacına karışmaz.
+   */
+  s3: boolean;
   /**
    * Söndürme hava araçları (ADS-B). Uydu verisi DEĞİL: gönüllü alıcı ağından
    * geliyor, yayın yapmayan uçak görünmez. Aktif yangın sayacına karışmaz.

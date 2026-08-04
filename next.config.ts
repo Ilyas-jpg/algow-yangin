@@ -7,6 +7,24 @@ import type { NextConfig } from "next";
  * kapatır. CSP'de blob: worker MapLibre için, inline style Tailwind/MapLibre
  * için gerekli.
  */
+/**
+ * ⚠️ `script-src 'unsafe-inline'` BİLEREK duruyor — nonce'a geçilmedi.
+ *
+ * Next 16 nonce'ı yalnız **dinamik render**'da uygulayabiliyor
+ * (`node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md`:
+ * *"When you use nonces in your CSP, all pages must be dynamically rendered…
+ * Static optimization and ISR are disabled… Pages cannot be cached by CDNs"*).
+ * Bu projede 81 il sayfası + arşiv SSG ve platformun bütün iddiası zayıf
+ * bağlantıda hız (ilk boyama 296 ms, ikinci ziyaret 0 KB). Nonce uğruna
+ * statik üretimi kapatmak, sahadaki ekibin sayfayı geç açması demek —
+ * XSS yüzeyi burada kullanıcı girdisi almayan bir haritada zaten dar.
+ *
+ * Alternatif (denenmedi): `experimental.sri` ile hash tabanlı CSP statik
+ * üretimi koruyor ama Next'in kendi dokümanında "experimental".
+ *
+ * Şimdilik yapılan: ihlaller artık raporlanıyor (`report-uri`), yani yeni
+ * katman eklerken kırılma erken görülüyor.
+ */
 const cspParts = (frameAncestors: string) => [
   "default-src 'self'",
   "img-src 'self' data: blob: https://*.cartocdn.com https://tiles.maps.eox.at https://s3.amazonaws.com https://gibs.earthdata.nasa.gov https://maps.effis.emergency.copernicus.eu",
@@ -20,6 +38,10 @@ const cspParts = (frameAncestors: string) => [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
+  // Göreli yol bilerek: `Report-To` mutlak URL istiyor ve lokal/önizleme
+  // dağıtımlarında yanlış hedefe yazardı. `report-uri` eski ama Chrome ve
+  // Firefox'ta çalışıyor, bize lazım olan da tam bu.
+  "report-uri /api/csp-report",
 ];
 
 const CSP = cspParts("'none'").join("; ");
@@ -48,6 +70,8 @@ const ORTAK = [
 ];
 
 const nextConfig: NextConfig = {
+  // Sunucu yazılımını duyurmanın kimseye faydası yok, saldırgana var.
+  poweredByHeader: false,
   async headers() {
     return [
       {

@@ -58,3 +58,53 @@ test("ayrı geçişlerde her grubun kendi t0'ı olur", () => {
   assert.equal(g[0].t0, T);
   assert.equal(g[1].t0, T + 200 * 60_000);
 });
+
+/* ── Güven ve şiddet bayrakları (FIRMS ince ayar, 2026-08-04) ── */
+
+const pk = (over: Partial<FirePoint>, dk = 0): FirePoint => ({
+  ...p(dk),
+  id: `k${dk}${over.conf ?? ""}${over.dn ?? ""}${over.saturated ? "s" : ""}`,
+  ...over,
+});
+
+test("hepsi düşük güvenli GÜNDÜZ ise olay aktif sayılmaz", () => {
+  const { events } = clusterEvents([
+    pk({ conf: "l", dn: "D" }, 0),
+    pk({ conf: "l", dn: "D" }, 2),
+  ]);
+  assert.equal(events[0].lowConfidence, true);
+});
+
+test("düşük güvenli GECE tespiti olayı sayacın dışına atmaz", () => {
+  // Gündüz yanlış pozitiflerin sebebi güneş yansıması; gece o mekanizma yok.
+  // Geceyi de elemek, büyüyen yangını kimsenin bakmadığı saatte gizlerdi.
+  const { events } = clusterEvents([
+    pk({ conf: "l", dn: "N" }, 0),
+    pk({ conf: "l", dn: "N" }, 2),
+  ]);
+  assert.equal(events[0].lowConfidence, false);
+});
+
+test("tek güvenilir tespit olayı sayaca geri sokar", () => {
+  // Eşik bilerek 'hepsi': gerçek yangını gizlemek, şüpheliyi saymaktan kötü.
+  const { events } = clusterEvents([
+    pk({ conf: "l", dn: "D" }, 0),
+    pk({ conf: "h", dn: "D" }, 2),
+  ]);
+  assert.equal(events[0].lowConfidence, false);
+});
+
+test("doyma yalnız SON geçişten okunur", () => {
+  // Dünkü doyma bugünkü yangının şiddetini anlatmaz.
+  const eski = clusterEvents([
+    pk({ saturated: true }, 0),
+    pk({ saturated: false }, 200),
+  ]);
+  assert.equal(eski.events[0].saturated, false, "eski doyma taşınmamalı");
+
+  const yeni = clusterEvents([
+    pk({ saturated: false }, 0),
+    pk({ saturated: true }, 200),
+  ]);
+  assert.equal(yeni.events[0].saturated, true);
+});

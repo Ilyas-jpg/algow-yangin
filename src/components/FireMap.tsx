@@ -11,6 +11,11 @@ import type {
 } from "maplibre-gl";
 import type { LayerToggles, UserLocation, WindGrid } from "@/lib/types";
 import { CONE_MINZOOM, metersPerPixel } from "@/lib/geo";
+import {
+  PIXEL_MINZOOM,
+  footprintFC,
+  type FootprintInput,
+} from "@/lib/pixel-footprint";
 import { SMOKE_STEP } from "@/lib/bbox";
 
 /** Duman lekesi ızgara adımıyla birlikte büyümeli — bkz. smoke-field */
@@ -385,10 +390,28 @@ function gibsTiles(): string {
  * STYLES boş da olsa GÖNDERİLMELİ: MapServer 8 onu zorunlu tutuyor,
  * yoksa görüntü yerine ServiceException XML dönüyor.
  */
-const wms = (service: string, layer: string) =>
+const wms = (service: string, layer: string, time?: string) =>
   `https://maps.effis.emergency.copernicus.eu/${service}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
   `&LAYERS=${layer}&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857` +
-  `&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`;
+  `&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256` +
+  (time ? `&TIME=${time}` : "");
+
+/**
+ * GWIS tehlike katmanının günü (UTC).
+ *
+ * ⚠️ ZORUNLU. Katmanın TIME boyutu var (GetCapabilities: 2018-01-01/2099-12-31)
+ * ve parametre GÖNDERİLMEZSE sunucu hata değil, TAMAMEN SAYDAM karo dönüyor —
+ * yani "Tehlike" düğmesi açılıyor, hiçbir şey görünmüyor, kullanıcı katmanı
+ * bozuk sanıyor. Ölçüldü (2026-08-03): TIME'sız 0 dolu piksel, TIME=bugün ile
+ * 42.636. Sessiz bir boşluktu, hata mesajı üretmediği için fark edilmemişti.
+ *
+ * FWI günlük bir ürün; saat başı değişmiyor, o yüzden gün yeterli. Sayfa gece
+ * yarısını aşarsa dünün karosunda kalır — tehlike endeksi için kabul edilebilir
+ * (sonraki açılış tazeler).
+ */
+function gwisDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 const EMPTY_FC: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
@@ -424,6 +447,8 @@ interface FireMapProps {
   trailFC: GeoJSON.FeatureCollection;
   burnedFC: GeoJSON.FeatureCollection;
   msgFC: GeoJSON.FeatureCollection;
+  /** Sentinel-3 SLSTR — 1 km piksel, ~2 sa gecikmeli; ayrı renk, ayrı katman */
+  s3FC: GeoJSON.FeatureCollection;
   /** Haber ihbarları — doğrulanmamış, yaklaşık alan olarak çizilir */
   newsFC: GeoJSON.FeatureCollection;
   /** Söndürme hava araçları (ADS-B) — konumu kesin, nokta olarak çizilir */
@@ -452,6 +477,7 @@ export default function FireMap({
   trailFC,
   burnedFC,
   msgFC,
+  s3FC,
   newsFC,
   aircraftFC,
   smokeFC,
@@ -723,9 +749,20 @@ export default function FireMap({
       );
 
       // Yangın tehlikesi (GWIS FWI tahmini) — en altta, zemin gibi
+      //
+      // ISI HARİTASI GİBİ OKUNSUN: kaynak ızgara kaba (ECMWF ~0,25°, yani
+      // Türkiye'yi ~30 km'lik hücrelerle örtüyor) ve varsayılan en-yakın-komşu
+      // örneklemesiyle satranç tahtasına benziyordu — kullanıcı hücre
+      // kenarlarını gerçek bir sınır sanıyor. `linear` örnekleme hücreler
+      // arasını yumuşatıp alanı sürekli bir tehlike alanı gibi gösteriyor;
+      // veri aynı veri, sunum artık çözünürlüğünden fazlasını iddia etmiyor.
+      //
+      // ⚠️ Opaklık 0,45'ten 0,62'ye çıktı: koyu zeminde alt sınıflar
+      // (çok düşük/düşük) neredeyse görünmüyordu, katman "bozuk" sanılıyordu.
+      // Daha yükseği yer adlarını yutuyor — 0,62 ölçülerek seçildi.
       map.addSource("danger", {
         type: "raster",
-        tiles: [wms("gwis", "ecmwf.fwi")],
+        tiles: [wms("gwis", "ecmwf.fwi", gwisDate())],
         tileSize: 256,
         attribution: "GWIS / Copernicus EMS",
       });
@@ -735,7 +772,7 @@ export default function FireMap({
           type: "raster",
           source: "danger",
           layout: { visibility: "none" },
-          paint: { "raster-opacity": 0.45 },
+          paint: { "raster-opacity": 0.62, "raster-resampling": "linear" },
         },
         labelTop
       );
@@ -759,12 +796,14 @@ export default function FireMap({
       );
 
       map.addSource("fires", { type: "geojson", data: EMPTY_FC });
+      map.addSource("fire-pixels", { type: "geojson", data: EMPTY_FC });
       map.addSource("cones", { type: "geojson", data: EMPTY_FC });
       map.addSource("cone-lines", { type: "geojson", data: EMPTY_FC });
       map.addSource("trail", { type: "geojson", data: EMPTY_FC });
       map.addSource("burned", { type: "geojson", data: EMPTY_FC });
       map.addSource("me", { type: "geojson", data: EMPTY_FC });
       map.addSource("msg", { type: "geojson", data: EMPTY_FC });
+      map.addSource("s3", { type: "geojson", data: EMPTY_FC });
       map.addSource("news", { type: "geojson", data: EMPTY_FC });
       map.addSource("aircraft", { type: "geojson", data: EMPTY_FC });
 
@@ -1247,6 +1286,66 @@ export default function FireMap({
         },
       }, labelTop);
 
+      /**
+       * Uydu pikselinin gerçek ayak izi.
+       *
+       * Noktaların ALTINDA duruyor: asıl bilgi tespitin kendisi, elips ona
+       * bir belirsizlik payı ekliyor. VIIRS pikseli nadirde 375 m ama tarama
+       * kenarında ~800 m — "yangın tam burada" değil, "bu hücrenin içinde".
+       * Yalnız yakın zumda çiziliyor (bkz. PIXEL_MINZOOM), uzakta okunmuyor.
+       */
+      map.addLayer({
+        id: "fire-pixels-fill",
+        type: "fill",
+        source: "fire-pixels",
+        minzoom: PIXEL_MINZOOM,
+        paint: {
+          "fill-color": "#ff6a3d",
+          "fill-opacity": 0.07,
+        },
+      }, labelTop);
+
+      map.addLayer({
+        id: "fire-pixels-line",
+        type: "line",
+        source: "fire-pixels",
+        minzoom: PIXEL_MINZOOM,
+        paint: {
+          "line-color": "#ff8a5c",
+          "line-width": 0.8,
+          "line-opacity": 0.45,
+          // Kesikli: keskin bir sınır değil, ölçüm belirsizliği.
+          "line-dasharray": [2, 2],
+        },
+      }, labelTop);
+
+      /**
+       * Sentinel-3 tespitleri.
+       *
+       * FIRMS noktalarının ALTINDA ve **içi boş** çiziliyor: ikisi de yangın
+       * tespiti ama S3 ~2 saat gecikmeli ve 1 km — dolu daire yapmak onu
+       * 375 m'lik taze VIIRS tespitiyle aynı ağırlıkta gösterirdi.
+       * Renk gül kırmızısı: ateş rampasından da (turuncu), haber mavisinden,
+       * uçak turkuazından ve iz kehribarından ayrı okunuyor.
+       */
+      map.addLayer({
+        id: "s3-circles",
+        type: "circle",
+        source: "s3",
+        paint: {
+          "circle-radius": [
+            "interpolate", ["linear"], ["zoom"],
+            4, 2.4,
+            8, 4,
+            11, 6.5,
+          ],
+          "circle-color": "rgba(0,0,0,0)",
+          "circle-stroke-color": "#fb7185",
+          "circle-stroke-width": 1.6,
+          "circle-stroke-opacity": 0.9,
+        },
+      }, labelTop);
+
       map.addLayer({
         id: "fires-pulse",
         type: "circle",
@@ -1272,6 +1371,23 @@ export default function FireMap({
             11, ["*", 1.7, R_EXPR],
           ],
           "circle-color": FIRE_COLOR,
+          /**
+           * Düşük güvenli GÜNDÜZ tespiti soluk çiziliyor: gündüz yanlış
+           * pozitiflerin başlıca sebebi güneş yansıması (sera, metal çatı,
+           * su, kum). Gece o mekanizma olmadığı için `l` bile tam opak
+           * kalıyor — bkz. lib/firms.dusukGuven. Nokta GİZLENMİYOR: uydu
+           * orada bir şey gördü, biz yalnız güvenimizi görselleştiriyoruz.
+           */
+          "circle-opacity": [
+            "case",
+            [
+              "all",
+              ["==", ["get", "conf"], "l"],
+              ["==", ["get", "dn"], "D"],
+            ],
+            0.32,
+            1,
+          ],
           "circle-stroke-color": "#000000",
           "circle-stroke-width": 0.6,
           "circle-stroke-opacity": 0.5,
@@ -1457,6 +1573,50 @@ export default function FireMap({
     (map.getSource("fires") as GeoJSONSource | undefined)?.setData(mapFC);
   }, [ready, mapFC]);
 
+  /**
+   * Piksel ayak izleri — yalnız yakın zumda ve yalnız EKRANDAKİ noktalar için.
+   *
+   * 5 günlük pencerede ~9.700 tespit var; hepsine 20 köşeli poligon üretmek
+   * yakın zumda tamamen boşa iş olurdu (kullanıcı tek bir yangına bakıyor).
+   * Bu yüzden sınır süzgeci var ve kaynak harita hareket ettikçe tazeleniyor.
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+
+    const guncelle = () => {
+      const src = map.getSource("fire-pixels") as GeoJSONSource | undefined;
+      if (!src) return;
+      if (map.getZoom() < PIXEL_MINZOOM) {
+        src.setData(EMPTY_FC);
+        return;
+      }
+      const b = map.getBounds();
+      // Sentinel-3 de `sc`/`tk` taşıyor (actrack/altrack) — aynı elips
+      // makinesi ikisine de çalışıyor, ayrı kod gerekmiyor.
+      const noktalar = [
+        ...mapFC.features,
+        ...(layers.s3 && live ? s3FC.features : []),
+      ] as unknown as FootprintInput[];
+      src.setData(
+        footprintFC(noktalar, {
+          west: b.getWest(),
+          south: b.getSouth(),
+          east: b.getEast(),
+          north: b.getNorth(),
+        })
+      );
+    };
+
+    guncelle();
+    map.on("moveend", guncelle);
+    map.on("zoomend", guncelle);
+    return () => {
+      map.off("moveend", guncelle);
+      map.off("zoomend", guncelle);
+    };
+  }, [ready, mapFC, s3FC, layers.s3, live]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -1482,6 +1642,17 @@ export default function FireMap({
       layers.msg && live ? msgFC : EMPTY_FC
     );
   }, [ready, msgFC, layers.msg, live]);
+
+  // Sentinel-3 de yalnız CANLI görünümde: tespitler "şu an" demek, zaman
+  // kaydırıcısı geçmişteyken çizilmeleri o saate ait olmayan veriyi o an
+  // varmış gibi gösterirdi (Meteosat ve uçak katmanlarıyla aynı gerekçe).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("s3") as GeoJSONSource | undefined)?.setData(
+      layers.s3 && live ? s3FC : EMPTY_FC
+    );
+  }, [ready, s3FC, layers.s3, live]);
 
   // Haber ihbarı yalnız CANLI görünümde. Zaman kaydırıcısı geçmişte
   // gezerken haber göstermek, o ana ait olmayan bilgiyi o an varmış gibi

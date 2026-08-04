@@ -130,6 +130,54 @@ body {
    Harita perdenin ALTINDA aynı anda kuruluyor: perde yalnızca görsel,
    hiçbir şeyi geciktirmiyor. Süreler tek yerde (--intro-*) tanımlı ki
    JS'teki kaldırma zamanlayıcısıyla ayrışmasın.                        */
+/**
+ * Sunucudan gelen özet (components/SeoSummary.tsx).
+ *
+ * `display:none` YOK — Google gizlenmiş içeriği düşük ağırlıklandırıyor ve
+ * zaten amacı JS'siz ziyaretçiye gerçek içerik vermek. Harita `fixed` olarak
+ * yüklendiğinde DOM'da sonra geldiği için üstünü kendiliğinden kaplıyor.
+ */
+.seo-ozet {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow-y: auto;
+  padding: clamp(20px, 5vw, 56px);
+}
+
+.seo-ozet__ic {
+  display: flex;
+  max-width: 64ch;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.seo-ozet h1 {
+  font-size: clamp(24px, 4vw, 34px);
+  line-height: 1.2;
+  color: var(--color-ink);
+}
+
+.seo-ozet p {
+  color: var(--color-ink-2);
+  line-height: 1.6;
+}
+
+.seo-ozet a {
+  color: var(--color-cobalt-hover);
+  text-decoration: underline;
+}
+
+.seo-ozet__acil {
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.seo-ozet__not {
+  font-size: 13px;
+  color: var(--color-ink-3);
+}
+
 .intro {
   --intro-in: 1.15s;
   --intro-hold: 1.95s;

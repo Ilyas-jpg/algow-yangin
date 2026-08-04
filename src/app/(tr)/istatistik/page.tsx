@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import StatsView from "@/components/StatsView";
+import JsonLd from "@/components/JsonLd";
 import { alternates } from "@/lib/i18n";
+import { datasetLd, statsYears } from "@/lib/jsonld";
 import { getDict } from "@/i18n";
 
 const LOCALE = "tr" as const;
@@ -13,5 +15,12 @@ export const metadata: Metadata = {
 };
 
 export default function IstatistikPage() {
-  return <StatsView locale={LOCALE} />;
+  return (
+    <>
+      {/* Bu sayfa bir veri kümesi — arama motoruna öyle tanıtılıyor,
+          kaynağı da (NASA FIRMS) yapılandırılmış veride atfediliyor. */}
+      <JsonLd data={datasetLd(LOCALE, statsYears())} />
+      <StatsView locale={LOCALE} />
+    </>
+  );
 }

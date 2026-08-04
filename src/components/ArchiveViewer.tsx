@@ -262,6 +262,7 @@ function Viewer({
           trailFC={trailFC}
           burnedFC={EMPTY}
           msgFC={EMPTY}
+          s3FC={EMPTY}
           newsFC={EMPTY}
           aircraftFC={EMPTY}
           smokeFC={EMPTY}
@@ -281,6 +282,7 @@ function Viewer({
             danger: false,
             smoke: false,
             msg: false,
+            s3: false,
             // Arşiv geçmiş bir yangını oynatıyor; bugünün haber akışının
             // orada işi yok. Aynı gerekçe hava araçları için de geçerli —
             // elimizde geçmiş uçuş izi yok, bugünkü uçağı 2021'in yangını

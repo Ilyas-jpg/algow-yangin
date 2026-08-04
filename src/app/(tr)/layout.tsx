@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "../globals.css";
 import ServiceWorker from "@/components/ServiceWorker";
+import Preconnect from "@/components/Preconnect";
 import { Analytics } from "@vercel/analytics/next";
 import { getDict } from "@/i18n";
-import { HTML_LANG, OG_LOCALE } from "@/lib/i18n";
+import { HTML_LANG } from "@/lib/i18n";
+import { siteOpenGraph, siteTwitter } from "@/lib/og";
 
 /**
  * Türkçe kök düzeni.
@@ -26,12 +28,8 @@ export const metadata: Metadata = {
   title: t.meta.homeTitle,
   description: t.meta.homeDescription,
   metadataBase: new URL("https://yangin.algow.net"),
-  openGraph: {
-    title: t.meta.homeOgTitle,
-    description: t.meta.homeOgDescription,
-    locale: OG_LOCALE.tr,
-    type: "website",
-  },
+  openGraph: siteOpenGraph("tr"),
+  twitter: siteTwitter("tr"),
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -70,6 +68,7 @@ export default function TrRootLayout({
   return (
     <html lang={HTML_LANG.tr}>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <Preconnect />
         {children}
         <ServiceWorker />
         {/* Trafik ölçümü. Script ve beacon aynı origin (/_vercel/insights/*),

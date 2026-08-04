@@ -1,3 +1,6 @@
+/* Satori kendi <img>'ini rasterize ediyor; next/image burada çalışmaz —
+   uyarı bu dosyada yanlış pozitif (aynı gerekçe Intro.tsx'te de yazılı). */
+/* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { lookupEvent, normalizeDays } from "@/lib/event-lookup";
@@ -6,10 +9,18 @@ import { LANG_PARAM } from "@/lib/share-metadata";
 import { fmtNum } from "@/lib/format";
 import { compass } from "@/lib/geo";
 import { fill, type Locale } from "@/lib/i18n";
+import { contextMap } from "@/lib/og-map";
 import { getDict } from "@/i18n";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+/** Bağlam haritasının kart içindeki ölçüsü. */
+const HARITA_G = 470;
+const HARITA_Y = 300;
+
+const kis = (n: number, alt: number, ust: number) =>
+  Math.max(alt, Math.min(ust, n));
 
 const INK = "#e8e8ea";
 const INK_2 = "#a8a8b3";
@@ -42,6 +53,9 @@ export async function GET(request: NextRequest) {
       : ev?.status === "waning"
         ? { t: t.og.status.waning, c: "#d9a441" }
         : { t: t.og.status.old, c: INK_3 };
+
+  // Karo çekilmiyor; harita eldeki tespit ve geçiş verisinden çiziliyor.
+  const harita = ev ? contextMap(ev, HARITA_G, HARITA_Y) : null;
 
   const saat = ev ? Math.max(0.5, (ev.lastSeen - ev.firstSeen) / 3600_000) : 0;
   const sure = ev
@@ -105,27 +119,90 @@ export async function GET(request: NextRequest) {
         </div>
 
         {/* Gövde */}
-        {ev ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div style={{ display: "flex", fontSize: 76, lineHeight: 1.05 }}>
-              {ev.place}
+        {ev && harita ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
+            {/* Bağlam haritası: solda şekil, sağda sayı.
+                Etiketler SVG'ye gömülmüyor — data-URI rasterize edilirken
+                font olmadığı için metin boş çıkardı. */}
+            <div
+              style={{
+                display: "flex",
+                position: "relative",
+                width: HARITA_G,
+                height: HARITA_Y,
+                borderRadius: 10,
+                overflow: "hidden",
+                border: `2px solid ${LINE}`,
+              }}
+            >
+              <img src={harita.src} width={HARITA_G} height={HARITA_Y} alt="" />
+              {harita.labels.map((l, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    position: "absolute",
+                    left: kis(l.x + 9, 4, HARITA_G - 100),
+                    top: kis(l.y - 11, 2, HARITA_Y - 40),
+                    fontSize: 19,
+                    color: INK_2,
+                  }}
+                >
+                  {l.text}
+                </div>
+              ))}
+              <div
+                style={{
+                  display: "flex",
+                  position: "absolute",
+                  left: harita.scale.x,
+                  top: harita.scale.y - 24,
+                  fontSize: 17,
+                  color: INK_3,
+                }}
+              >
+                {harita.scaleText}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  position: "absolute",
+                  right: 16,
+                  top: 32,
+                  fontSize: 17,
+                  color: INK_3,
+                }}
+              >
+                {t.og.north}
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 20 }}>
-              <div style={{ display: "flex", fontSize: 60, color: DANGER }}>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+                flex: 1,
+              }}
+            >
+              <div style={{ display: "flex", fontSize: 48, lineHeight: 1.08 }}>
+                {ev.place}
+              </div>
+              <div style={{ display: "flex", fontSize: 54, color: DANGER }}>
                 {fmtNum(ev.frpLast, 0, locale)} MW
               </div>
-              <div style={{ display: "flex", fontSize: 30, color: INK_2 }}>
+              <div style={{ display: "flex", fontSize: 26, color: INK_2 }}>
                 {fill(t.og.detections, { n: ev.count, span: sure })}
               </div>
+              {ev.drift && (
+                <div style={{ display: "flex", fontSize: 26, color: INK_2 }}>
+                  {fill(t.og.drift, {
+                    dir: compass(ev.drift.bearingDeg, locale),
+                    km: fmtNum(ev.drift.km, 1, locale),
+                  })}
+                </div>
+              )}
             </div>
-            {ev.drift && (
-              <div style={{ display: "flex", fontSize: 30, color: INK_2 }}>
-                {fill(t.og.drift, {
-                  dir: compass(ev.drift.bearingDeg, locale),
-                  km: fmtNum(ev.drift.km, 1, locale),
-                })}
-              </div>
-            )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>

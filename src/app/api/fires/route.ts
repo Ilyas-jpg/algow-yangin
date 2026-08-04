@@ -37,6 +37,13 @@ export async function GET(request: NextRequest) {
       sat: p.sat,
       dt: p.dt,
       dn: p.dn,
+      // Opsiyoneller yalnız değer taşıdıklarında yazılıyor: noktaların
+      // büyük çoğunluğu doymamış ve MODIS tipi 0, `"x":0` / `"ty":0`
+      // yazmak 7.700 noktada bedava olmayan bir yük olurdu.
+      ...(p.scan !== undefined ? { sc: Math.round(p.scan * 100) / 100 } : {}),
+      ...(p.track !== undefined ? { tk: Math.round(p.track * 100) / 100 } : {}),
+      ...(p.saturated ? { x: 1 as const } : {}),
+      ...(p.type !== undefined && p.type !== 0 ? { ty: p.type } : {}),
     },
   }));
 

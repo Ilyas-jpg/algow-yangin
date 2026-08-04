@@ -5,6 +5,9 @@ import { archiveIndex } from "@/lib/archive-server";
 import { archiveText } from "@/lib/archive";
 import { fmtNum } from "@/lib/format";
 import { OG_LOCALE, alternates, fill } from "@/lib/i18n";
+import { ogIntroImage } from "@/lib/og";
+import { archiveFireLd } from "@/lib/jsonld";
+import JsonLd from "@/components/JsonLd";
 import { getDict } from "@/i18n";
 
 const LOCALE = "tr" as const;
@@ -35,7 +38,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: alternates(`/arsiv/${k.slug}`),
-    openGraph: { title, description, type: "article", locale: OG_LOCALE.tr },
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      locale: OG_LOCALE.tr,
+      images: ogIntroImage(LOCALE),
+    },
   };
 }
 
@@ -44,5 +53,21 @@ export default async function ArchiveFirePage({ params }: Props) {
   const k = archiveIndex().find((x) => x.slug === slug);
   if (!k) notFound();
 
-  return <ArchiveFireView k={k} locale={LOCALE} />;
+  const { ad } = archiveText(k, LOCALE);
+  return (
+    <>
+      {/* Arşiv kaydı belgelenmiş bir olay: Article + Place. */}
+      <JsonLd
+        data={archiveFireLd(LOCALE, {
+          title: fill(getDict(LOCALE).meta.archiveFireTitle, { ad }),
+          description: k.ozet,
+          url: `/arsiv/${k.slug}`,
+          il: k.il,
+          ilk: k.ilk,
+          son: k.son,
+        })}
+      />
+      <ArchiveFireView k={k} locale={LOCALE} />
+    </>
+  );
 }
