@@ -64,6 +64,13 @@ export async function GET() {
         newest: sonuc.newest,
         /** ölçülen üretim gecikmesi (dk) — arayüzde dürüstçe yazılacak */
         gecikmeDk: 110,
+        /**
+         * İndirilemeyen granüllerin sebepleri. Yalnız HTTP durumu taşır,
+         * kimlik bilgisi taşımaz. Katmanın sessizce boş kalması ile
+         * "gerçekten tespit yok" ayrımı dışarıdan görülebilsin diye var
+         * (FIRMS route'undaki meta.errors ile aynı gerekçe).
+         */
+        errors: sonuc.errors,
         source: "EUMETSAT Data Store · Sentinel-3 SLSTR L2 FRP (NRT)",
       },
     },

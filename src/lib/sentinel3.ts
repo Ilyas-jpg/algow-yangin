@@ -197,24 +197,45 @@ export async function searchGranules(
   return out.sort((a, b) => b.bitis - a.bitis);
 }
 
-/** Granülün yalnız CSV'sini çeker (tam zip'i değil). */
+export interface GranuleSonuc {
+  fires: S3Fire[];
+  /** Başarısızsa kısa sebep (yalnız sunucu tarafı teşhis için). */
+  hata: string | null;
+}
+
+/**
+ * Granülün yalnız CSV'sini çeker (tam zip'i değil).
+ *
+ * ⚠️ İki deneme: EUMETSAT uçlarının geçici **503** verdiği canlıda görüldü
+ * (token ucunda yaşandı). Sessizce boş dönmek, katmanı sebebi görünmeden
+ * ölü bırakıyordu — hata artık yukarı taşınıyor.
+ */
 export async function fetchGranuleCsv(
   token: string,
   id: string
-): Promise<S3Fire[]> {
+): Promise<GranuleSonuc> {
   const url =
     `${INDIR_URL}/${encodeURIComponent(S3_COLLECTION)}/products/${encodeURIComponent(id)}` +
     `/entry?name=${encodeURIComponent(`${id}/${SEMA}`)}`;
-  try {
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    return parseFrpCsv(await res.text());
-  } catch {
-    return [];
+
+  let sonHata = "bilinmiyor";
+  for (let deneme = 0; deneme < 2; deneme++) {
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        // Önbellek BİLEREK kapalı: `next.revalidate` ile Authorization
+        // başlıklı istekler beklenmedik davranıyordu, üstelik granül
+        // içeriği zaten değişmiyor — tekrar sorulması da nadir.
+        cache: "no-store",
+      });
+      if (res.ok) return { fires: parseFrpCsv(await res.text()), hata: null };
+      sonHata = `HTTP ${res.status}`;
+    } catch (e) {
+      sonHata = String(e).slice(0, 60);
+    }
+    if (deneme === 0) await new Promise((r) => setTimeout(r, 500));
   }
+  return { fires: [], hata: sonHata };
 }
 
 export interface S3Sonuc {
@@ -222,6 +243,8 @@ export interface S3Sonuc {
   granul: number;
   /** en yeni tespitin zamanı */
   newest: number | null;
+  /** indirilemeyen granüllerin sebepleri — katman sessizce ölmesin */
+  errors: string[];
 }
 
 /**
@@ -236,10 +259,16 @@ export async function fetchLatest(hoursBack = 12): Promise<S3Sonuc | null> {
   if (!token) return null;
 
   const granuller = await searchGranules(token, hoursBack);
-  if (granuller.length === 0) return { fires: [], granul: 0, newest: null };
+  if (granuller.length === 0)
+    return { fires: [], granul: 0, newest: null, errors: [] };
 
   const hepsi: S3Fire[] = [];
-  for (const g of granuller) hepsi.push(...(await fetchGranuleCsv(token, g.id)));
+  const errors: string[] = [];
+  for (const g of granuller) {
+    const r = await fetchGranuleCsv(token, g.id);
+    hepsi.push(...r.fires);
+    if (r.hata) errors.push(r.hata);
+  }
 
   // Aynı piksel iki granülün örtüştüğü şeritte iki kez gelebilir.
   const gorulen = new Set<string>();
@@ -255,5 +284,6 @@ export async function fetchLatest(hoursBack = 12): Promise<S3Sonuc | null> {
     fires,
     granul: granuller.length,
     newest: fires.length ? Math.max(...fires.map((f) => f.dt)) : null,
+    errors,
   };
 }
