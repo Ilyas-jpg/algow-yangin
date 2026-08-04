@@ -101,6 +101,8 @@ export const en: Dict = {
     danger:
       "Fire danger (FWI) — from weather; it does not mean there is a fire, but that one would spread easily",
     recent: "Detection seen in the last 6 hours",
+    pixel:
+      "The satellite pixel's true footprint (close zoom) — the heat is somewhere inside this cell; it is not the size of the fire. VIIRS is 375 m at nadir, MODIS grows to 4 km at the swath edge.",
     note: [
       ["A satellite does not see flames, it sees "],
       ["heat", "b"],

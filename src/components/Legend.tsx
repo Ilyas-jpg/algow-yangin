@@ -71,6 +71,24 @@ export default function Legend() {
           {t.legend.recent}
         </span>
       </div>
+      {/* Piksel ayak izi. Kullanıcı sordu ("bu elipsler ne?") — yeni bir
+          görsel öğe eklenip sözlüğe yazılmayınca haritada açıklamasız bir
+          şekil kalıyor. Elips gerçek ölçüyü taşıyor: MODIS pikseli tarama
+          kenarında 4 km'ye çıkabiliyor. */}
+      <div className="mt-1.5 flex items-center gap-2">
+        <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden className="shrink-0">
+          <ellipse
+            cx="8" cy="6" rx="6.6" ry="4.2"
+            fill="#ff6a3d" fillOpacity="0.07"
+            stroke="#ff8a5c" strokeOpacity="0.55" strokeWidth="0.9"
+            strokeDasharray="2 2"
+          />
+          <circle cx="8" cy="6" r="1.8" fill="#ff8a5c" />
+        </svg>
+        <span className="text-[10px] leading-tight text-ink-2">
+          {t.legend.pixel}
+        </span>
+      </div>
 
       {/* Tehlike katmanının skalası. Katman açıkken haritayı baştan başa
           renklendiriyor ve neyin ne demek olduğu hiçbir yerde yazmıyordu —

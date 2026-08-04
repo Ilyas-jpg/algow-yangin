@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FireEvent, WindPoint } from "@/lib/types";
 import { foldTr } from "@/lib/slug";
 import type { ConeGeom } from "@/lib/wind";
@@ -213,8 +213,25 @@ function EventCard({
   const trend = trendOf(ev);
   const cone = cones.find((c) => c.eventId === ev.id);
 
+  /**
+   * Seçilen kartı görünüre getir.
+   *
+   * Detay kartın İÇİNDE açılıyor; kullanıcı yangını haritadan seçtiğinde
+   * kart listenin çok aşağısında olabiliyor ve panelde elle aranması
+   * gerekiyordu. `start` ile kartın başı üste hizalanıyor, böylece altında
+   * açılan detay da tek bakışta görünüyor.
+   */
+  const satirRef = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (!selected) return;
+    const el = satirRef.current;
+    if (!el) return;
+    const azalt = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ block: "start", behavior: azalt ? "auto" : "smooth" });
+  }, [selected]);
+
   return (
-    <li>
+    <li ref={satirRef}>
       <button
         onClick={() => onSelect(selected ? null : ev.id)}
         className={`block w-full px-3 py-2.5 text-left transition-colors ${

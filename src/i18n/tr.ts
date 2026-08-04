@@ -99,6 +99,8 @@ export const tr = {
     danger:
       "Yangın tehlikesi (FWI) — hava koşullarından; yangın olduğu değil, çıkarsa kolay yayılacağı anlamına gelir",
     recent: "Son 6 saatte görülen tespit",
+    pixel:
+      "Uydu pikselinin gerçek ayak izi (yakın zumda) — ısı bu hücrenin içinde bir yerde; yangının boyu değildir. VIIRS nadirde 375 m, MODIS tarama kenarında 4 km'ye çıkar.",
     note: [
       ["Uydu alev değil "],
       ["ısı", "b"],
