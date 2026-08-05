@@ -253,4 +253,16 @@ for ad, v in onem[:12]:
 karne["onem_buyume"] = {a: round(float(100 * v / top), 2) for a, v in onem}
 
 (BURADA / "model-karne.json").write_text(json.dumps(karne, ensure_ascii=False, indent=1), encoding="utf8")
-print("\nmodel-karne.json yazıldı.")
+
+# ══════════════════ BÜYÜME TAHMİNLERİNİ DIŞA VER ══════════════════
+# 30-koni-kisitla.mjs bunları kullanıp "büyümeyecek yangına koni çizme"
+# fikrinin kapsama/alan bilançosunu çıkarıyor. CV tahmini katman-dışı
+# (oof1), holdout tahmini modeli hiç görmemiş sette.
+tahmin = pd.concat(
+    [
+        pd.DataFrame({"ev": egitim.ev, "t0": egitim.t0, "holdout": 0, "p": oof1, "t_buyudu": egitim.t_buyudu}),
+        pd.DataFrame({"ev": holdout.ev, "t0": holdout.t0, "holdout": 1, "p": h1, "t_buyudu": holdout.t_buyudu}),
+    ]
+)
+tahmin.to_csv(BURADA / "buyume-tahmin.csv", index=False)
+print(f"\nmodel-karne.json + buyume-tahmin.csv ({len(tahmin)} satır) yazıldı.")
