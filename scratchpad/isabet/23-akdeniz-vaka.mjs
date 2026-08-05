@@ -104,6 +104,18 @@ function cluster(points) {
   return [...groups.values()];
 }
 
+/** Bir geçişin ayak izi: sınırlayıcı kutunun köşegeni (km). */
+function ayakIziKm(pts) {
+  let lo0 = Infinity, la0 = Infinity, lo1 = -Infinity, la1 = -Infinity;
+  for (const p of pts) {
+    if (p.lon < lo0) lo0 = p.lon;
+    if (p.lon > lo1) lo1 = p.lon;
+    if (p.lat < la0) la0 = p.lat;
+    if (p.lat > la1) la1 = p.lat;
+  }
+  return havKm(lo0, la0, lo1, la1);
+}
+
 function passesOf(pts) {
   pts.sort((a, b) => a.dt - b.dt);
   const passes = [];
@@ -311,7 +323,15 @@ for (const g of groups) {
     cases.push({
       ev: id,
       bolge,
+      // 🔴 spanKm OLAYIN TAMAMINDAN hesaplanır — t1'den SONRAKİ geçişleri de
+      // içerir. ML'de ÖZELLİK OLARAK KULLANMA, sızıntıdır ("bu yangın sonunda
+      // ne kadar büyüdü" bilgisini taşır). Süzgeç/teşhis için kalıyor.
       spanKm: +spanKm.toFixed(1),
+      // ── t0'da BİLİNENLER (sızıntısız; P2'nin cases-wild şemasında vardı,
+      //    pan-Akdeniz hattında düşmüştü) ──
+      nA: a.count,                      // t0 geçişindeki tespit sayısı
+      frpA: +a.frp.toFixed(1),          // t0 geçişinin toplam ışıma gücü (MW)
+      spanA: +ayakIziKm(a.pts).toFixed(2), // t0 ayak izinin köşegeni (km)
       lon: +a.lon.toFixed(4),
       lat: +a.lat.toFixed(4),
       t0: a.t,
