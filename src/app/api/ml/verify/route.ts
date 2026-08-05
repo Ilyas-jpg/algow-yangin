@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { havKm, reachShape } from "@/lib/geo";
 import { reachRatio } from "@/lib/wind";
-import { angleGap, pointInRing, progression } from "@/lib/progression";
+import { angleGap, makulIlerlemeKm, pointInRing, progression } from "@/lib/progression";
 import { supabaseAdmin } from "@/lib/ml-db";
 
 /**
@@ -162,7 +162,18 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    const il = progression(once, sonra);
+    /* 🐛 DÜZELTME 2026-08-05 — "8 km'de 0,7 saat" hatası.
+     * Doğrulama tespitleri kimlikle değil YARIÇAPLA topluyor (kümeleme yok),
+     * bu yüzden aynı yarıçapa düşen AYRI bir yangın bu yangının "başı"
+     * sayılabiliyordu. Canlı karnede tam bu oldu: tek bir olayın 7 tahmininde
+     * de gözlenen ilerleme birebir 7,92 km / 322° yazıldı — oysa geçen süre
+     * 0,7 ile 5,6 saat arasında değişiyordu. 0,7 saatte 7,92 km = 11,3 km/sa,
+     * korpustaki 2.383 vakanın hiçbirinde görülmeyen bir hız (max 7,44).
+     * Sonuç: kapsama 0/7 çıktı ve yön hatası şişti.
+     * Çözüm: geçen süreye göre makul ilerleme tavanı (bkz. MAX_ILERLEME_KMH). */
+    const gecenSaat =
+      (Math.max(...sonra.map((d) => Date.parse(d.dt))) - t0) / 3600_000;
+    const il = progression(once, sonra, undefined, makulIlerlemeKm(gecenSaat));
     // Şekil, tahmin ANINDA kaydedilen rüzgâr hızıyla yeniden kuruluyor:
     // erişim zarfı 2026-08-04'ten beri rüzgâra bağlı (zayıfta daire, güçlüde
     // damla). Sabit şekille puanlamak, çizilmemiş bir şekli doğrulamak olurdu.

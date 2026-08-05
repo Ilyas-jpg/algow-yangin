@@ -50,8 +50,48 @@ export interface Progression {
  */
 export const NEW_KM = 1.5;
 
-/** İki geçiş arasındaki ilerleme. `prev` boşsa ilerleme tanımsızdır. */
-export function progression(prev: Pt[], next: Pt[], newKm = NEW_KM): Progression {
+/**
+ * Bir ilerlemenin "bu yangına ait" sayılabilmesi için azami hız, km/sa.
+ *
+ * Bu bir "yangın bundan hızlı olamaz" iddiası DEĞİL, **ölçüm makullüğü
+ * eşiği**: bundan hızlı görünen bir ilerleme neredeyse her zaman ayrı bir
+ * yangının aynı yarıçapa düşmesidir. Doğrulama hattı kimlik yerine yarıçapla
+ * tespit topluyor (kümeleme yok), bu ayrımı yapacak başka şeyi yok.
+ *
+ * 🔑 DEĞER KORPUSUN KENDİ TAVANINDAN GELİYOR. `%90 kapsama` rakamını üreten
+ * ölçüm hattı (`scratchpad/isabet/23-akdeniz-vaka.mjs`) `MAX_ILER_KM = 15`
+ * kullanıyor ve pencereleri ~12 saat → efektif **15/12 = 1,25 km/sa**.
+ * Canlı doğrulamayı farklı bir eşikle koşturmak, yayındaki iddiayı üretenden
+ * başka bir cetvelle puanlamak olurdu.
+ *
+ * Gerçek dağılımla tutarlı (2.383 orman/maki vakası, en uzak yeni hücre /
+ * süre): medyan 0,14 · %90 0,55 · %95 0,76 · **%99 1,21** · max 7,44 km/sa.
+ * Yani eşik ~%99'a düşüyor: gerçek vakaların %1'ini kırpar, buna karşılık
+ * komşu yangını "baş" sanmayı engeller.
+ */
+export const MAX_ILERLEME_KMH = 1.25;
+
+/**
+ * Geçen süreye göre makul azami ilerleme. Taban 1,5 km — kısa pencerede bile
+ * piksel geolokasyon oynaması bu mertebede olabilir, onu kırpmak istemiyoruz.
+ */
+export function makulIlerlemeKm(saat: number): number {
+  return Math.max(NEW_KM, MAX_ILERLEME_KMH * Math.max(0, saat));
+}
+
+/**
+ * İki geçiş arasındaki ilerleme. `prev` boşsa ilerleme tanımsızdır.
+ *
+ * `maxKm` verilirse bundan uzağa düşen pikseller "yeni" sayılmaz — bkz.
+ * `MAX_ILERLEME_KMH`. Verilmezse üst sınır yoktur (ölçüm betikleri kendi
+ * eşiklerini uyguluyor).
+ */
+export function progression(
+  prev: Pt[],
+  next: Pt[],
+  newKm = NEW_KM,
+  maxKm = Infinity
+): Progression {
   const bos: Progression = {
     newPixels: 0,
     newPts: [],
@@ -75,7 +115,7 @@ export function progression(prev: Pt[], next: Pt[], newKm = NEW_KM): Progression
         yakin = r;
       }
     }
-    if (!yakin || yakinKm < newKm) continue;
+    if (!yakin || yakinKm < newKm || yakinKm > maxKm) continue;
     newPts.push({
       lon: q.lon,
       lat: q.lat,
