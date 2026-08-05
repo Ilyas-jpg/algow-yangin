@@ -228,6 +228,16 @@ for (const c of havuz) {
     /* ── özellikler: fizik temel çizgisi ── */
     f_phiW: +phiW.toFixed(3),
     f_phiS: +phiS.toFixed(3),
+    /* Eğimin toplam zorlamadaki PAYI — üretimde `slopeShare` diye zaten var.
+     * Sapma, eğim ile rüzgâr birbirine yakın güçteyken ve açılıyken büyük. */
+    f_egimPayi: +(phiS / (phiW + phiS + 1e-9)).toFixed(4),
+    /* Literatür (MDPI Fire 9(3):100 · ScienceDirect S0168192326001267):
+     * yayılım açısının rüzgârdan sapması EĞİM dikleştikçe ARTAR, ÇAPRAZ-EĞİM
+     * rüzgârı güçlendikçe AZALIR. Rüzgârı yokuş eksenine göre ayrıştır. */
+    f_caprazRuzgar: +(r0.hiz * Math.sin(toRad(sapma(e.yokus, r0.yon)))).toFixed(2),
+    f_boyunaRuzgar: +(r0.hiz * Math.cos(toRad(sapma(e.yokus, r0.yon)))).toFixed(2),
+    /* Yangının "hissettiği" çapraz diklik: yamaç, rüzgâra dik bileşeniyle. */
+    f_caprazEgim: +(e.egim * Math.abs(Math.sin(toRad(sapma(e.yokus, r0.yon))))).toFixed(2),
 
     /* ── özellikler: süreklilik (ÖNCEKİ pencereden, sızıntı değil) ── */
     f_oncekiBuyudu: c.prev ? (c.prev.cephe !== null ? 1 : 0) : null,
