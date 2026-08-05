@@ -24,10 +24,13 @@ on:
     # Doğrulama: saat başı. Konilerin en az 10 saat yaşlanması bekleniyor
     # (FIRMS NRT gecikmesi ölçüldü: 1-8 saat), o yüzden sık koşmanın anlamı yok.
     - cron: "7 * * * *"
+    # Sağlık: saat başı, doğrulamadan ayrı dakikada (aynı anda iki uç çağırıp
+    # birbirinin kotasını yemesin).
+    - cron: "37 * * * *"
   workflow_dispatch:
     inputs:
       job:
-        description: "Elle çalıştır: cone | verify | ikisi"
+        description: "Elle çalıştır: cone | verify | saglik | ikisi"
         required: false
         default: "ikisi"
 
@@ -41,7 +44,13 @@ concurrency:
 jobs:
   cone:
     name: Tahmin günlüğü
-    if: github.event.schedule == '*/15 * * * *' || github.event.inputs.job != 'verify'
+    # ⚠️ Koşul AÇIK yazılmalı. Eski hâli `|| inputs.job != 'verify'` idi ve
+    # zamanlanmış çalışmada `inputs.job` boş olduğu için o parça HER kronda
+    # doğru oluyordu — yeni bir `schedule` eklenince bu iş de onunla birlikte
+    # tetiklenirdi (sağlık kronu eklenirken yakalandı, 2026-08-05).
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '*/15 * * * *') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'verify' && github.event.inputs.job != 'saglik')
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -63,9 +72,47 @@ jobs:
             exit 1
           fi
 
+  saglik:
+    # Bu platformun iki ciddi arızası da SESSİZDİ: FIRMS'in boğulma yanıtı
+    # "veri yok" sanıldı, ve doğrulama 8 km ötedeki ayrı yangını "baş" sayıp
+    # günlerce yanlış karne üretti. İkisi de çökmedi, hata vermedi — durum kodu
+    # izleyen bir araç ikisini de göremezdi. Bu iş, /api/saglik'in makullük
+    # denetimleri düşerse GitHub'ı kırmızıya çevirir ve bildirim gönderir.
+    name: Sağlık denetimi
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '37 * * * *') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'saglik')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Platform kendi çıktısını denetlesin
+        env:
+          BASE: ${{ vars.YANGIN_BASE_URL || 'https://yangin.algow.net' }}
+        run: |
+          kod=$(curl -sS --max-time 90 -o saglik.json -w '%{http_code}' "$BASE/api/saglik")
+          cat saglik.json; echo
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          d = json.load(open("saglik.json"))
+          print(f"### {'✅ sağlıklı' if d.get('ok') else '🔴 ARIZA'}"
+                f" · sezon içi: {d.get('sezonIci')}")
+          print("| denetim | durum | değer | not |")
+          print("|---|---|---|---|")
+          for c in d.get("denetimler", []):
+              print(f"| {c['ad']} | {'✅' if c['ok'] else '🔴'} | {c['deger']} | {c.get('not','')} |")
+          PY
+          # 503 = en az bir denetim düştü. Sessiz arızayı GÖRÜNÜR kılmak bu işin
+          # tek amacı, o yüzden burada başarısız oluyoruz.
+          if [ "$kod" != "200" ]; then
+            echo "::error::/api/saglik HTTP $kod — yukarıdaki tabloda düşen denetime bak"
+            exit 1
+          fi
+
   verify:
     name: Tahmin doğrulama
-    if: github.event.schedule == '7 * * * *' || github.event.inputs.job != 'cone'
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '7 * * * *') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'cone' && github.event.inputs.job != 'saglik')
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
