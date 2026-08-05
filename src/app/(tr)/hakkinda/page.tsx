@@ -213,7 +213,7 @@ export default function HakkindaPage() {
               id="anma"
               className="mt-4 text-lg font-medium tracking-tight text-ink"
             >
-              Yeşil vatanı korurken hayatını kaybedenler
+              Yeşil vatanı korurken şehit olanlar
             </h2>
             <p className="mt-3 leading-relaxed">
               <b className="font-medium text-ink">23 Temmuz 2025</b>, Eskişehir
@@ -222,15 +222,16 @@ export default function HakkindaPage() {
               <b className="font-medium text-ink">
                 Beş orman işçisi ve beş AKUT gönüllüsü
               </b>{" "}
-              hayatını kaybetti. O sezon Türkiye orman yangınlarında toplam{" "}
-              <b className="font-medium text-ink">17 can</b>{" "}
-              yitirildi; İzmir Ödemiş&apos;te, Bursa&apos;da, Osmaniye&apos;de
-              de görevi başında ölenler oldu.
+              şehit oldu. O sezon Türkiye orman yangınlarında toplam{" "}
+              <b className="font-medium text-ink">17 şehit</b>{" "}
+              verildi; İzmir Ödemiş&apos;te, Bursa&apos;da, Osmaniye&apos;de de
+              görevi başında şehit olanlar oldu.
             </p>
             <p className="mt-3 leading-relaxed">
               Herkesin kaçtığı yöne yürüyen insanlardı. Bir yangın hattında
               rüzgârın dönmesi saniyeler meselesidir ve geri dönüş yolunu bir
-              anda kapatır; Seyitgazi&apos;de olan buydu.
+              anda kapatır; Seyitgazi&apos;de olan buydu. Şehitlerimizi saygı ve
+              minnetle anıyoruz.
             </p>
             <p className="mt-3 leading-relaxed">
               Bu sitedeki koninin ölçtüğü tek şey{" "}

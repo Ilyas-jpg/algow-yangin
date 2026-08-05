@@ -239,7 +239,7 @@ export default function AboutPage() {
               id="memorial"
               className="mt-4 text-lg font-medium tracking-tight text-ink"
             >
-              Those who died protecting the forests
+              Those who fell protecting the forests
             </h2>
             <p className="mt-3 leading-relaxed">
               <b className="font-medium text-ink">23 July 2025</b>, Seyitgazi in
@@ -248,15 +248,18 @@ export default function AboutPage() {
               <b className="font-medium text-ink">
                 Five forest workers and five AKUT search-and-rescue volunteers
               </b>{" "}
-              were killed. Across that season&apos;s forest fires in Türkiye{" "}
-              <b className="font-medium text-ink">17 people</b> lost their lives;
-              there were also deaths on duty in İzmir Ödemiş, in Bursa and in
-              Osmaniye.
+              fell. Across that season&apos;s forest fires in Türkiye{" "}
+              <b className="font-medium text-ink">17 lives</b>{" "}
+              were given; there were also those who fell in the line of duty in
+              İzmir Ödemiş, in Bursa and in Osmaniye. In Turkish they are called{" "}
+              <i>şehit</i> — the word this country reserves for those who die
+              serving it.
             </p>
             <p className="mt-3 leading-relaxed">
               They walked toward what everyone else runs from. On a fire line a
               wind shift is a matter of seconds, and it can close the way back
-              at once. That is what happened at Seyitgazi.
+              at once. That is what happened at Seyitgazi. We remember them with
+              respect and gratitude.
             </p>
             <p className="mt-3 leading-relaxed">
               The cone on this site measures exactly one thing:{" "}
