@@ -14,9 +14,34 @@ geçişin öncü kenarından başlayarak rüzgâra göre **1/3/6 saatlik tahmini
 yönelim konisi** üretir. Gözlenen ilerleme ile rüzgâr tahminini yan yana
 koyar: ikisi ayrışıyorsa rüzgârın döndüğünü söyler.
 
-Tahmin konisi bilimsel bir yangın davranış modeli **değildir** — arazi eğimi,
-yakıt tipi ve söndürme müdahalesi hesaba katılmaz. Arayüz bunu her yerde
-belirtir ve acil durumda 112 / 177'ye yönlendirir.
+Koni, rüzgâr ile arazi eğimini Rothermel bileşkesiyle birleştirir ve CORINE
+yakıt sınıfını kullanır; **söndürme müdahalesi hesaba katılmaz** — pratikte
+kalan hatanın büyük kısmı oradan gelir. Koni bir tahliye kararı aracı
+değildir; arayüz bunu her yerde belirtir ve acil durumda 112 / 177'ye
+yönlendirir.
+
+## Doğruluk — ölçülen, iddia edilen değil
+
+Yayındaki tek nicel iddia şu: **yangının ilerlediği hücrelerin %90'ı çizilen
+şeklin içinde kalır.** Bu iddia 2026-08-05'te sekiz sezonluk pan-Akdeniz
+korpusunda (**2.383 vaka / 41.103 hücre**) yeniden sınandı:
+
+| küme | hücre kapsaması |
+|---|---|
+| tümü | %90,4 |
+| yalnız Türkiye | %89,1 |
+| ayar yurt dışında seçilip Türkiye'de sınandığında | %89 |
+| sezonlar teker teker dışarıda bırakıldığında (ortalama) | %90 |
+
+Yön tahmininin dürüst rakamı: **ortanca hata ~80°**, gözlenen yönlerin
+**%28'i ±45° içinde**. Rüzgâr zayıfken yön neredeyse belirsizdir, kuvvetli
+rüzgârda belirginleşir — koninin yarım açısı bu yüzden rüzgâra bağlıdır.
+
+Denenip **işe yaramayan**lar da kayıtlıdır: sekiz sezonluk veriyle eğitilen
+LightGBM modeli yön tahmininde Rothermel'i Türkiye holdout'unda geçemedi;
+koniyi daraltmak için üç ayrı yol denendi, üçü de ölçüm belirsizliğinin
+altında kaldı ve üretime alınmadı. Ölçüm betikleri `scratchpad/isabet/`
+altındadır (`29-kapsama-akdeniz.mjs` kapsama sınaması, `28-model.py` model).
 
 ## Saha koşulları için tasarım
 

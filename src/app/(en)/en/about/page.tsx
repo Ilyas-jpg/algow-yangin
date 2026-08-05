@@ -230,6 +230,51 @@ export default function AboutPage() {
             </p>
           </div>
 
+          <section
+            aria-labelledby="memorial"
+            className="rounded-md border border-line bg-obsidian-2 p-5"
+          >
+            <div className="h-px w-10 bg-ok" />
+            <h2
+              id="memorial"
+              className="mt-4 text-lg font-medium tracking-tight text-ink"
+            >
+              Those who died protecting the forests
+            </h2>
+            <p className="mt-3 leading-relaxed">
+              <b className="font-medium text-ink">23 July 2025</b>, Seyitgazi in
+              Eskişehir. The crew working the fire was caught between the flames
+              when the wind turned.{" "}
+              <b className="font-medium text-ink">
+                Five forest workers and five AKUT search-and-rescue volunteers
+              </b>{" "}
+              were killed. Across that season&apos;s forest fires in Türkiye{" "}
+              <b className="font-medium text-ink">17 people</b> lost their lives;
+              there were also deaths on duty in İzmir Ödemiş, in Bursa and in
+              Osmaniye.
+            </p>
+            <p className="mt-3 leading-relaxed">
+              They walked toward what everyone else runs from. On a fire line a
+              wind shift is a matter of seconds, and it can close the way back
+              at once. That is what happened at Seyitgazi.
+            </p>
+            <p className="mt-3 leading-relaxed">
+              The cone on this site measures exactly one thing:{" "}
+              <b className="font-medium text-ink">
+                where the wind is carrying the fire
+              </b>
+              . That is why this page states plainly how honestly we can measure
+              it and where we get it wrong — overstating a forecast means
+              somebody in the field trusting the wrong thing.
+            </p>
+            <p className="mt-3 leading-relaxed text-ink-3">
+              This platform is not an official operational tool and does not
+              reach the crews on the ground. We make no claim to make their work
+              easier. We simply work knowing the price paid by the people who
+              protect this country&apos;s forests.
+            </p>
+          </section>
+
           <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
             Your location and your privacy
           </h2>
@@ -273,6 +318,64 @@ export default function AboutPage() {
           </p>
 
           <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium text-ink">
+                5 August 2026 — we retested the &quot;nine out of ten&quot; claim
+                against ten times the data; this time it held
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    The coverage claim was independently confirmed.
+                  </b>{" "}
+                  The site says &quot;nine out of ten of the cells the fire
+                  advanced into stay inside the shape we draw&quot;. That claim
+                  turned out to be wrong once before (see the 2 August note), so
+                  we tested it again — this time not with 232 cases from Türkiye
+                  but with{" "}
+                  <b className="font-medium text-ink">
+                    2,383 cases and 41,103 cells from eight seasons across the
+                    Mediterranean basin
+                  </b>
+                  . Result: 90.4% overall, 89.1% for Türkiye alone. When we
+                  picked the setting from data outside Türkiye — never seeing
+                  Türkiye at all — and then tested it there, we still got 89%, so
+                  the figure is not luck specific to one country. Holding out
+                  each season in turn gives 90% on average.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    We tried to shrink the cone, found no meaningful way, and
+                    chose to change nothing.
+                  </b>{" "}
+                  Three separate routes to a narrower cone at the same
+                  reliability were tested: varying the safety margin with wind
+                  speed, letting the fire correct itself from its own previously
+                  observed advance, and predicting &quot;this fire will not
+                  grow&quot;. Each gained only about 3% on its own, and combining
+                  them did not add up — they all trim the same excess. We did not
+                  break something that works for a gain smaller than our
+                  measurement uncertainty.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Machine learning did not beat the physics model at predicting
+                    direction.
+                  </b>{" "}
+                  We trained a model on eight seasons of data. In the geography
+                  it was trained on it was a few degrees better than the physics
+                  model, but in Türkiye the difference vanished into noise. We
+                  write this down because saying &quot;we added AI&quot; is easy
+                  and saying it did not work is hard.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Nothing changed on the map
+                  </b>{" "}
+                  in this round. The work was measuring and verifying.
+                </li>
+              </ul>
+            </div>
             <div>
               <p className="font-medium text-ink">
                 4 August 2026 — a new satellite, pixel honesty, and a failure we

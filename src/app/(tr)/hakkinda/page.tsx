@@ -204,6 +204,52 @@ export default function HakkindaPage() {
             </p>
           </div>
 
+          <section
+            aria-labelledby="anma"
+            className="rounded-md border border-line bg-obsidian-2 p-5"
+          >
+            <div className="h-px w-10 bg-ok" />
+            <h2
+              id="anma"
+              className="mt-4 text-lg font-medium tracking-tight text-ink"
+            >
+              Yeşil vatanı korurken hayatını kaybedenler
+            </h2>
+            <p className="mt-3 leading-relaxed">
+              <b className="font-medium text-ink">23 Temmuz 2025</b>, Eskişehir
+              Seyitgazi. Yangına müdahale eden ekip, rüzgârın yön değiştirmesiyle
+              alevlerin arasında kaldı.{" "}
+              <b className="font-medium text-ink">
+                Beş orman işçisi ve beş AKUT gönüllüsü
+              </b>{" "}
+              hayatını kaybetti. O sezon Türkiye orman yangınlarında toplam{" "}
+              <b className="font-medium text-ink">17 can</b>{" "}
+              yitirildi; İzmir Ödemiş&apos;te, Bursa&apos;da, Osmaniye&apos;de
+              de görevi başında ölenler oldu.
+            </p>
+            <p className="mt-3 leading-relaxed">
+              Herkesin kaçtığı yöne yürüyen insanlardı. Bir yangın hattında
+              rüzgârın dönmesi saniyeler meselesidir ve geri dönüş yolunu bir
+              anda kapatır; Seyitgazi&apos;de olan buydu.
+            </p>
+            <p className="mt-3 leading-relaxed">
+              Bu sitedeki koninin ölçtüğü tek şey{" "}
+              <b className="font-medium text-ink">
+                rüzgârın ateşi nereye taşıdığıdır
+              </b>
+              . Onu ne kadar dürüst ölçebildiğimizi, hangi koşulda
+              yanıldığımızı bu sayfada açıkça yazmamızın sebebi burada:
+              tahminin abartılması, sahada birinin yanlış yere güvenmesi
+              demektir.
+            </p>
+            <p className="mt-3 leading-relaxed text-ink-3">
+              Bu platform resmî bir operasyon aracı değildir ve sahadaki
+              ekiplere ulaşmaz. Onların işini kolaylaştırdığı iddiasında
+              değiliz. Yalnızca, bu ülkenin ormanlarını koruyanların ödediği
+              bedeli bilerek çalışıyoruz.
+            </p>
+          </section>
+
           <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
             Konumun ve gizliliğin
           </h2>
@@ -246,6 +292,63 @@ export default function HakkindaPage() {
           </p>
 
           <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium text-ink">
+                5 Ağustos 2026 — &quot;onda dokuz&quot; iddiasını on kat veriyle
+                yeniden sınadık; bu kez tuttu
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Kapsama iddiası bağımsız olarak doğrulandı.
+                  </b>{" "}
+                  Sitede &quot;yangının ilerlediği hücrelerin onda dokuzu
+                  çizdiğimiz şeklin içinde kalır&quot; diyoruz. Bu iddia bir kez
+                  yanlış çıkmıştı (2 Ağustos notuna bakın), o yüzden yeniden
+                  sınadık — ama bu sefer 232 Türkiye vakasıyla değil,{" "}
+                  <b className="font-medium text-ink">
+                    sekiz sezonluk Akdeniz havzasından 2.383 vaka ve 41.103
+                    hücreyle
+                  </b>
+                  . Sonuç: tümünde %90,4, yalnız Türkiye&apos;de %89,1. Ayarı
+                  Türkiye&apos;yi hiç görmeden yurt dışı verisiyle seçip
+                  Türkiye&apos;de sınadığımızda da %89 çıktı — yani rakam bir
+                  ülkeye özel şans değil. Sezonları teker teker dışarıda
+                  bırakınca ortalama %90.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Koniyi küçültmeyi denedik, anlamlı bir yol bulamadık — ve
+                    bunu değiştirmemeyi seçtik.
+                  </b>{" "}
+                  Aynı güvenilirlikte daha dar bir koni çizebilmek için üç ayrı
+                  yol denendi: emniyet payını rüzgâra göre değiştirmek,
+                  yangının bir önceki gözlenen ilerlemesiyle kendini
+                  düzeltmesi, ve &quot;bu yangın büyümeyecek&quot; tahmini.
+                  Üçü de tek başına ancak %3 civarı kazandırdı, üstelik
+                  birleştirilince toplanmadılar — hepsi aynı fazlalığı kırpıyor.
+                  Ölçüm belirsizliğinin altındaki bir kazanç için çalışan bir
+                  şeyi bozmadık.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Makine öğrenmesi, yön tahmininde fizik modelini geçemedi.
+                  </b>{" "}
+                  Sekiz sezonluk veriyle bir model eğittik. Eğitildiği
+                  coğrafyada fizik modelinden birkaç derece iyiydi, ama
+                  Türkiye&apos;de aradaki fark rastgeleliğin içinde kayboldu.
+                  Bunu yazıyoruz çünkü &quot;yapay zekâ ekledik&quot; demek
+                  kolay, işe yaramadığını söylemek zor.
+                </li>
+                <li>
+                  Bu turda{" "}
+                  <b className="font-medium text-ink">
+                    haritada hiçbir şey değişmedi
+                  </b>
+                  . Yaptığımız iş ölçmek ve doğrulamaktı.
+                </li>
+              </ul>
+            </div>
             <div>
               <p className="font-medium text-ink">
                 4 Ağustos 2026 — yeni bir uydu, piksel dürüstlüğü ve
