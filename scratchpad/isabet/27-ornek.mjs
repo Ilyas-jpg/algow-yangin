@@ -211,6 +211,9 @@ for (const c of havuz) {
     f_yukseklik: e.z,
     // rüzgâr yokuş yukarı mı esiyor: fiziğin asıl etkileşimi
     f_ruzgarYokusUyum: +mutlakFark(r0.yon, e.yokus).toFixed(1),
+    // İŞARETLİ hâli ayrıca: yokuş rüzgârın solunda mı sağında mı — yön için
+    // mutlak fark bunu yutuyor. Rothermel temel çizgisi de bunu istiyor.
+    f_yokusSapma: +sapma(e.yokus, r0.yon).toFixed(1),
 
     /* ── özellikler: kuruluk ── */
     f_sicaklik: tmp0 === null ? null : +tmp0.toFixed(2),
