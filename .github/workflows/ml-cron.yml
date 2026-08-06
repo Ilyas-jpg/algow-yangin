@@ -1,87 +1,60 @@
-# Eğitim verisini biriktiren zamanlanmış turlar.
+# Platformun kendi çıktısını denetleyen saatlik tur.
 #
-# NEDEN GITHUB ACTIONS: Vercel cron'u özel başlık gönderemiyor (uçlar
-# `x-ingest-secret` istiyor) ve Hobby planında günde bir kez sınırı var —
-# 10 dakikalık tahmin günlüğü oradan yürümez. MTG ingest'i zaten dış bir
-# zamanlayıcı çağırıyor; bu dosya aynı işi repo içinde, ayrı hesap
-# gerektirmeden yapıyor.
+# ⚠️ BU DOSYA ESKİDEN VERİ TOPLAMA CRON'UYDU. `cone` ve `verify` işleri
+# 2026-08-06'da **Supabase pg_cron'a taşındı** (`supabase/migrations/0005_ml_cron.sql`).
+#
+# NEDEN TAŞINDILAR — ÖLÇÜLDÜ. GitHub zamanlanmış işleri ücretsiz/private
+# depolarda ağır şekilde düşürüyor; beklenen günlük 144 tetiklemenin ~20'si
+# gerçekleşiyordu:
+#     Tahmin günlüğü  `*/15`        96 → 8  (~%11)
+#     Tahmin doğrulama `7 * * * *`  24 → 5  (~%28)
+#     Sağlık denetimi  `37 * * * *` 24 → 7  (~%38)
+# Üstelik runner havuzu işi hiç almayabiliyor (`The job was not acquired by
+# Runner of type hosted`) — iş çalışmadan koşu "başarısız" görünüyor ve yanlış
+# alarm maili gidiyor. Veri toplayan iki uç için bu kabul edilemezdi.
+#
+# ⚠️ SAĞLIK DENETİMİ NEDEN HÂLÂ BURADA: tek amacı arıza olunca İNSANA haber
+# vermek ve pg_cron'un e-posta kanalı yok. Saatte bir tetiklenip ~%38 teslim
+# etmesi (≈2,5 saatte bir denetim) bir alarm için kabul edilebilir. Depodaki
+# tetikleme sayısı 144→24'e düştüğü için teslim oranının iyileşmesi beklenir
+# — beklenti, iddia değil; tekrar ölçülecek.
 #
 # ⚠️ TEK KURULUM ADIMI: depo → Settings → Secrets and variables → Actions
-#    ML_INGEST_SECRET  = .env.local'deki değerin aynısı (Vercel'deki de aynı)
 #    YANGIN_BASE_URL   = https://yangin.algow.net   (opsiyonel, varsayılan bu)
+#    (ML_INGEST_SECRET artık BURADA GEREKMİYOR — sağlık ucu başlık istemiyor.
+#     Sır Supabase Vault'ta `ml_ingest_secret` olarak duruyor, pg_cron oradan
+#     okuyor. Depo secret'ı silinebilir; bırakılırsa da zararsız.)
 #
-# ⚠️ GitHub cron'u GARANTİLİ DEĞİL: yoğun saatlerde 5-20 dk gecikebilir, nadiren
-# atlanır. Tahmin günlüğü için sorun değil — kaçan tur bir sonrakinde yakalanır,
-# uydu geçişi zaten saatlerde bir. Kritik bir alarm zinciri buraya bağlanmamalı.
+# 🔧 cone/verify'ı ELLE tetiklemek için (SQL editöründen):
+#    select public.yangin_ml_cagir('/api/ml/cone');
+#    select public.yangin_ml_cagir('/api/ml/verify');
 
 name: ML veri turu
 
 on:
   schedule:
-    # Tahmin günlüğü: 15 dakikada bir. Yangın sezonu dışında da koşuyor;
-    # aktif yangın yoksa uç zaten hiçbir şey yazmadan 200 dönüyor.
-    - cron: "*/15 * * * *"
-    # Doğrulama: saat başı. Konilerin en az 10 saat yaşlanması bekleniyor
-    # (FIRMS NRT gecikmesi ölçüldü: 1-8 saat), o yüzden sık koşmanın anlamı yok.
-    - cron: "7 * * * *"
-    # Sağlık: saat başı, doğrulamadan ayrı dakikada (aynı anda iki uç çağırıp
-    # birbirinin kotasını yemesin).
+    # Saat başı :37. Doğrulamanın :07'siyle ayrı dakikada tutulmuştu ki iki uç
+    # aynı anda üst kaynak kotası yemesin; doğrulama pg_cron'a taşındı ama
+    # aynı gerekçe orada da geçerli, takvim korundu.
     - cron: "37 * * * *"
   workflow_dispatch:
-    inputs:
-      job:
-        description: "Elle çalıştır: cone | verify | saglik | ikisi"
-        required: false
-        default: "ikisi"
 
 concurrency:
-  # Bir tur uzarsa (14 yangın × nokta meteorolojisi ~1 dk sürebiliyor) ikinci
-  # tur üstüne binmesin: aynı olaya iki tahmin satırı açılmaz ama boşuna kota
-  # harcar.
   group: ml-veri-turu
   cancel-in-progress: false
 
 jobs:
-  cone:
-    name: Tahmin günlüğü
-    # ⚠️ Koşul AÇIK yazılmalı. Eski hâli `|| inputs.job != 'verify'` idi ve
-    # zamanlanmış çalışmada `inputs.job` boş olduğu için o parça HER kronda
-    # doğru oluyordu — yeni bir `schedule` eklenince bu iş de onunla birlikte
-    # tetiklenirdi (sağlık kronu eklenirken yakalandı, 2026-08-05).
-    if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '*/15 * * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'verify' && github.event.inputs.job != 'saglik')
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    steps:
-      - name: Koni tahminlerini kaydet
-        env:
-          BASE: ${{ vars.YANGIN_BASE_URL || 'https://yangin.algow.net' }}
-          SECRET: ${{ secrets.ML_INGEST_SECRET }}
-        run: |
-          if [ -z "$SECRET" ]; then
-            echo "::error::ML_INGEST_SECRET tanımlı değil — depo ayarlarından ekle"
-            exit 1
-          fi
-          kod=$(curl -sS --max-time 300 -o yanit.json -w '%{http_code}' \
-            -H "x-ingest-secret: $SECRET" "$BASE/api/ml/cone")
-          cat yanit.json; echo
-          # 5xx gerçek arıza (tablo yok, DB düştü); 200 ise yangın olmasa da başarı.
-          if [ "$kod" != "200" ]; then
-            echo "::error::/api/ml/cone HTTP $kod"
-            exit 1
-          fi
-
   saglik:
     # Bu platformun iki ciddi arızası da SESSİZDİ: FIRMS'in boğulma yanıtı
     # "veri yok" sanıldı, ve doğrulama 8 km ötedeki ayrı yangını "baş" sayıp
     # günlerce yanlış karne üretti. İkisi de çökmedi, hata vermedi — durum kodu
     # izleyen bir araç ikisini de göremezdi. Bu iş, /api/saglik'in makullük
     # denetimleri düşerse GitHub'ı kırmızıya çevirir ve bildirim gönderir.
+    #
+    # pg_cron'a taşınan iki uç da buradan izleniyor: cone → `cone_forecast`
+    # tazeliği, verify → doğrulama kuyruğunun birikmesi. pg_net ateşle-unut
+    # çalıştığı için HTTP durumunu kimse görmüyor; gözcü bu denetim.
     name: Sağlık denetimi
-    if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '37 * * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'saglik')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -107,37 +80,3 @@ jobs:
             echo "::error::/api/saglik HTTP $kod — yukarıdaki tabloda düşen denetime bak"
             exit 1
           fi
-
-  verify:
-    name: Tahmin doğrulama
-    if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '7 * * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'cone' && github.event.inputs.job != 'saglik')
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    steps:
-      - name: Gerçekleşeni tahminle karşılaştır
-        env:
-          BASE: ${{ vars.YANGIN_BASE_URL || 'https://yangin.algow.net' }}
-          SECRET: ${{ secrets.ML_INGEST_SECRET }}
-        run: |
-          if [ -z "$SECRET" ]; then
-            echo "::error::ML_INGEST_SECRET tanımlı değil — depo ayarlarından ekle"
-            exit 1
-          fi
-          kod=$(curl -sS --max-time 300 -o yanit.json -w '%{http_code}' \
-            -H "x-ingest-secret: $SECRET" "$BASE/api/ml/verify")
-          cat yanit.json; echo
-          if [ "$kod" != "200" ]; then
-            echo "::error::/api/ml/verify HTTP $kod"
-            exit 1
-          fi
-          # Ölçülen hatayı iş özetine yaz: sezon boyunca tek yerden izlenebilsin.
-          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json
-          d = json.load(open("yanit.json"))
-          print("| doğrulanan | ölçülen | gözlem yok | ort. hata |")
-          print("|---|---|---|---|")
-          print(f"| {d.get('verified',0)} | {d.get('measured',0)} | "
-                f"{d.get('noObservation',0)} | {d.get('meanErrorDeg','—')}° |")
-          PY

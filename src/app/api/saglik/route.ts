@@ -67,6 +67,43 @@ export async function GET() {
   denetimler.push(await tazelik("heat_signal", "scanned_at", 3));
   denetimler.push(await tazelik("cone_forecast", "issued_at", 6));
 
+  /* ── ①b DOĞRULAMA KUYRUĞU — `/api/ml/verify` hâlâ koşuyor mu ──
+   *
+   * Zamanlama pg_cron'a taşındığında (migration 0005) verify, GitHub'ın
+   * bildirim kanalından çıktı: pg_net ateşle-unut çalışır, HTTP durumunu
+   * kimse görmez. Cone'un durması `cone_forecast` tazeliğinden anlaşılıyor,
+   * verify'ınki anlaşılmıyordu — bu denetim o boşluğu kapatıyor.
+   *
+   * Neden TAZELİK değil KUYRUK: `verified_at`'in bayatlaması arıza kanıtı
+   * değil, çünkü doğrulanacak bir şey olmayabilir (sakin dönem, sezon dışı)
+   * ve verify o turda hiçbir satır yazmadan döner. Birikmiş BEKLEYEN satır
+   * ise yalnız verify koşmuyorsa oluşur — yanlış alarm üretmeyen sinyal bu.
+   *
+   * Eşik 24 saat: verify 10 saatten eski konileri alır ve saatte bir koşar,
+   * yani bir satır normalde ~11 saatte kapanır. 24 saat, 13'ten fazla
+   * kaçırılmış tur demek — GitHub'ın en kötü teslim oranında bile olmaz.
+   */
+  {
+    const esikSaat = 24;
+    const kesim = new Date(Date.now() - esikSaat * 3600_000).toISOString();
+    // verify yalnız `event_id` dolu satırlara bakıyor; kimliksizler hiç
+    // kuyruğa girmez, onları saymak kalıcı yanlış alarm olurdu.
+    const bekleyen = await db.select<{ id: number }>(
+      "cone_forecast?select=id&verified_at=is.null&event_id=not.is.null" +
+        `&issued_at=lt.${kesim}&limit=500`
+    );
+    denetimler.push(
+      "error" in bekleyen
+        ? { ad: "dogrulama-kuyrugu", ok: false, deger: "sorgu düştü" }
+        : {
+            ad: "dogrulama-kuyrugu",
+            ok: bekleyen.rows.length === 0,
+            deger: `${bekleyen.rows.length}${bekleyen.rows.length === 500 ? "+" : ""} bekleyen`,
+            not: `${esikSaat} sa'ten eski`,
+          }
+    );
+  }
+
   /* ── ② MAKULLÜK — doğrulanmış ilerlemeler fiziğe uyuyor mu ──
    * 2026-08-05 arızası tam buradan kaçmıştı: 0,7 saatte 7,92 km (11,3 km/sa)
    * yazılmıştı ve hiçbir şey itiraz etmemişti. */
