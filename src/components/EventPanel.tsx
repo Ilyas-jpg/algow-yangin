@@ -116,9 +116,16 @@ export default function EventPanel(props: EventPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-baseline justify-between border-b border-line px-3 py-2.5">
-        <span className="text-xs text-ink-2">{t.panel.activeHere}</span>
+        {/* Etiket sarılmamalı: "Türkiye'de aktif" iki satıra bölününce alt satırda
+            tek başına kalan "aktif" sağdaki sayıların parçası gibi okunuyordu
+            ("…34 sabit kaynak · aktif +121 sınır ötesi"). Sayaç 3'ten 4 segmente
+            çıkınca (sabit kaynak eklenince) satır 340 px'lik panele sığmaz oldu;
+            doğru davranış etiketi bütün tutup SAYILARI sağa yaslı sarmak. */}
+        <span className="shrink-0 text-xs whitespace-nowrap text-ink-2">
+          {t.panel.activeHere}
+        </span>
         <span
-          className="font-mono text-[11px] text-ink-3"
+          className="ml-2 text-right font-mono text-[11px] text-ink-3"
           title={fill(t.panel.abroadTitle, { n: abroadCount })}
         >
           <span className="text-danger">{activeCount}</span>
