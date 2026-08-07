@@ -678,9 +678,9 @@ export default function App({ focus, embed = false }: AppProps = {}) {
 
   /**
    * Seçili yangının uydu ayak izi. "Kaç hektar yandı" haberin ilk sorusu ve
-   * panelde hiç yoktu. Yetkili kaynak EFFIS perimetresidir ama Türkiye için
-   * poligon dönmüyor (sorguldu, boş); ölçebildiğimizi adını doğru koyarak
-   * veriyoruz — bkz. lib/footprint.
+   * panelde hiç yoktu. Yetkili kaynak EFFIS perimetresidir ama canlı paneli
+   * besleyemiyor: güncel sezon katmanı öznitelik taşımıyor, tam şemalı yıllık
+   * katmanlar geriye dönük. Ölçüm ve gerekçe: lib/footprint.
    */
   const selectedFootprint = useMemo(() => {
     if (!selectedEvent || !fires) return null;

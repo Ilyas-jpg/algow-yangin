@@ -20,10 +20,17 @@ export interface Footprint {
  * - Tespit edilen piksel bütünüyle yanmış olmayabilir → FAZLA ölçer.
  * - Bulut altında ya da kanopi altında kalan bölümler hiç görünmez.
  *
- * Yetkili kaynak EFFIS'in Sentinel-2 tabanlı yanan alan perimetreleridir;
- * ancak EFFIS poligonları ancak belli bir büyüklüğün üstünde ve gecikmeli
- * üretiliyor (2026-08-02'de Türkiye için sorgulandığında boş döndü), o yüzden
- * kullanıcıya en azından ölçebildiğimiz büyüklüğü adını doğru koyarak veriyoruz.
+ * Yetkili kaynak EFFIS'in yanan alan perimetreleridir ama CANLI PANELİ
+ * BESLEYEMEZ — ölçüldü (2026-08-06, WFS `GetFeature`):
+ *   · `effis.nrt.ba.poly` (güncel sezon): poligon döndürüyor ama **hiç
+ *     öznitelik taşımıyor** — ne alan, ne tarih, ne ülke. "Kaç hektar yandı"
+ *     sorusuna cevabı yok. (Eski yorum bunu *"Türkiye için boş dönüyor"* diye
+ *     kaydetmişti; boş değil, şeması farklı.)
+ *   · `modis.ba.poly.2016…2025`: tam şemalı (`AREA_HA`, `FIREDATE`, `COUNTRY`,
+ *     `PROVINCE`) — 2025'te 771 Türkiye kaydı, 230'u ≥30 ha. Ama **geriye
+ *     dönük**: `LASTUPDATE` yangından haftalar sonra.
+ * Yani EFFIS doğrulama/karne için birebir doğru kaynak, canlı panel için
+ * kullanılamaz; kullanıcıya ölçebildiğimizi adını doğru koyarak veriyoruz.
  *
  * MODIS tespitleri bilerek DIŞARIDA: pikseli ~1 km, 375 m ızgarasına
  * yerleştirmek alanı sistematik olarak şişirirdi.

@@ -63,8 +63,14 @@ const hepsi = [];
 for (const f of readdirSync(here(".")).filter((f) => /^vaka-akdeniz-\d{4}\.json$/.test(f)).sort())
   hepsi.push(...JSON.parse(readFileSync(here(f), "utf8")));
 
+/* Havuz varsayılanı ORMAN+MAKİ (§7.1'in hedef sınıfı). 2026-08-06'da
+ * parametreye çevrildi: 40-yakit-kosullu-k.mjs "ot ateşi makiden 3-10× hızlı"
+ * iddiasını sınayamadı çünkü OT havuzunun çevre verisi hiç çekilmemişti.
+ * `YAKITLAR=OT node ...` ile yalnız eksik anahtarlar çekilir (betik zaten
+ * yeniden başlatılabilir; mevcut kayıtlara dokunmaz). */
+const YAKITLAR = (process.env.YAKITLAR || "ORMAN,MAKI").split(",");
 const havuz = hepsi.filter(
-  (c) => !ORTADOGU.has(c.bolge) && ["ORMAN", "MAKI"].includes(yakitOf(clc[ckey(c)]))
+  (c) => !ORTADOGU.has(c.bolge) && YAKITLAR.includes(yakitOf(clc[ckey(c)]))
 );
 const yonlu = havuz.filter((c) => c.cephe !== null);
 process.stdout.write(
