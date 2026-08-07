@@ -140,6 +140,60 @@ export default function AboutPage() {
           </p>
 
           <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
+            How many fires do we actually see? (we measured it)
+          </h2>
+          <p>
+            The sentence above — &quot;we may miss fires&quot; — stayed{" "}
+            <i>qualitative</i>{" "}
+            for a long time: we did not know how many we were missing. Now we
+            have measured it. We deliberately used an{" "}
+            <b>independent reference</b>{" "}
+            rather than our own data: the{" "}
+            <b>burnt-area maps</b>{" "}
+            that the European Forest Fire Information System (EFFIS) derives
+            from satellite imagery. That distinction
+            matters, because burnt area and active fire are{" "}
+            <i>two different measurements</i>: a burn scar stays on the ground
+            even if no satellite happened to look while the flames were
+            burning. So we are not grading ourselves with our own ruler.
+          </p>
+          <p>
+            For the 2025 season in Türkiye we checked how many of the{" "}
+            <b>351 fires larger than 30 hectares</b>{" "}
+            recorded by EFFIS produced at least one detection in our pipeline:
+          </p>
+          <ul className="space-y-1 pl-4 [&>li]:list-disc">
+            <li>
+              <b>Above 1,000 hectares: 100%</b>{" "}
+              (25 out of 25)
+            </li>
+            <li>500–1,000 hectares: 91%</li>
+            <li>100–500 hectares: 80%</li>
+            <li>30–100 hectares: 78%</li>
+          </ul>
+          <p>
+            Overall we catch <b>81% of fires above 30 hectares</b>. Treat that
+            as a lower bound: for some of the apparent misses we do have
+            detections, but they sit a few days away from the date EFFIS
+            recorded — a burn scar only becomes visible in imagery{" "}
+            <i>after</i>{" "}
+            the fire has burned. Allowing for that date
+            uncertainty the figure rises to <b>86%</b>, and ignoring dates
+            entirely it reaches <b>91%</b>. The true value lies in that range.
+          </p>
+          <p>
+            <b>What this does not say matters more:</b>{" "}
+            below 30 hectares we can offer no assurance. EFFIS has its own
+            minimum mapping size, so small fires fall{" "}
+            <i>outside</i>{" "}
+            this measurement, and the evidence
+            we do have points the other way — two fires in grass and scrub near
+            Dikili, put out quickly, were never seen by our system at all. The
+            measurement covers a single season (2025). In short:{" "}
+            <b>reliable for large fires, not for small ones.</b>
+          </p>
+
+          <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
             How does the direction forecast work, and what does it not promise?
           </h2>
           <p>
@@ -321,6 +375,59 @@ export default function AboutPage() {
           </p>
 
           <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium text-ink">
+                6 August 2026 — we answered &quot;how many fires do we
+                miss?&quot; with a number for the first time
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Detection completeness measured — against an independent
+                    source.
+                  </b>{" "}
+                  Until now we said &quot;we may miss small fires&quot; without
+                  knowing how many. We compared against EFFIS burnt-area maps:
+                  we catch{" "}
+                  <b className="font-medium text-ink">
+                    every fire above 1,000 hectares and 81% of those above 30
+                    hectares
+                  </b>
+                  . Because burnt area and active fire are two different
+                  measurements, this is not us grading ourselves with our own
+                  ruler. Added as the &quot;How many fires do we actually
+                  see?&quot; section above.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    We corrected the measurement twice, and both corrections
+                    changed the answer.
+                  </b>{" "}
+                  The first figure was 73% — then we realised we had measured
+                  using only two of the four satellite sources the site
+                  actually uses. Adding the missing two gave 81%. Second: the
+                  date EFFIS records is systematically late, because a burn
+                  scar only appears in imagery after the fire has burned, which
+                  makes it easy to think we missed something.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Three improvement ideas were tried; none held, and nothing
+                    on the map changed.
+                  </b>{" "}
+                  We wanted to add Landsat as a second verification source — we
+                  measured it, and that product does not cover Türkiye at all.
+                  We tried tuning the cone radius by fuel type; forest and
+                  scrub already want the same setting. And we tried machine
+                  learning for direction once more, this time only on
+                  &quot;clean&quot; fires: it briefly looked like it worked,
+                  until a deliberately meaningless filter produced the same
+                  apparent gain, which showed the effect was not real. None of
+                  the three shipped.
+                </li>
+              </ul>
+            </div>
+
             <div>
               <p className="font-medium text-ink">
                 5 August 2026 — we retested the &quot;nine out of ten&quot; claim

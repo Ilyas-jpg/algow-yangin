@@ -120,6 +120,57 @@ export default function HakkindaPage() {
           </p>
 
           <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
+            Kaç yangını görüyoruz? (ölçtük)
+          </h2>
+          <p>
+            Yukarıdaki &quot;kaçırabiliriz&quot; cümlesi uzun süre <i>nitel</i>{" "}
+            kaldı — kaç yangını kaçırdığımızı bilmiyorduk. Artık ölçtük ve sayı
+            veriyoruz. Ölçüt olarak kendi verimizi değil{" "}
+            <b>bağımsız bir kaynağı</b>{" "}
+            kullandık: Avrupa Orman Yangını Bilgi Sistemi&apos;nin
+            (EFFIS) uydu görüntülerinden çıkardığı <b>yanan alan
+            haritaları</b>. Bu önemli, çünkü yanan alan ile aktif yangın{" "}
+            <i>farklı iki ölçüm</i>: yanık izi, alevler yanarken hiçbir uydu
+            görmemiş olsa bile arazide kalır. Yani kendi cetvelimizle kendimizi
+            ölçmüş olmuyoruz.
+          </p>
+          <p>
+            2025 yangın sezonunda Türkiye&apos;de EFFIS&apos;in kaydettiği{" "}
+            <b>30 hektarın üzerindeki 351 yangının</b>{" "}
+            kaçında bizim sistemimiz en az bir tespit üretmiş, ona baktık:
+          </p>
+          <ul className="space-y-1 pl-4 [&>li]:list-disc">
+            <li>
+              <b>1.000 hektar üzeri: %100</b>{" "}
+              (25 yangının 25&apos;i)
+            </li>
+            <li>500–1.000 hektar: %91</li>
+            <li>100–500 hektar: %80</li>
+            <li>30–100 hektar: %78</li>
+          </ul>
+          <p>
+            Toplamda <b>30 hektar üzerindeki yangınların %81&apos;ini</b>{" "}
+            yakalıyoruz. Bu sayı bir alt sınır: kaçırılmış görünenlerin bir
+            kısmında aslında tespitimiz var ama EFFIS&apos;in kaydettiği tarihle
+            birkaç gün oynuyor — çünkü yanık izi ancak yangın yandıktan{" "}
+            <i>sonra</i>{" "}
+            görüntüde belirir. Tarih toleransı verilince oran{" "}
+            <b>%86</b>&apos;ya, tarih hiç şart koşulmadığında <b>%91</b>&apos;e
+            çıkıyor. Gerçek değer bu aralıkta.
+          </p>
+          <p>
+            <b>Bunun söylemediği şey daha önemli:</b>{" "}
+            30 hektarın altı için güvence veremeyiz. EFFIS&apos;in kendi asgari
+            haritalama sınırı olduğu için küçük yangınlar bu ölçümün{" "}
+            <i>dışında</i>{" "}
+            kaldı, ve
+            elimizdeki kanıt tersini söylüyor — Dikili&apos;de otluk ve
+            makilikte çıkıp kısa sürede söndürülen iki yangını sistemimiz hiç
+            görmedi. Ölçüm tek sezona (2025) dayanıyor. Kısacası:{" "}
+            <b>büyük yangınlar için güvenilir, küçükler için değil.</b>
+          </p>
+
+          <h2 className="pt-2 text-lg font-medium tracking-tight text-ink">
             Yön tahmini nasıl çalışıyor, neyi vaat etmiyor?
           </h2>
           <p>
@@ -293,6 +344,55 @@ export default function HakkindaPage() {
           </p>
 
           <div className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium text-ink">
+                6 Ağustos 2026 — &quot;kaç yangını kaçırıyoruz&quot; sorusunu
+                ilk kez sayıyla cevapladık
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Tespit tamlığı ölçüldü — bağımsız bir kaynakla.
+                  </b>{" "}
+                  Bugüne kadar &quot;küçük yangınları kaçırabiliriz&quot;
+                  diyorduk ama kaçını kaçırdığımızı bilmiyorduk. EFFIS&apos;in
+                  yanan alan haritalarıyla karşılaştırdık:{" "}
+                  <b className="font-medium text-ink">
+                    1.000 hektar üzeri yangınların tamamını, 30 hektar
+                    üzerindekilerin %81&apos;ini
+                  </b>{" "}
+                  yakalıyoruz. Yanan alan ile aktif yangın farklı iki ölçüm
+                  olduğu için bu, kendi cetvelimizle kendimizi ölçmek değil.
+                  Yukarıdaki &quot;Kaç yangını görüyoruz?&quot; bölümüne eklendi.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Ölçümü iki kez düzelttik, ikisi de sonucu değiştirdi.
+                  </b>{" "}
+                  İlk sayı %73&apos;tü; sonra fark ettik ki ölçümü sitenin
+                  kullandığı dört uydu kaynağının yalnız ikisiyle yapmışız.
+                  Eksik ikisi eklenince %81. İkincisi: EFFIS&apos;in kaydettiği
+                  tarih sistematik olarak geç — yanık izi yangın yandıktan sonra
+                  görüntüde beliriyor — o yüzden bir yangını &quot;kaçırdık&quot;
+                  sanmak kolay.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Üç iyileştirme fikri denendi, üçü de tutmadı; haritada bir
+                    şey değişmedi.
+                  </b>{" "}
+                  Landsat&apos;ı ikinci bir doğrulama kaynağı yapacaktık —
+                  ölçtük, o ürün Türkiye&apos;yi hiç kapsamıyor. Koni
+                  yarıçapını yakıt tipine göre ayarlamayı denedik; orman ve maki
+                  zaten aynı ayarı istiyor. Yön tahmini için makine
+                  öğrenmesini bu kez yalnız &quot;temiz&quot; yangınlarda
+                  denedik: bir an işe yaramış göründü, ama alakasız bir
+                  değişkenle kurulan sahte bir eleme de aynı kazancı verince
+                  bunun gerçek olmadığı anlaşıldı. Üçü de yayınlanmadı.
+                </li>
+              </ul>
+            </div>
+
             <div>
               <p className="font-medium text-ink">
                 5 Ağustos 2026 — &quot;onda dokuz&quot; iddiasını on kat veriyle

@@ -37,11 +37,49 @@ Yön tahmininin dürüst rakamı: **ortanca hata ~80°**, gözlenen yönlerin
 **%28'i ±45° içinde**. Rüzgâr zayıfken yön neredeyse belirsizdir, kuvvetli
 rüzgârda belirginleşir — koninin yarım açısı bu yüzden rüzgâra bağlıdır.
 
-Denenip **işe yaramayan**lar da kayıtlıdır: sekiz sezonluk veriyle eğitilen
-LightGBM modeli yön tahmininde Rothermel'i Türkiye holdout'unda geçemedi;
-koniyi daraltmak için üç ayrı yol denendi, üçü de ölçüm belirsizliğinin
-altında kaldı ve üretime alınmadı. Ölçüm betikleri `scratchpad/isabet/`
-altındadır (`29-kapsama-akdeniz.mjs` kapsama sınaması, `28-model.py` model).
+### Kaç yangını görüyoruz (tespit tamlığı)
+
+2026-08-06'da ilk kez ölçüldü ve **bağımsız bir referansla**: EFFIS'in uydu
+görüntülerinden çıkardığı yanan alan haritaları (`modis.ba.poly.2025`). Yanık
+izi ile aktif yangın farklı iki ölçümdür — iz, alevler yanarken hiçbir uydu
+görmemiş olsa bile kalır — yani bu, kendi ölçütümüzle kendimizi doğrulamak
+değildir.
+
+2025 sezonu, Türkiye, EFFIS'in kaydettiği **351 yangın ≥30 ha**:
+
+| büyüklük | recall |
+|---|---|
+| ≥1000 ha | **%100** (25/25) |
+| 500–1000 ha | %90,9 |
+| 100–500 ha | %79,8 |
+| 30–100 ha | %77,8 |
+| **≥30 ha genel** | **%80,9** |
+
+Tarih toleransı verilince %86,3, zaman şartı hiç konmadığında %90,9 — aradaki
+fark referansın tarih belirsizliğinden (yanık izi yangından *sonra* görüntüde
+belirir), bizim körlüğümüzden değil. **30 ha altı için güvence yoktur**; EFFIS'in
+kendi asgari haritalama sınırı olduğu için o sınıf bu ölçümün dışındadır.
+Betikler: `36-recall-effis.mjs` · `37-recall-teshis.mjs` · `38-eksik-kaynaklar.mjs`
+· `39-recall-uretim.mjs`.
+
+### Denenip işe yaramayanlar
+
+Bu depoda **negatif sonuçlar da kayıtlıdır** — hangi yolun neden kapandığı,
+tekrar açılmasın diye yazılıdır:
+
+| denenen | sonuç |
+|---|---|
+| yön tahmininde LightGBM (8 sezon, 2.874 vaka) | Türkiye holdout'unda Rothermel'i geçmedi |
+| **"temiz alt kümede eğit"** | bir kapı geçer göründü, ama **alakasız bir plasebo kapı da aynı kazancı verdi** → gerçek değil |
+| koniyi daraltmanın üç yolu (rüzgâra bağlı k · yeniden başlatma · büyüme modeli) | her biri ~%3, **toplanmıyorlar**, tavan ~%6 |
+| **yakıt-koşullu halka** | orman ve maki zaten aynı k'yı istiyor; kazanç n=81 ot vakasından ve kapsamayı düşürüyor |
+| WindNinja (arazi-uyarlı rüzgâr) | k'yı ayarlamak üretimdeki sabitten örneklem dışında **daha kötü** |
+| MTG 10 dk ile ilerleme ölçümü | uzaysal kısıt: VIIRS 12 saatte vakaların %94,5'ini çözüyor, MTG 10 dk'da %0 |
+| **Landsat'ı ikinci doğrulama kaynağı yapmak** | FIRMS `LANDSAT_NRT` **yalnız Kuzey Amerika**'yı kapsıyor (TR/İber/Yunanistan 0 satır) |
+| daha yüksek çözünürlüklü rüzgâr (ICON-EU 7 km) | ERA5 25 km ile aynı sonucu veriyor |
+
+Ölçüm betikleri `scratchpad/isabet/` altındadır (`29-kapsama-akdeniz.mjs`
+kapsama sınaması, `28-model.py` model, `42`/`43` temiz alt küme + sağlamlık).
 
 ## Saha koşulları için tasarım
 
@@ -71,15 +109,23 @@ FIRMS_MAP_KEY=...
 
 ## Mimari (özet)
 
-- `src/app/api/fires` — FIRMS area CSV (4 uydu kaynağı) → GeoJSON; 10 dk cache
-- `src/app/api/wind/grid` — Open-Meteo 0.5° TR gridi (u/v, m/s); 3 sa cache
+- `src/app/api/fires` — FIRMS area CSV (VIIRS SNPP/NOAA-20/NOAA-21 + MODIS,
+  hepsi NRT) → GeoJSON; yanıt 4 dk cache
+- `src/app/api/wind/grid` — Open-Meteo 0.5° TR gridi (u/v, m/s); upstream 20 dk,
+  yanıt 15 dk cache
 - `src/app/api/wind/point` — nokta yangın meteorolojisi (rüzgâr/hamle/nem/sıcaklık/VPD)
+- `src/app/api/meteosat` — MTG/MSG 10 dakikalık ısı tespiti (LSA SAF); kör
+  aralığı ~5 saatten ~35 dakikaya indirir
+- `src/app/api/saglik` — platformun kendi çıktısını denetler (tazelik ·
+  makullük · üst kaynak · doğrulama kuyruğu); 200 sağlıklı, 503 arıza
 - `src/lib/cluster.ts` — olay kümeleme + uydu geçişi grupları + sürüklenme vektörü
 - `src/lib/wind.ts` — grid örnekleme, yayılma hızı heuristiği, tahmin konisi
 - `src/lib/progression.ts` — iki geçiş arasında yangının gerçekte nereye taştığı
   (yön modelinin etiketi; ölçüm ve üretim aynı tanımı paylaşır)
 - `src/app/api/ml/cone` — çizilen koniyi özellikleriyle kaydeder (tahmin günlüğü)
 - `src/app/api/ml/verify` — sonraki geçiş gelince tahmini gözlemle karşılaştırır
+- `src/app/api/ml/ingest` · `label` · `enrich` — jeostasyoner ısı sinyallerini
+  Supabase'e toplar, etiketler ve yakıt/sanayi özellikleriyle zenginleştirir
 - `src/app/api/ml/export` — eğitim seti dışa aktarımı (CSV/JSON)
 - `src/app/api/archive` — arşive programatik erişim (olay + geçiş + ham piksel)
 - `src/components/FireMap.tsx` — MapLibre katmanları
@@ -88,6 +134,23 @@ FIRMS_MAP_KEY=...
 
 > **Not:** `maplibre-gl` sürümü **5.x**'te sabittir. 6.0 sürümünde harita
 > sessizce boş kalıyor (karo isteği hiç yapılmıyor, `load` olayı ateşlenmiyor).
+
+### Zamanlama
+
+Veri toplayan uçları **Supabase `pg_cron` + `pg_net`** tetikler
+(`supabase/migrations/0005_ml_cron.sql`); sır cron tanımına düz metin yazılmaz,
+`vault.decrypted_secrets`'tan okunur.
+
+Bu iş eskiden GitHub Actions'taydı ve **ölçüldü**: beklenen günlük 144
+tetiklemenin yalnız ~20'si gerçekleşiyordu (`*/15` yazan iş günde 8 kez
+koşuyordu). GitHub ücretsiz/private depolarda zamanlanmış işleri ağır şekilde
+düşürüyor. `.github/workflows/ml-cron.yml`'de yalnız **saatlik sağlık
+denetimi** kaldı — tek amacı arıza olunca insana e-posta göndermek, ve
+pg_cron'un e-posta kanalı yok.
+
+⚠️ `pg_net` ateşle-unut çalışır, HTTP durumunu kimse görmez. Taşınan uçlar bu
+yüzden `/api/saglik` üzerinden izlenir: `cone` → `cone_forecast` tazeliği,
+`verify` → doğrulama kuyruğunun birikmemesi.
 
 ## Lisans
 
