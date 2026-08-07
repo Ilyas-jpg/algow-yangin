@@ -133,8 +133,15 @@ export async function GET() {
     denetimler.push({ ad: "firms", ok: false, deger: "anahtar yok" });
   } else {
     try {
+      /* 🐛 dayRange 1 → 2 (2026-08-07). FIRMS'te `1` "bugün UTC" demek ve
+       * Türkiye üzerindeki VIIRS geçişleri UTC gününün ilerisinde olduğu için
+       * gece yarısından sonra pencere GERÇEKTEN boş kalıyor. Ölçüldü 01:18
+       * UTC'de, aynı kutu: dayRange 1 → **0 satır** · 2 → 368 · 3 → 622 ·
+       * 5 → 1.223. Yani denetim her gece ~9 saat boyunca kördü ve bu yüzden
+       * satır sayısını hiç şart koşamıyordu — oysa bu ucun var oluş sebebi
+       * tam olarak "200 döndü yetmez, SATIR say" idi. */
       const r = await fetch(
-        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${anahtar}/VIIRS_NOAA20_NRT/25,35,45,43/1`,
+        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${anahtar}/VIIRS_NOAA20_NRT/25,35,45,43/2`,
         { signal: AbortSignal.timeout(20_000), cache: "no-store" }
       );
       const metin = r.ok ? await r.text() : "";
@@ -146,11 +153,17 @@ export async function GET() {
       const satir = metin.trim() ? metin.trim().split("\n").length - 1 : 0;
       denetimler.push({
         ad: "firms",
-        // Sezon dışında sıfır satır normaldir; asıl sinyal başlığın gelmesi —
-        // boğulma yanıtı CSV başlığı taşımaz.
-        ok: r.ok && basliktaKonum,
+        // İki katmanlı: ① başlık gelmeli (boğulma yanıtı CSV başlığı taşımaz)
+        // ② sezon İÇİNDE satır da gelmeli. İkinci şart olmadan "FIRMS ayakta
+        // ama hiç veri vermiyor" durumu sessizce sağlıklı görünür.
+        // Sezon dışında sıfır satır normaldir, orada yalnız başlık aranır.
+        ok: r.ok && basliktaKonum && (!sezonIci() || satir > 0),
         deger: r.ok ? `${satir} satır` : `HTTP ${r.status}`,
-        not: basliktaKonum ? undefined : "CSV başlığı yok (boğulma yanıtı olabilir)",
+        not: !basliktaKonum
+          ? "CSV başlığı yok (boğulma yanıtı olabilir)"
+          : sezonIci() && satir === 0
+            ? "sezon içinde 2 günde sıfır tespit — üst kaynak şüpheli"
+            : "2 günlük pencere",
       });
     } catch (e) {
       denetimler.push({ ad: "firms", ok: false, deger: String((e as Error).message).slice(0, 60) });
