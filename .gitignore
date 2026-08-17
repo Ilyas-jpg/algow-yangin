@@ -44,3 +44,9 @@ next-env.d.ts
 .vercel
 scratchpad/ara
 scratchpad/isabet/*.json
+
+# yapay zeka calisma dosyalari ve yerel scratch — depoya girmez
+CLAUDE.md
+AGENTS.md
+.claude/
+scratchpad/
