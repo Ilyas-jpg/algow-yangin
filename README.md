@@ -1,5 +1,7 @@
 # Algow Yangın
 
+Geliştiren: [İlyas Saltay](https://ilyassaltay.com) · Vaka sayfası: [ilyassaltay.com/isler/algow-yangin](https://ilyassaltay.com/isler/algow-yangin/)
+
 Türkiye ve yakın çevresi için canlı yangın izleme ve rüzgâra dayalı yön tahmini
 haritası. NASA FIRMS uydu tespitleri + Open-Meteo rüzgâr/yangın meteorolojisi,
 MapLibre üzerinde. Toplum ve doğa yararına, ücretsiz.
