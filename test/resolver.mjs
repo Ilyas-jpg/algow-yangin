@@ -24,6 +24,12 @@ function ilkVarOlan(taban, specifier) {
 }
 
 export async function resolve(specifier, context, next) {
+  // `import "server-only"` (lib/ml-db.ts): paket node_modules'ta yok, Next'in
+  // paketleyicisi kendi içinden çözüyor. Node'da "Cannot find package" ile
+  // patlar; testte anlamı da yok (istemci bileşeni yok) — boş modül veriyoruz.
+  if (specifier === "server-only") {
+    return { url: "data:text/javascript,", shortCircuit: true };
+  }
   if (specifier.startsWith("@/")) {
     const hit = ilkVarOlan(SRC, specifier.slice(2));
     if (hit) return next(hit, context);

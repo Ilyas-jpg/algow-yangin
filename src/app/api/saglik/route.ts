@@ -22,6 +22,13 @@ import { MAX_ILERLEME_KMH, NEW_KM } from "@/lib/progression";
  *
  * 200 = sağlıklı · 503 = en az bir denetim düştü (izleme aracı uyarsın).
  * Gövde sır taşımaz: sayı ve durum, bağlantı dizesi/anahtar yok.
+ *
+ * ⚠️ Tek seferlik üst-kaynak hıçkırığı alarm DEĞİLDİR, sürerse alarmdır
+ * (2026-09-12, ölçüldü: 400 koşunun 5'i düştü — 4 Eylül'deki tek bir FIRMS
+ * 500'üydü, 11 Eylül'deki Supabase geçidinin aralıklı 504'üydü). DB
+ * okumaları `lib/ml-db`'de 3 deneme, FIRMS aşağıda 2 deneme yapar; düşen
+ * denetim HTTP kodunu yazar ki sebep Vercel logu silinmeden (Hobby: 1 sa)
+ * okunabilsin.
  */
 export const revalidate = 0;
 
@@ -52,7 +59,8 @@ export async function GET() {
     const r = await db.select<Record<string, string>>(
       `${tablo}?select=${alan}&order=${alan}.desc&limit=1`
     );
-    if ("error" in r) return { ad: `${tablo}-tazelik`, ok: false, deger: "sorgu düştü" };
+    if ("error" in r)
+      return { ad: `${tablo}-tazelik`, ok: false, deger: `sorgu düştü (HTTP ${r.detay ?? "?"})` };
     if (!r.rows.length)
       return { ad: `${tablo}-tazelik`, ok: !sezonIci(), deger: "hiç satır yok" };
     const saat = (Date.now() - Date.parse(r.rows[0][alan])) / 3600_000;
@@ -94,7 +102,11 @@ export async function GET() {
     );
     denetimler.push(
       "error" in bekleyen
-        ? { ad: "dogrulama-kuyrugu", ok: false, deger: "sorgu düştü" }
+        ? {
+            ad: "dogrulama-kuyrugu",
+            ok: false,
+            deger: `sorgu düştü (HTTP ${bekleyen.detay ?? "?"})`,
+          }
         : {
             ad: "dogrulama-kuyrugu",
             ok: bekleyen.rows.length === 0,
@@ -112,7 +124,11 @@ export async function GET() {
       "&observed_growth_km=not.is.null&hours_elapsed=not.is.null&limit=1000"
   );
   if ("error" in dogrulanan) {
-    denetimler.push({ ad: "ilerleme-makullugu", ok: false, deger: "sorgu düştü" });
+    denetimler.push({
+      ad: "ilerleme-makullugu",
+      ok: false,
+      deger: `sorgu düştü (HTTP ${dogrulanan.detay ?? "?"})`,
+    });
   } else {
     const imkansiz = dogrulanan.rows.filter((r) => {
       const tavan = Math.max(NEW_KM, MAX_ILERLEME_KMH * Math.max(0, r.hours_elapsed!));
@@ -140,10 +156,26 @@ export async function GET() {
        * 5 → 1.223. Yani denetim her gece ~9 saat boyunca kördü ve bu yüzden
        * satır sayısını hiç şart koşamıyordu — oysa bu ucun var oluş sebebi
        * tam olarak "200 döndü yetmez, SATIR say" idi. */
-      const r = await fetch(
-        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${anahtar}/VIIRS_NOAA20_NRT/25,35,45,43/2`,
-        { signal: AbortSignal.timeout(20_000), cache: "no-store" }
-      );
+      /* İki deneme (2026-09-12): 4 Eylül'deki alarm tek bir FIRMS 500'üydü,
+       * bir sonraki saatte 453 satır geldi. Tek denemede mail atmak üst
+       * kaynağın hıçkırığını bizim arızamız gibi gösteriyor. İkinci deneme
+       * de düşerse eskisi gibi alarm. */
+      const firmsUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${anahtar}/VIIRS_NOAA20_NRT/25,35,45,43/2`;
+      let r: Response | null = null;
+      let deneme = 0;
+      let sonHata: unknown = null;
+      while (deneme < 2) {
+        deneme++;
+        try {
+          r = await fetch(firmsUrl, { signal: AbortSignal.timeout(20_000), cache: "no-store" });
+          if (r.ok) break;
+        } catch (e) {
+          sonHata = e;
+          r = null;
+        }
+        if (deneme < 2) await new Promise((res) => setTimeout(res, 1500));
+      }
+      if (!r) throw sonHata;
       const metin = r.ok ? await r.text() : "";
       const baslik = metin.split("\n", 1)[0] ?? "";
       // Başlık ADI VARSAYILMAZ, ölçüldü: `latitude,longitude,bright_ti4,...`
@@ -159,11 +191,12 @@ export async function GET() {
         // Sezon dışında sıfır satır normaldir, orada yalnız başlık aranır.
         ok: r.ok && basliktaKonum && (!sezonIci() || satir > 0),
         deger: r.ok ? `${satir} satır` : `HTTP ${r.status}`,
-        not: !basliktaKonum
-          ? "CSV başlığı yok (boğulma yanıtı olabilir)"
-          : sezonIci() && satir === 0
-            ? "sezon içinde 2 günde sıfır tespit — üst kaynak şüpheli"
-            : "2 günlük pencere",
+        not:
+          (!basliktaKonum
+            ? "CSV başlığı yok (boğulma yanıtı olabilir)"
+            : sezonIci() && satir === 0
+              ? "sezon içinde 2 günde sıfır tespit — üst kaynak şüpheli"
+              : "2 günlük pencere") + (deneme > 1 ? " · 2. denemede" : ""),
       });
     } catch (e) {
       denetimler.push({ ad: "firms", ok: false, deger: String((e as Error).message).slice(0, 60) });

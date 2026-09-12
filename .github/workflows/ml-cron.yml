@@ -15,9 +15,17 @@
 #
 # ⚠️ SAĞLIK DENETİMİ NEDEN HÂLÂ BURADA: tek amacı arıza olunca İNSANA haber
 # vermek ve pg_cron'un e-posta kanalı yok. Saatte bir tetiklenip ~%38 teslim
-# etmesi (≈2,5 saatte bir denetim) bir alarm için kabul edilebilir. Depodaki
-# tetikleme sayısı 144→24'e düştüğü için teslim oranının iyileşmesi beklenir
-# — beklenti, iddia değil; tekrar ölçülecek.
+# etmesi (≈2,5 saatte bir denetim) bir alarm için kabul edilebilir.
+#
+# 📏 İKİNCİ ÖLÇÜM (2026-09-12, son 400 koşu): 5 düşüş (%1,25).
+#     22 Ağu ×3  heat_signal 4→6 sa bayat   → GERÇEK ingest boşluğu (doğru alarm)
+#     4 Eyl      FIRMS HTTP 500              → tek seferlik üst-kaynak hıçkırığı
+#     11 Eyl     Supabase geçidi 504         → gerçek: boru hattı da düşüyordu
+# Yani mailler çoğunlukla haklı; sorun kanal değil, TEK HIÇKIRIĞIN da mail
+# atması. Bu yüzden İKİ SONDA: ilk sonda 200 değilse 90 sn sonra tekrar, yalnız
+# ikisi de düşerse kırmızı. Hıçkırık özette görünür (⚠️ + tablo) ama mail
+# atmaz; süren arıza iki sondada da düşer ve mail atar. DB okumaları da
+# `lib/ml-db` içinde 3 deneme yapıyor, FIRMS denetimi 2 — bkz. o dosyalar.
 #
 # ⚠️ TEK KURULUM ADIMI: depo → Settings → Secrets and variables → Actions
 #    YANGIN_BASE_URL   = https://yangin.algow.net   (opsiyonel, varsayılan bu)
@@ -56,27 +64,66 @@ jobs:
     # çalıştığı için HTTP durumunu kimse görmüyor; gözcü bu denetim.
     name: Sağlık denetimi
     runs-on: ubuntu-latest
+    # En kötü yol: 60 sn sonda + 90 sn bekleme + 60 sn sonda = 210 sn.
     timeout-minutes: 5
     steps:
       - name: Platform kendi çıktısını denetlesin
         env:
           BASE: ${{ vars.YANGIN_BASE_URL || 'https://yangin.algow.net' }}
         run: |
-          kod=$(curl -sS --max-time 90 -o saglik.json -w '%{http_code}' "$BASE/api/saglik")
-          cat saglik.json; echo
-          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json
-          d = json.load(open("saglik.json"))
-          print(f"### {'✅ sağlıklı' if d.get('ok') else '🔴 ARIZA'}"
-                f" · sezon içi: {d.get('sezonIci')}")
+          # Özet/annotation yardımcısı — iki sondanın çıktısını aynı biçimde basar.
+          cat > ozet.py <<'PY'
+          import json, sys
+          mod, yol = sys.argv[1], sys.argv[2]
+          try:
+              d = json.load(open(yol))
+          except Exception:
+              d = None
+          if mod == "dusenler":
+              if d is None:
+                  print("gövde JSON değil")
+              else:
+                  print(", ".join(f"{c['ad']}={c['deger']}" for c in d.get("denetimler", []) if not c["ok"]) or "-")
+              sys.exit(0)
+          baslik = sys.argv[3]
+          if d is None:
+              print(f"### {baslik} — gövde JSON değil (uç cevap vermedi ya da HTML döndü)\n")
+              sys.exit(0)
+          print(f"### {baslik}: {'✅ sağlıklı' if d.get('ok') else '🔴 ARIZA'} · sezon içi: {d.get('sezonIci')}")
           print("| denetim | durum | değer | not |")
           print("|---|---|---|---|")
           for c in d.get("denetimler", []):
-              print(f"| {c['ad']} | {'✅' if c['ok'] else '🔴'} | {c['deger']} | {c.get('not','')} |")
+              print(f"| {c['ad']} | {'✅' if c['ok'] else '🔴'} | {c['deger']} | {c.get('not', '')} |")
+          print()
           PY
-          # 503 = en az bir denetim düştü. Sessiz arızayı GÖRÜNÜR kılmak bu işin
-          # tek amacı, o yüzden burada başarısız oluyoruz.
+
+          sonda() {
+            local k
+            # curl'ün kendi hatası (DNS, TLS, zaman aşımı) 000 sayılır.
+            k=$(curl -sS --max-time 60 -o "$1" -w '%{http_code}' "$BASE/api/saglik") || k=000
+            printf '%s' "$k"
+          }
+
+          kod=$(sonda saglik1.json)
+          cat saglik1.json 2>/dev/null || true; echo
+          if [ "$kod" = "200" ]; then
+            python3 ozet.py tablo saglik1.json "Sağlık" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # İKİNCİ SONDA — tek hıçkırık alarm değil, süren arıza alarmdır.
+          dusen=$(python3 ozet.py dusenler saglik1.json)
+          echo "::warning::1. sonda HTTP $kod ($dusen) — 90 sn sonra tekrar denenecek"
+          python3 ozet.py tablo saglik1.json "⚠️ 1. sonda düştü (HTTP $kod), 90 sn sonra tekrar" >> "$GITHUB_STEP_SUMMARY"
+          sleep 90
+          kod=$(sonda saglik2.json)
+          cat saglik2.json 2>/dev/null || true; echo
+          python3 ozet.py tablo saglik2.json "2. sonda" >> "$GITHUB_STEP_SUMMARY"
           if [ "$kod" != "200" ]; then
-            echo "::error::/api/saglik HTTP $kod — yukarıdaki tabloda düşen denetime bak"
+            dusen=$(python3 ozet.py dusenler saglik2.json)
+            # 503 = en az bir denetim iki kez üst üste düştü. Sessiz arızayı
+            # GÖRÜNÜR kılmak bu işin tek amacı, o yüzden burada başarısız oluyoruz.
+            echo "::error::/api/saglik iki sondada da düştü (HTTP $kod) — düşen: $dusen"
             exit 1
           fi
+          echo "::notice::2. sonda sağlıklı — 1. sondadaki düşüş geçici hıçkırıktı (kodu ve tablosu özette)"
