@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ML_DURDURULDU, mlDurduYaniti } from "@/lib/ml-salter";
 import { loadFires, loadFiresForDate } from "@/lib/fires-server";
 import { havKm } from "@/lib/geo";
 import { supabaseAdmin } from "@/lib/ml-db";
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
   if (!secret || req.headers.get("x-ingest-secret") !== secret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  if (ML_DURDURULDU) return mlDurduYaniti();
 
   const db = supabaseAdmin();
   if ("error" in db) return NextResponse.json(db, { status: 500 });
