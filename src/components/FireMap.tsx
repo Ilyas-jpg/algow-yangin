@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Map as MapGL, Popup } from "maplibre-gl";
+import { Map as MapGL, Popup, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type {
   ExpressionSpecification,
@@ -17,9 +17,43 @@ import {
   type FootprintInput,
 } from "@/lib/pixel-footprint";
 import { SMOKE_STEP } from "@/lib/bbox";
+import { maplibreWorkerUrl } from "@/lib/maplibre-worker";
 
 /** Duman lekesi ızgara adımıyla birlikte büyümeli — bkz. smoke-field */
 const SMOKE_SCALE = SMOKE_STEP / 0.5;
+
+/**
+ * MapLibre 6 worker'ı — ADRESİ ELLE VERİLMEK ZORUNDA.
+ *
+ * v6 yalnız ESM; v5 worker'ı ana pakete blob olarak gömüyordu, v6 ayrı
+ * `maplibre-gl-worker.mjs` dosyasından yüklüyor ve paketleyici içinde
+ * `import.meta.url` o dosyayı bulamıyor. Adres verilmezse worker hiç kalkmaz:
+ * vektör karoları worker çektiği için TEK karo isteği gitmez, `load` hiç
+ * ateşlenmez ve HİÇBİR hata basılmaz. 2026-08-01'de 6.1.0'a geçildiğinde
+ * yaşanan "bomboş harita" tam olarak buydu (vault: Dersler 7) ve 5.24'e
+ * dönülmüştü. Bu kalıp MapLibre'nin Next.js/Turbopack tarifi; Next worker'ı
+ * hash'li bir statik dosya olarak üretiyor (aynı köken → CSP `worker-src
+ * 'self'` yetiyor). 2026-10-18'de 6.14'e geçildi: 5.x'in son sürümünde atıf
+ * temizleyicisindeki kritik XSS açığı (GHSA-jrc7-96c5-q579) yamasızdı.
+ */
+if (typeof window !== "undefined") setWorkerUrl(maplibreWorkerUrl());
+
+/**
+ * WebGL2 var mı. MapLibre 6 WebGL1'i bıraktı: WebGL2 yoksa harita kurucusu
+ * `GPUInitializationError` fırlatır. Bunu önceden sınamak, haritasız
+ * cihazda "harita çizilemiyor, liste çalışıyor" demeyi ilk karede mümkün
+ * kılıyor. Deneme bağlamı hemen bırakılıyor (tarayıcı canlı bağlam sayısını
+ * sınırlıyor).
+ */
+function webgl2Var(): boolean {
+  try {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    gl?.getExtension("WEBGL_lose_context")?.loseContext();
+    return !!gl;
+  } catch {
+    return false;
+  }
+}
 import { fill, type Locale } from "@/lib/i18n";
 import { useLocale, useT } from "./LocaleProvider";
 import { fmtAgo } from "@/lib/format";
@@ -499,6 +533,9 @@ export default function FireMap({
   const windRef = useRef<WindParticleLayer | null>(null);
   const [ready, setReady] = useState(false);
   const [styleFailed, setStyleFailed] = useState(false);
+  // Bileşen yalnız istemcide yükleniyor (App: dynamic, ssr:false), yani
+  // ilk render'da `document` var.
+  const [gpuYok, setGpuYok] = useState(() => !webgl2Var());
   const onSelectRef = useRef(onSelect);
   const onCenterRef = useRef(onCenterChange);
   const onZoomRef = useRef(onZoomChange);
@@ -518,16 +555,27 @@ export default function FireMap({
 
   // ── Harita kurulumu (bir kez)
   useEffect(() => {
-    if (mapRef.current || !containerRef.current) return;
-    const map = new MapGL({
-      container: containerRef.current,
-      style: STYLE_URL,
-      center: [32.6, 39.0],
-      zoom: 5.35,
-      minZoom: 4,
-      maxZoom: 15,
-      attributionControl: { compact: true },
-    });
+    if (gpuYok || mapRef.current || !containerRef.current) return;
+    let map: MlMap;
+    try {
+      map = new MapGL({
+        container: containerRef.current,
+        style: STYLE_URL,
+        center: [32.6, 39.0],
+        zoom: 5.35,
+        minZoom: 4,
+        maxZoom: 15,
+        attributionControl: { compact: true },
+      });
+    } catch (e) {
+      // WebGL2 bağlamı var görünüp yine de kurulamayabilir (kara listedeki
+      // GPU, sürücü sorunu): v6 kurucusu fırlatır. Harita yok ama liste,
+      // ayrıntı ve uyarılar haritaya bağlı değil — sayfa çökmesin, sebebini
+      // söylesin. Durum güncellemesi efekt gövdesinden sonraya alınıyor.
+      console.error("[harita] kurulamadı", e);
+      queueMicrotask(() => setGpuYok(true));
+      return;
+    }
     mapRef.current = map;
     // Teşhis kancası: ?debug=1 ile harita nesnesi konsoldan incelenebilir.
     // Katman görünürlüklerini dışarıdan doğrulamak için gerekiyor.
@@ -670,9 +718,15 @@ export default function FireMap({
         );
       };
       const idle = (
-        window as unknown as { requestIdleCallback?: (cb: () => void) => void }
+        window as unknown as {
+          requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void;
+        }
       ).requestIdleCallback;
-      if (idle) idle(ilSinirlariYukle);
+      // timeout ŞART: rüzgâr partikülleri ve nabız animasyonu ana iş
+      // parçacığını sürekli meşgul ediyor; yavaş cihazda (yazılım GL,
+      // eski telefon) "boş an" hiç gelmeyebiliyor ve sınırlar hiç
+      // yüklenmiyordu — ölçüldü, 2026-10-18 başsız Chromium.
+      if (idle) idle(ilSinirlariYukle, { timeout: 2500 });
       else setTimeout(ilSinirlariYukle, 1200);
 
       // ── TOPOĞRAFYA: Terrarium DEM'den tepe gölgeleme.
@@ -1824,13 +1878,29 @@ export default function FireMap({
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} className="h-full w-full" />
-      {styleFailed && !ready && (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
-          <p className="max-w-[300px] text-center text-xs leading-relaxed text-ink-2">
-            Harita altlığı yüklenemedi. Yangın listesi ve uyarılar çalışmaya
-            devam ediyor; bağlantı düzelince harita kendiliğinden gelir.
-          </p>
+      {gpuYok ? (
+        // Haritasız cihaz: boş kutu "site bozuk" diye okunur. Ne olduğunu ve
+        // neyin hâlâ çalıştığını harita alanının ortasında açıkça söyle.
+        <div
+          role="status"
+          className="pointer-events-none absolute inset-0 grid place-items-center p-6"
+        >
+          <div className="max-w-[340px] rounded-md border border-line bg-obsidian-2/80 px-5 py-4 text-center">
+            <p className="text-sm font-medium text-ink">{t.map.noGpuTitle}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-ink-2">
+              {t.map.noGpuBody}
+            </p>
+          </div>
         </div>
+      ) : (
+        styleFailed &&
+        !ready && (
+          <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
+            <p className="max-w-[300px] text-center text-xs leading-relaxed text-ink-2">
+              {t.map.basemapFailed}
+            </p>
+          </div>
+        )
       )}
     </div>
   );

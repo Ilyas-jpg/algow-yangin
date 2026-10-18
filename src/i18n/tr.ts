@@ -483,6 +483,12 @@ export const tr = {
 
   map: {
     firstSeen: "İLK GÖRÜLEN",
+    basemapFailed:
+      "Harita altlığı yüklenemedi. Yangın listesi ve uyarılar çalışmaya devam ediyor; bağlantı düzelince harita kendiliğinden gelir.",
+    /** MapLibre 6 WebGL2 istiyor; yoksa harita kurulamaz (FireMap) */
+    noGpuTitle: "Harita bu cihazda çizilemiyor",
+    noGpuBody:
+      "Tarayıcın WebGL2 desteklemiyor: eski bir cihaz ya da kapalı donanım hızlandırma. Yangın listesi, ayrıntılar ve uyarılar çalışmaya devam ediyor; tarayıcıyı güncellemek çoğu zaman çözer.",
   },
 
   embed: {

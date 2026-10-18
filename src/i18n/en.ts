@@ -482,6 +482,11 @@ export const en: Dict = {
 
   map: {
     firstSeen: "FIRST SEEN",
+    basemapFailed:
+      "The base map could not be loaded. The fire list and alerts keep working; the map will appear by itself once the connection recovers.",
+    noGpuTitle: "The map cannot be drawn on this device",
+    noGpuBody:
+      "Your browser does not support WebGL2: an older device, or hardware acceleration is turned off. The fire list, details and alerts keep working; updating the browser usually fixes it.",
   },
 
   embed: {

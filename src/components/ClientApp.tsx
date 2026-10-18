@@ -1,8 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { preloadModule } from "react-dom";
 import type { Dict } from "@/i18n/tr";
 import type { Locale } from "@/lib/i18n";
+import { maplibreWorkerUrl } from "@/lib/maplibre-worker";
 import type { AppProps } from "./App";
 import { LocaleProvider } from "./LocaleProvider";
 import MapLoading from "./MapLoading";
@@ -27,6 +29,12 @@ export default function ClientApp({
   dict,
   ...props
 }: AppProps & { locale: Locale; dict: Dict }) {
+  // Harita worker'ını uygulama ve harita parçalarıyla PARALEL indir (bkz.
+  // lib/maplibre-worker). Yalnız tarayıcıda: sunucu paketinde varlık adresi
+  // anlamsız. React aynı adresi tek kez ekler.
+  if (typeof window !== "undefined") {
+    preloadModule(maplibreWorkerUrl(), { as: "worker" });
+  }
   return (
     <LocaleProvider locale={locale} dict={dict}>
       <App {...props} />

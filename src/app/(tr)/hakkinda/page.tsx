@@ -402,6 +402,16 @@ export default function HakkindaPage() {
                   Altyapı güncellendi: kullandığımız web çatısındaki (Next.js)
                   güvenlik açıkları kapatıldı.
                 </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Harita motoru yeni sürümüne geçti (MapLibre 6).
+                  </b>{" "}
+                  Eski sürümde kritik bir güvenlik açığı vardı ve o sürüme
+                  artık yama çıkmıyor. Bedeli: WebGL2 desteklemeyen çok eski
+                  cihazlarda harita çizilemiyor. Orada harita alanı bunu açıkça
+                  yazıyor; yangın listesi, ayrıntılar ve uyarılar çalışmaya
+                  devam ediyor.
+                </li>
               </ul>
             </div>
             <div>

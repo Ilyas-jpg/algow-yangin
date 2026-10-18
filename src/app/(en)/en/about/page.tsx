@@ -435,6 +435,17 @@ export default function AboutPage() {
                   Infrastructure update: security vulnerabilities in the web
                   framework we use (Next.js) were patched.
                 </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    The map engine moved to its new major version (MapLibre
+                    6).
+                  </b>{" "}
+                  The old version had a critical security vulnerability and no
+                  longer receives patches. The cost: on very old devices
+                  without WebGL2 the map cannot be drawn. There the map area
+                  says so plainly; the fire list, details and alerts keep
+                  working.
+                </li>
               </ul>
             </div>
             <div>
