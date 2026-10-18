@@ -346,8 +346,8 @@ export default function HakkindaPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
-                18 Ekim 2026 — bakım: iki sessiz hata ve bir güvenlik
-                güncellemesi
+                18 Ekim 2026 — bakım: sessiz hatalar, bayat veriler ve bir
+                güvenlik güncellemesi
               </p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
@@ -382,6 +382,16 @@ export default function HakkindaPage() {
                   Haritadaki canlı yangınlar ve yön tahmini bundan
                   etkilenmiyor; karne ise artık &quot;canlı&quot; değil, o
                   güne kadarki konileri anlatıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    İl ve istatistik sayfalarındaki sezon sayıları 2
+                    Ağustos&apos;ta kalmıştı.
+                  </b>{" "}
+                  Veri o gün hazırlanmış ama sayfa &quot;1 Mayıs&apos;tan
+                  bugüne&quot; diye göstermeye devam ediyordu. Altı sezonun
+                  verisini 18 Ekim&apos;e kadar yeniden indirdik; sayfa artık
+                  verinin hangi güne kadar olduğunu kendisi yazıyor.
                 </li>
                 <li>
                   Meteosat düğmesi &quot;MSG 15dk&quot; yazıyordu; oysa

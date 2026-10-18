@@ -22,12 +22,15 @@ function Egri({
   gunluk,
   guncelYil,
   gunSayisi,
+  son,
   t,
   locale,
 }: {
   gunluk: Record<string, number[]>;
   guncelYil: number;
   gunSayisi: number;
+  /** Pişirilen pencerenin son günü, okunur biçimde ("18 Ekim") */
+  son: string;
   t: Dict;
   locale: Locale;
 }) {
@@ -67,7 +70,7 @@ function Egri({
         viewBox={`0 0 ${W} ${H}`}
         className="w-full"
         role="img"
-        aria-label={fill(t.stats.curveAria, { yil: guncelYil })}
+        aria-label={fill(t.stats.curveAria, { yil: guncelYil, son })}
       >
         {eksenler.map((v) => (
           <g key={v}>
@@ -128,7 +131,7 @@ function Egri({
           className="fill-[#7e7e88] font-mono"
           fontSize="9"
         >
-          {t.stats.curveEnd}
+          {son}
         </text>
       </svg>
       <figcaption className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] text-ink-3">
@@ -163,6 +166,11 @@ export default function StatsView({ locale }: { locale: Locale }) {
   }
 
   const { ulke, guncelYil } = veri;
+  // Veri statik pişiriliyor (scratchpad/il-istatistik-pisir.mjs); metin
+  // "bugüne kadar" derse pişirmeden sonraki her gün yanlış olur — Ağustos'ta
+  // pişen veri Ekim'e kadar "1 Mayıs'tan bugüne" diye sunuldu. Tarih
+  // pencerenin kendisinden okunuyor.
+  const son = fmtDate(`${guncelYil}-${veri.pencere.son}`, locale);
   const yillar = Object.keys(ulke.yillar).map(Number).sort();
   const gecmis = yillar.filter((y) => y !== guncelYil);
   const gecmisOrt = Math.round(
@@ -187,7 +195,7 @@ export default function StatsView({ locale }: { locale: Locale }) {
         {fill(t.stats.h1, { yil: guncelYil })}
       </h1>
       <p className="mt-3 text-[13px] leading-relaxed text-ink-2">
-        {t.stats.intro}
+        {fill(t.stats.intro, { son })}
       </p>
 
       <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -230,6 +238,7 @@ export default function StatsView({ locale }: { locale: Locale }) {
         gunluk={ulke.gunluk}
         guncelYil={guncelYil}
         gunSayisi={ulke.gunSayisi}
+        son={son}
         t={t}
         locale={locale}
       />
@@ -258,7 +267,7 @@ export default function StatsView({ locale }: { locale: Locale }) {
         })}
       </ul>
       <p className="mt-2 text-[11px] text-ink-3">
-        {fill(t.stats.totalsNote, { yil: guncelYil })}
+        {fill(t.stats.totalsNote, { yil: guncelYil, son })}
       </p>
 
       <h2 className="mt-10 text-[18px] font-medium">{t.stats.h2Provinces}</h2>

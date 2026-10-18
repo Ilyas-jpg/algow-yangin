@@ -377,8 +377,8 @@ export default function AboutPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
-                18 October 2026 — maintenance: two silent bugs and a security
-                update
+                18 October 2026 — maintenance: silent bugs, stale data and a
+                security update
               </p>
               <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
                 <li>
@@ -414,6 +414,16 @@ export default function AboutPage() {
                   recorded. Live fires and the direction forecast on the map
                   are not affected; the scorecard is no longer &quot;live&quot;
                   and describes the cones drawn up to that day.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Season figures on the province and statistics pages had
+                    stopped on 2 August.
+                  </b>{" "}
+                  The data was prepared that day, yet the page kept presenting
+                  it as &quot;from 1 May to today&quot;. We re-downloaded six
+                  seasons up to 18 October; the page now states the date its
+                  data runs to.
                 </li>
                 <li>
                   The Meteosat button said &quot;MSG 15min&quot;, although since

@@ -573,7 +573,7 @@ export const tr = {
     notReady: "İstatistik verisi henüz hazırlanmadı.",
     h1: "{yil} yangın sezonu — uydu ne gördü?",
     intro:
-      "1 Mayıs'tan bugüne Türkiye üzerinde NASA FIRMS uydularının kaydettiği ısı tespitleri, geçmiş beş sezonun aynı dönemiyle karşılaştırmalı. Sabit ısı kaynakları (rafineri, demir-çelik tesisi, enerji santrali) bu sayıların dışında tutuldu.",
+      "1 Mayıs – {son} arasında Türkiye üzerinde NASA FIRMS uydularının kaydettiği ısı tespitleri, geçmiş beş sezonun aynı dönemiyle karşılaştırmalı. Sabit ısı kaynakları (rafineri, demir-çelik tesisi, enerji santrali) bu sayıların dışında tutuldu.",
     thisSeason: "bu sezon",
     detections: "ısı tespiti",
     pastAvg: "geçmiş 5 sezon ort.",
@@ -584,13 +584,12 @@ export const tr = {
     peakDetections: "{n} tespit",
     h2Curve: "Sezon nasıl gidiyor",
     curveAria:
-      "Sezon başından bugüne birikimli uydu tespiti eğrisi; {yil} ve önceki sezonlar",
+      "1 Mayıs – {son} arası birikimli uydu tespiti eğrisi; {yil} ve önceki sezonlar",
     curveStart: "1 Mayıs",
-    curveEnd: "bugün",
     curveLegend: "birikimli tespit · 1 Mayıs'tan itibaren",
     h2Totals: "Sezonlara göre toplam",
     totalsNote:
-      "{yil} sezonu henüz sürüyor; diğer yıllar da aynı takvim penceresine (1 Mayıs – bugün) kırpıldı, karşılaştırma bu yüzden adil.",
+      "{yil} sezonu {son} itibarıyla sayıldı; diğer yıllar da aynı takvim penceresine (1 Mayıs – {son}) kırpıldı, karşılaştırma bu yüzden adil.",
     h2Provinces: "İllere göre",
     provincesNote:
       "Bu tablo her il için aynı şeyi sayıyor: uydunun o ilde gördüğü ısı tespitleri. Sabit sanayi kaynakları düşüldü; geri kalanda hem orman yangını hem tarım alanındaki anız ateşi var ve ikisi birbirinden ayrıştırılmadı. Yüksek bir sayı çok orman yangını anlamına da gelebilir, çok tarım alanı anlamına da — hangisi olduğu o ilin arazi örtüsünden anlaşılır.",

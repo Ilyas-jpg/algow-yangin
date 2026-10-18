@@ -574,7 +574,7 @@ export const en: Dict = {
     notReady: "The statistics data has not been prepared yet.",
     h1: "{yil} fire season — what did the satellite see?",
     intro:
-      "Heat detections recorded over Türkiye by the NASA FIRMS satellites since 1 May, compared with the same period of the past five seasons. Permanent heat sources (refineries, steel plants, power stations) are excluded from these figures.",
+      "Heat detections recorded over Türkiye by the NASA FIRMS satellites between 1 May and {son}, compared with the same period of the past five seasons. Permanent heat sources (refineries, steel plants, power stations) are excluded from these figures.",
     thisSeason: "this season",
     detections: "heat detections",
     pastAvg: "past 5-season avg.",
@@ -585,13 +585,12 @@ export const en: Dict = {
     peakDetections: "{n} detections",
     h2Curve: "How the season is going",
     curveAria:
-      "Cumulative satellite detection curve from the start of the season to today; {yil} and previous seasons",
+      "Cumulative satellite detection curve from 1 May to {son}; {yil} and previous seasons",
     curveStart: "1 May",
-    curveEnd: "today",
     curveLegend: "cumulative detections · from 1 May",
     h2Totals: "Totals by season",
     totalsNote:
-      "The {yil} season is still under way; the other years are clipped to the same calendar window (1 May – today), which is what makes the comparison fair.",
+      "The {yil} season is counted up to {son}; the other years are clipped to the same calendar window (1 May – {son}), which is what makes the comparison fair.",
     h2Provinces: "By province",
     provincesNote:
       "This table counts the same thing for every province: the heat detections the satellite saw there. Fixed industrial sources are removed; what remains contains both forest fires and stubble fires on agricultural land, and the two are not separated from each other. A high number can mean many forest fires or a lot of farmland — which one it is follows from that province's land cover.",
