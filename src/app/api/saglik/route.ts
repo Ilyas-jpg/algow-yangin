@@ -190,14 +190,25 @@ async function firmsDenetimi(denetimler: Denetim[]): Promise<void> {
        * bir sonraki saatte 453 satır geldi. Tek denemede mail atmak üst
        * kaynağın hıçkırığını bizim arızamız gibi gösteriyor. İkinci deneme
        * de düşerse eskisi gibi alarm. */
+      /* Zaman BÜTÇESİ, deneme başına sabit süre değil (2026-10-18). O gece
+       * FIRMS aynı isteğe ~25 sn'de yanıt veriyordu (anahtar kotası 48/5000,
+       * yani yük bizden değil) ve 20 sn'lik deneme sınırı yavaş ama çalışan
+       * kaynağı arıza sayıp 503 verdi. Yavaşlık arıza değil: canlı harita aynı
+       * saatlerde önbellekten 4/4 kaynakla çalışıyordu. Bütçe 50 sn çünkü
+       * saatlik sonda (`ml-cron.yml`) 60 sn bekliyor; hızlı düşen deneme
+       * (5xx) kalan bütçeyle bir kez daha denenir, zaman aşımı denenmez. */
       const firmsUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${anahtar}/VIIRS_NOAA20_NRT/25,35,45,43/2`;
+      const BUTCE_MS = 50_000;
+      const t0 = Date.now();
       let r: Response | null = null;
       let deneme = 0;
       let sonHata: unknown = null;
       while (deneme < 2) {
+        const kalan = BUTCE_MS - (Date.now() - t0);
+        if (kalan < 5_000) break;
         deneme++;
         try {
-          r = await fetch(firmsUrl, { signal: AbortSignal.timeout(20_000), cache: "no-store" });
+          r = await fetch(firmsUrl, { signal: AbortSignal.timeout(kalan), cache: "no-store" });
           if (r.ok) break;
         } catch (e) {
           sonHata = e;
@@ -226,7 +237,11 @@ async function firmsDenetimi(denetimler: Denetim[]): Promise<void> {
             ? "CSV başlığı yok (boğulma yanıtı olabilir)"
             : sezonIci() && satir === 0
               ? "sezon içinde 2 günde sıfır tespit — üst kaynak şüpheli"
-              : "2 günlük pencere") + (deneme > 1 ? " · 2. denemede" : ""),
+              : "2 günlük pencere") +
+          (deneme > 1 ? " · 2. denemede" : "") +
+          // Yavaşlık alarm değil ama görünür kalsın: üst kaynağın kötüleştiği
+          // saatlerce yeşil tablodan okunabilsin.
+          (Date.now() - t0 > 10_000 ? ` · ${Math.round((Date.now() - t0) / 1000)} sn` : ""),
       });
     } catch (e) {
       denetimler.push({ ad: "firms", ok: false, deger: String((e as Error).message).slice(0, 60) });
