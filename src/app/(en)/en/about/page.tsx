@@ -377,6 +377,58 @@ export default function AboutPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                18 October 2026 — maintenance: two silent bugs and a security
+                update
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Our own mistake: the forecast scorecard counted only a
+                    slice of the data.
+                  </b>{" "}
+                  Because of a database row cap, the scorecard on the
+                  statistics page was computed from only 1,000 of the 49,343
+                  verified forecasts. It showed 85% coverage and a 45% hit
+                  rate within 45°; with all forecasts the figures are 37.5% and
+                  37%. The median direction error, on the other hand, dropped
+                  from 65 to 61 degrees. The same cap also starved the
+                  verification run, so most forecasts were counted as &quot;no
+                  detection at the next pass&quot;. The bug is fixed;
+                  re-verifying the old records is separate work, and the
+                  scorecard says so itself.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    The aircraft layer had been empty for a while.
+                  </b>{" "}
+                  The ADS-B service we used closed keyless access, and the map
+                  showed &quot;no aircraft&quot; without saying why. We moved
+                  the layer to adsb.lol, which publishes open data. If the
+                  source does not respond, the map now says so.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Forecast logging has been paused since 20 September.
+                  </b>{" "}
+                  Our server budget ran out, so new cones are not being
+                  recorded. Live fires and the direction forecast on the map
+                  are not affected; the scorecard is no longer &quot;live&quot;
+                  and describes the cones drawn up to that day.
+                </li>
+                <li>
+                  The Meteosat button said &quot;MSG 15min&quot;, although since
+                  August we have been using the sharper MTG satellite (10
+                  minutes, ~2 km² pixel). The label and its description were
+                  corrected.
+                </li>
+                <li>
+                  Infrastructure update: security vulnerabilities in the web
+                  framework we use (Next.js) were patched.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 6 August 2026 — we answered &quot;how many fires do we
                 miss?&quot; with a number for the first time
               </p>
@@ -1125,9 +1177,18 @@ export default function AboutPage() {
             contributors. Satellite imagery: <b>Sentinel-2 cloudless</b> (EOX IT
             Services, contains modified Copernicus Sentinel data). Daily
             imagery: <b>NASA EOSDIS GIBS</b>, VIIRS/NOAA-20 true colour. Terrain
-            elevation: Mapzen/AWS Terrain Tiles (SRTM, ASTER). NASA has not
-            endorsed or supported the content of this platform; the data is
-            presented as is.
+            elevation: Mapzen/AWS Terrain Tiles (SRTM, ASTER). Aircraft
+            positions:{" "}
+            <a
+              href="https://adsb.lol/"
+              className="underline decoration-line underline-offset-2 hover:text-ink"
+              rel="noreferrer"
+              target="_blank"
+            >
+              adsb.lol
+            </a>{" "}
+            (ODbL 1.0). NASA has not endorsed or supported the content of this
+            platform; the data is presented as is.
           </p>
         </div>
 

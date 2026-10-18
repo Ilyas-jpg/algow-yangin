@@ -26,7 +26,7 @@ const TOGGLE_KEYS = [
   "smoke",
   "msg",
   // Meteosat'ın hemen yanında: ikisi de "VIIRS dışı uydu tespiti", ama biri
-  // hızlı-kaba (MSG 15dk) diğeri yavaş-keskin (S3 1km). Yan yana durunca
+  // hızlı-kaba (Meteosat 10-15dk) diğeri yavaş-keskin (S3 1km). Yan yana durunca
   // aradaki takas okunuyor.
   "s3",
   "news",

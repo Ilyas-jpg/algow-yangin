@@ -116,12 +116,24 @@ export async function GET(req: NextRequest) {
     }),
     { lon: -180, lat: -90 }
   );
-  const tespit = await db.select<DetRow>(
+  /* 🐛 DÜZELTME 2026-10-18 — doğrulama tespitlerin yalnız İLK 1.000'ini
+   * görüyordu. `limit=50000` Supabase'in 1000 satırlık tavanına sessizce
+   * takılıyordu (bkz. `lib/ml-db` SAYFA): 200 tahminlik turun kutusu ve 24 sa
+   * geriye uzanan penceresi için 1.000 tespit pencerenin yalnız başını
+   * kapsıyor, sonraki geçişler hiç gelmiyordu. Sonuç sessiz ve toptan:
+   * 49.343 doğrulamanın 44.132'si (%89) "sonraki geçişte tespit yok" yazıldı.
+   * Sayfalı okuma (`selectAll`) eşitliği bozacak ikincil anahtar ister —
+   * aynı taramanın bütün pikselleri aynı `dt`'yi taşıyor; sıralama tablonun
+   * tekillik kısıtının (`event_id, dt, lon, lat`) tamamı.
+   * ⚠️ Gerçek okuma artık tavanın gizlediği boyda; boru hattı yeniden
+   * açılmadan önce bu turun CPU payı ölçülmeli (Hobby bütçesi, ml-salter). */
+  const tespit = await db.selectAll<DetRow>(
     "fire_detection?select=event_id,dt,lon,lat" +
       `&lon=gte.${lo.lon.toFixed(4)}&lon=lte.${hi.lon.toFixed(4)}` +
       `&lat=gte.${lo.lat.toFixed(4)}&lat=lte.${hi.lat.toFixed(4)}` +
       `&dt=gte.${new Date(Date.parse(enErken) - 24 * 3600_000).toISOString()}` +
-      "&order=dt.asc&limit=50000"
+      "&order=dt.asc,lon.asc,lat.asc,event_id.asc",
+    50_000
   );
   if ("error" in tespit) return NextResponse.json(tespit, { status: 502 });
 

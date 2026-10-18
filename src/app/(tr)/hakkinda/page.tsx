@@ -346,6 +346,56 @@ export default function HakkindaPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium text-ink">
+                18 Ekim 2026 — bakım: iki sessiz hata ve bir güvenlik
+                güncellemesi
+              </p>
+              <ul className="mt-1.5 space-y-1.5 pl-4 [&>li]:list-disc">
+                <li>
+                  <b className="font-medium text-ink">
+                    Kendi hatamız: tahmin karnesi verinin yalnız bir dilimini
+                    sayıyordu.
+                  </b>{" "}
+                  İstatistik sayfasındaki karne, bir veri tabanı tavanı
+                  yüzünden 49.343 doğrulanmış tahminin yalnız 1.000&apos;inden
+                  hesaplanıyordu. Yayında koninin kapsaması %85, 45° içinde
+                  isabet %45 görünüyordu; bütün tahminlerle sırasıyla %37,5 ve
+                  %37. Ortanca yön hatası ise 65 dereceden 61 dereceye indi.
+                  Aynı tavan doğrulama turunu da kısıtlamış ve tahminlerin
+                  çoğu bu yüzden &quot;sonraki geçişte tespit yok&quot;
+                  sayılmış. Hatayı düzelttik; eski kayıtları yeniden
+                  doğrulamak ayrı bir iş, karne bunu kendisi de yazıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Uçak katmanı bir süredir boş kalıyordu.
+                  </b>{" "}
+                  Kullandığımız ADS-B servisi anahtarsız erişimi kapattı ve
+                  harita bunu söylemeden &quot;uçak yok&quot; gösteriyordu.
+                  Kaynağı açık veri yayımlayan adsb.lol&apos;e taşıdık. Kaynak
+                  yanıt vermezse harita artık bunu açıkça yazıyor.
+                </li>
+                <li>
+                  <b className="font-medium text-ink">
+                    Tahmin günlüğü 20 Eylül&apos;den beri kapalı.
+                  </b>{" "}
+                  Sunucu bütçemiz dolduğu için yeni koni kaydı tutmuyoruz.
+                  Haritadaki canlı yangınlar ve yön tahmini bundan
+                  etkilenmiyor; karne ise artık &quot;canlı&quot; değil, o
+                  güne kadarki konileri anlatıyor.
+                </li>
+                <li>
+                  Meteosat düğmesi &quot;MSG 15dk&quot; yazıyordu; oysa
+                  Ağustos&apos;tan beri daha keskin MTG uydusunu kullanıyoruz
+                  (10 dakika, piksel ~2 km²). Etiket ve açıklaması düzeltildi.
+                </li>
+                <li>
+                  Altyapı güncellendi: kullandığımız web çatısındaki (Next.js)
+                  güvenlik açıkları kapatıldı.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-ink">
                 6 Ağustos 2026 — &quot;kaç yangını kaçırıyoruz&quot; sorusunu
                 ilk kez sayıyla cevapladık
               </p>
@@ -1072,9 +1122,18 @@ export default function HakkindaPage() {
             katkıda bulunanları. Uydu görüntüsü: <b>Sentinel-2 cloudless</b> (EOX
             IT Services, değiştirilmiş Copernicus Sentinel verisi içerir).
             Günlük görüntü: <b>NASA EOSDIS GIBS</b>, VIIRS/NOAA-20 gerçek renk.
-            Arazi yüksekliği: Mapzen/AWS Terrain Tiles (SRTM, ASTER). NASA, bu
-            platformun içeriğini onaylamış veya desteklemiş değildir; veri
-            olduğu gibi sunulur.
+            Arazi yüksekliği: Mapzen/AWS Terrain Tiles (SRTM, ASTER). Hava
+            aracı konumları:{" "}
+            <a
+              href="https://adsb.lol/"
+              className="underline decoration-line underline-offset-2 hover:text-ink"
+              rel="noreferrer"
+              target="_blank"
+            >
+              adsb.lol
+            </a>{" "}
+            (ODbL 1.0). NASA, bu platformun içeriğini onaylamış veya
+            desteklemiş değildir; veri olduğu gibi sunulur.
           </p>
         </div>
 

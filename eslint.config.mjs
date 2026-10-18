@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Yerel ölçüm betikleri — depoya girmiyor (.gitignore), lint de etmesin
+    "scratchpad/**",
   ]),
 ]);
 

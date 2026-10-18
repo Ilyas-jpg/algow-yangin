@@ -22,7 +22,9 @@ const fetcher = (u: string) => fetch(u).then((r) => r.json());
 
 export default function KarneRow({ locale }: { locale: Locale }) {
   const t = getDict(locale);
-  const { data } = useSWR<Karne & { hazir: boolean; dogrulanan: number }>(
+  const { data } = useSWR<
+    Karne & { hazir: boolean; dogrulanan: number; donduruldu?: string | null }
+  >(
     "/api/ml/karne",
     fetcher,
     { revalidateOnFocus: false }
@@ -42,7 +44,8 @@ export default function KarneRow({ locale }: { locale: Locale }) {
     <section className="mt-10">
       <h2 className="text-[18px] font-medium">{t.stats.h2Karne}</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
-        <Rich segs={t.stats.karneIntro} />
+        <Rich segs={t.stats.karneIntro} />{" "}
+        {data.donduruldu ? t.stats.karneFrozen : t.stats.karneLive}
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -72,6 +75,9 @@ export default function KarneRow({ locale }: { locale: Locale }) {
       </p>
       <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
         <Rich segs={t.stats.karneRuler} />
+      </p>
+      <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
+        <Rich segs={t.stats.karneFix} />
       </p>
     </section>
   );

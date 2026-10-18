@@ -15,12 +15,20 @@ import { NextResponse } from "next/server";
  * BEDELİ: kapalıyken uydu dilimleri ve koni günlüğü BİRİKMEZ; kaçan dilimler geri gelmez.
  * Harita, canlı yangınlar ve ekrandaki yön tahmini bu uçlara bağlı DEĞİLDİR, çalışmaya devam eder.
  *
- * GERİ AÇMAK: aşağıdaki değeri `false` yap, push et; ardından sağlık denetimini aç:
- *   gh workflow enable ml-cron.yml -R Ilyas-jpg/algow-yangin
- * Kalıcı çözüm için önce CPU'yu düşür (cone sıklığı, verify'ın saatlik 50 bin satırlık okuması)
- * ya da pg_cron takvimini seyrelt — yoksa sınır yeniden dolar.
+ * GERİ AÇMAK: aşağıdaki değeri `false` yap, push et. Saatlik sağlık denetimi (`ml-cron.yml`)
+ * şalter inikken de açık ve yalnız FIRMS'i denetliyor (2026-10-18); şalter kalkınca tazelik,
+ * kuyruk ve makullük denetimleri kendiliğinden geri gelir.
+ * Kalıcı çözüm için önce CPU'yu düşür (cone sıklığı, verify'ın okuması) ya da pg_cron takvimini
+ * seyrelt — yoksa sınır yeniden dolar.
+ * ⚠️ verify'ın tespit okuması 2026-10-18'e kadar Supabase'in 1000 satırlık tavanına sessizce
+ * takılıyordu (bkz. lib/ml-db SAYFA); düzeltildi ama gerçek okuma artık tavanın gizlediği
+ * boyda. Açmadan önce turun CPU payını ölç. O tavan yüzünden 49.343 doğrulamanın 44.132'si
+ * "tespit yok" yazıldı — eski kayıtlar yeniden doğrulanmadıkça karne o sayıyı şişik gösterir.
  */
 export const ML_DURDURULDU = true;
+
+/** Şalterin indiği gün — karne ve sağlık ucu "ne zamandan beri" diye bunu yazar. */
+export const ML_DURMA_TARIHI = "2026-09-20";
 
 export function mlDurduYaniti(): NextResponse {
   return NextResponse.json(

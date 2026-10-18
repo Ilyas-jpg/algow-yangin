@@ -1,6 +1,8 @@
 /* Satori kendi <img>'ini rasterize ediyor; next/image burada çalışmaz —
    uyarı bu dosyada yanlış pozitif (aynı gerekçe Intro.tsx'te de yazılı). */
 /* eslint-disable @next/next/no-img-element */
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { lookupEvent, normalizeDays } from "@/lib/event-lookup";
@@ -31,13 +33,25 @@ const DANGER = "#e8563f";
 const COBALT = "#3b6ef5";
 
 /**
+ * Wordmark dosyadan okunuyor, kendi origin'imizden çekilmiyor. Next 16.4'ten
+ * beri `next/og` görsel kaynaklarına SSRF koruması uyguluyor: yerel/özel
+ * adres reddediliyor ve `${origin}/brand/...` yerelde kartı hiç üretmiyordu
+ * ("Image source resolves to a blocked address"). Dosyadan okumak her kartta
+ * kendi CDN'imize yapılan bir tur gidişi de kaldırıyor. `public/` altını
+ * okuma Vercel'de çalışıyor — `api/archive`'in statik kayıtları aynı yoldan.
+ */
+const WORDMARK = `data:image/png;base64,${await readFile(
+  join(process.cwd(), "public", "brand", "algow-wordmark.png"),
+  "base64"
+)}`;
+
+/**
  * Paylaşım kartı.
  *
  * Sayılar URL'den değil, sunucuda yeniden kümelenen gerçek FIRMS verisinden
  * gelir — uydurma kart üretilemesin diye (bkz. lib/event-lookup).
  */
 export async function GET(request: NextRequest) {
-  const { origin } = request.nextUrl;
   const sp = request.nextUrl.searchParams;
   const id = sp.get(EV_PARAM);
   const days = normalizeDays(sp.get(WIN_PARAM) ?? undefined);
@@ -84,7 +98,7 @@ export async function GET(request: NextRequest) {
             (bkz. vault: feedback_algow_wordmark_zorunlu). */}
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <img
-            src={`${origin}/brand/algow-wordmark.png`}
+            src={WORDMARK}
             width={124}
             height={42}
             alt="Algow"

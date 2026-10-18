@@ -43,7 +43,10 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(MAX_LIMIT, Math.max(1, Number(sp.get("limit")) || 10000));
   const source = sp.get("source");
 
-  let path = `ml_progression?select=*&order=observed_at.asc&limit=${limit}`;
+  // Sayfalı okunuyor: `limit=10000` Supabase'in 1000 satırlık tavanına
+  // sessizce takılıp dışa aktarımı 1.000 satırda kesiyordu (bkz. lib/ml-db
+  // SAYFA). `pass_id` eşit zamanlı geçişlerin sırasını sabitliyor.
+  let path = "ml_progression?select=*&order=observed_at.asc,pass_id.asc";
   if (source === "era5" || source === "live") path += `&weather_source=eq.${source}`;
   // Etiketsiz satır zaten görünümde yok; yön etiketi boş olanları da eleyelim
   path += "&head_bearing_deg=not.is.null";
@@ -67,7 +70,7 @@ export async function GET(req: NextRequest) {
     path += `&il=not.in.(${haric})`;
   }
 
-  const r = await db.select<Record<string, unknown>>(path);
+  const r = await db.selectAll<Record<string, unknown>>(path, limit);
   if ("error" in r) return NextResponse.json(r, { status: 502 });
 
   if (format === "json") {

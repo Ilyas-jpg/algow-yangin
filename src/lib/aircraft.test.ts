@@ -4,6 +4,7 @@ import {
   classifyAircraft,
   fireCenters,
   kanatTipi,
+  tipAdi,
   type AdsbRaw,
 } from "./aircraft.ts";
 
@@ -29,6 +30,20 @@ test("özel tip yangın çevresinde tanınır", () => {
   assert.equal(r[0].tescil, "N154AC");
   assert.ok(r[0].alcak, "2000 ft çalışma bandında");
   assert.ok((r[0].yanginKm ?? 99) < 5);
+});
+
+test("beslemede uzun ad yoksa kart adı yerel tablodan gelir (adsb.lol `desc` taşımıyor)", () => {
+  // adsb.lol kaydı: tip kodu + tescil var, `desc` yok (2026-10-18 ölçümü)
+  const { desc: _yok, ...cipla } = SKYCRANE;
+  void _yok;
+  const r = classifyAircraft([cipla], YANGIN);
+  assert.equal(r[0].tipAdi, "Sikorsky S-64 Skycrane");
+  // Besleme ad verirse o kazanır
+  assert.equal(classifyAircraft([SKYCRANE], YANGIN)[0].tipAdi, "SIKORSKY S-64 Skycrane");
+  assert.equal(tipAdi("AT8T"), "Air Tractor AT-802");
+  assert.equal(tipAdi("CL2T"), "Canadair CL-415");
+  assert.equal(tipAdi("CL2P"), "Canadair CL-215");
+  assert.equal(tipAdi("B738"), null, "tabloda olmayan tip kod olarak kalır");
 });
 
 test("helikopter ve uçak ayrı ikon alır", () => {

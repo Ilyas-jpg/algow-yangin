@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/ml-db";
+import { supabaseAdmin, type Db } from "@/lib/ml-db";
+import { ML_DURDURULDU, ML_DURMA_TARIHI } from "@/lib/ml-salter";
 import { MAX_ILERLEME_KMH, NEW_KM } from "@/lib/progression";
 
 /**
@@ -47,13 +48,40 @@ function sezonIci(): boolean {
 
 export async function GET() {
   const denetimler: Denetim[] = [];
-  const db = supabaseAdmin();
 
-  if ("error" in db) {
-    denetimler.push({ ad: "veritabani", ok: false, deger: "bağlanılamadı" });
-    return NextResponse.json({ ok: false, denetimler }, { status: 503 });
+  /* ── ML ŞALTERİ İNİKSE ①–② ASKIDA (2026-10-18) ──
+   * Boru hattı 2026-09-20'de bilerek durduruldu (lib/ml-salter). Tazelik ve
+   * kuyruk denetimleri o günden beri doğal olarak kırmızıydı ve uç kalıcı 503
+   * veriyordu — saatlik denetim de bu yüzden kapatılmıştı. Sonuç: canlı
+   * haritanın tek gerçek bağımlılığı olan FIRMS'i izleyen kimse kalmamıştı.
+   * Şalter inikken bu denetimler "askıda" yazar ve kırmızıya dönmez; açılınca
+   * kendiliğinden geri gelir. */
+  if (ML_DURDURULDU) {
+    denetimler.push({
+      ad: "ml-boru-hatti",
+      ok: true,
+      deger: "durduruldu",
+      not: `${ML_DURMA_TARIHI}'den beri kapalı — tazelik, kuyruk ve makullük denetimleri askıda`,
+    });
+  } else {
+    const db = supabaseAdmin();
+    if ("error" in db) {
+      denetimler.push({ ad: "veritabani", ok: false, deger: "bağlanılamadı" });
+      return NextResponse.json({ ok: false, denetimler }, { status: 503 });
+    }
+    await mlDenetimleri(db, denetimler);
   }
 
+  await firmsDenetimi(denetimler);
+
+  const ok = denetimler.every((d) => d.ok);
+  return NextResponse.json(
+    { ok, sezonIci: sezonIci(), zaman: new Date().toISOString(), denetimler },
+    { status: ok ? 200 : 503, headers: { "cache-control": "no-store" } }
+  );
+}
+
+async function mlDenetimleri(db: Db, denetimler: Denetim[]): Promise<void> {
   /* ── ① TAZELİK ── */
   const tazelik = async (tablo: string, alan: string, esikSaat: number) => {
     const r = await db.select<Record<string, string>>(
@@ -141,7 +169,9 @@ export async function GET() {
       not: `tavan ${MAX_ILERLEME_KMH} km/sa`,
     });
   }
+}
 
+async function firmsDenetimi(denetimler: Denetim[]): Promise<void> {
   /* ── ③ ÜST KAYNAK — FIRMS satır döndürüyor mu ──
    * "200 döndü" yetmez; boğulma yanıtı da 200/400 olabiliyor. SATIR sayılır. */
   const anahtar = (process.env.FIRMS_MAP_KEY ?? "").trim();
@@ -202,10 +232,4 @@ export async function GET() {
       denetimler.push({ ad: "firms", ok: false, deger: String((e as Error).message).slice(0, 60) });
     }
   }
-
-  const ok = denetimler.every((d) => d.ok);
-  return NextResponse.json(
-    { ok, sezonIci: sezonIci(), zaman: new Date().toISOString(), denetimler },
-    { status: ok ? 200 : 503, headers: { "cache-control": "no-store" } }
-  );
 }

@@ -109,8 +109,31 @@ async function fetchRetry(url: string, init: RequestInit, etiket: string): Promi
   throw sonHata;
 }
 
+/**
+ * PostgREST sayfa boyu.
+ *
+ * 🔴 SUPABASE `max-rows` = 1000 VE SESSİZ (ölçüldü 2026-10-18): `limit=20000`
+ * yazılan sorgu hata vermeden 1000 satır döndürüyor. Bu tavan yüzünden canlı
+ * karne 49.343 doğrulanmış tahminin yalnız 1.000'inden hesaplanıyordu (yayında
+ * kapsama %85, gerçeği %37,5), doğrulama turu tespitlerin ilk 1.000'ini
+ * görüyordu ve arşiv ucu Manavgat'ın 9 bin pikselinin 1.000'ini veriyordu.
+ * 1000'den fazla satır beklenen her okuma `selectAll` ile yapılır.
+ */
+export const SAYFA = 1000;
+
 export interface Db {
   select<T>(path: string): Promise<{ rows: T[] } | DbError>;
+  /**
+   * Sayfalı okuma: `max` satıra kadar, boş sayfa gelene dek `offset` ilerler.
+   * Tavanın kaç olduğu varsayılmıyor — sayfa SAYFA'dan kısa gelse bile bir
+   * sonraki istenir; tavan 1000'den düşük yapılandırılsa da kesilmez.
+   *
+   * `path` `limit`/`offset` taşımaz ve **benzersiz bir sıralama** taşımak
+   * zorundadır (`order=id.asc` ya da eşitlikleri bozan ikincil anahtarlar):
+   * sıralama eşit satırlarda belirsizse sayfalar arası satır atlanır ya da
+   * iki kez gelir. Sıralamasız yol hata döner, sessizce kesik veri değil.
+   */
+  selectAll<T>(path: string, max: number): Promise<{ rows: T[] } | DbError>;
   /**
    * `ret: "representation"` yazılan satırları geri ister — üretilen `id`'ye
    * ihtiyaç duyan çağrılar için (olay yazıp geçişleri ona bağlamak gibi).
@@ -140,19 +163,35 @@ export function supabaseAdmin(): Db | DbError {
     "Content-Type": "application/json",
   };
 
+  const select = async <T>(path: string): Promise<{ rows: T[] } | DbError> => {
+    const res = await fetchRetry(
+      `${url}/rest/v1/${path}`,
+      { headers, cache: "no-store" },
+      "select"
+    );
+    if (!res.ok) {
+      // Gövde istemciye yansıtılmaz: şema/anahtar ayrıntısı sızabilir.
+      console.error("supabase select", res.status, await res.text());
+      return { error: "okunamadı", detay: String(res.status) };
+    }
+    return { rows: (await res.json()) as T[] };
+  };
+
   return {
-    async select<T>(path: string) {
-      const res = await fetchRetry(
-        `${url}/rest/v1/${path}`,
-        { headers, cache: "no-store" },
-        "select"
-      );
-      if (!res.ok) {
-        // Gövde istemciye yansıtılmaz: şema/anahtar ayrıntısı sızabilir.
-        console.error("supabase select", res.status, await res.text());
-        return { error: "okunamadı", detay: String(res.status) };
+    select,
+    async selectAll<T>(path: string, max: number) {
+      if (!/[?&]order=/.test(path) || /[?&](limit|offset)=/.test(path)) {
+        return { error: "selectAll: yol sıralama taşımalı, limit/offset taşımamalı" };
       }
-      return { rows: (await res.json()) as T[] };
+      const rows: T[] = [];
+      while (rows.length < max) {
+        const istenen = Math.min(SAYFA, max - rows.length);
+        const sayfa = await select<T>(`${path}&limit=${istenen}&offset=${rows.length}`);
+        if ("error" in sayfa) return sayfa;
+        if (!sayfa.rows.length) break;
+        rows.push(...sayfa.rows);
+      }
+      return { rows };
     },
     async upsert(path, rows, resolution, ret = "minimal") {
       const res = await fetchRetry(

@@ -15,10 +15,9 @@
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
-    "h5wasm": "^0.10.3",
     "jsfive": "^0.4.0",
     "maplibre-gl": "^5.24.0",
-    "next": "16.2.12",
+    "next": "16.4.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "swr": "^2.4.2"
@@ -29,7 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

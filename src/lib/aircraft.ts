@@ -3,9 +3,19 @@ import { havKm } from "./geo";
 /**
  * Yangın söndürme hava araçlarının ADS-B takibi.
  *
- * Kaynak: api.airplanes.live — ücretsiz, anahtarsız, gönüllü alıcı ağı.
- * Uçağın TİP kodunu (`t`) ve TESCİLİNİ (`r`) doğrudan veriyor; OpenSky
+ * Kaynak: api.adsb.lol — gönüllü alıcı ağı, açık veri (ODbL 1.0, atıf
+ * zorunlu: arayüzde ve /hakkinda'da yazıyor), anahtarsız. ADSBExchange v2
+ * biçimi: uçağın TİP kodunu (`t`) ve TESCİLİNİ (`r`) doğrudan veriyor; OpenSky
  * bunu vermediği için elenmişti (metadata API'si HTTP 410).
+ *
+ * 🔴 KAYNAK DEĞİŞTİ (2026-10-18): ilk kaynak api.airplanes.live anahtarsız
+ * erişimi kapattı — her isteğe HTTP 403 "Please contact us" dönüyor. Katman
+ * sessizce boş kalıyordu: altı yangın merkezinin altısında da sorgu düşüyor,
+ * haritada "uçak yok" görünüyordu. adsb.fi aynı biçimi veriyor ve kapsaması
+ * bir tık geniş ama koşulu "yalnız kişisel, ticari olmayan kullanım" — herkese
+ * açık bir site o tanıma girmiyor. adsb.lol "API herkese açık" diyor.
+ * ⚠️ adsb.lol uzun tip adını (`desc`) taşımıyor; kart adı aşağıdaki TIP_ADI
+ * tablosundan geliyor, yoksa tip kodu yazılıyor.
  *
  * ── Neden iki kova var ──────────────────────────────────────────────────────
  * İlk ölçümde (3 Ağustos 2026, Atina yangını) tip listesine `DH8D` koymuştum:
@@ -41,6 +51,45 @@ export function kanatTipi(tip: string): "doner" | "sabit" {
 }
 
 /**
+ * Kartta gösterilen ad — beslemede uzun ad (`desc`) yoksa. Yalnız haritaya
+ * düşebilen tipler; ICAO kodu gövde ailesini söyler, alt modeli değil, o
+ * yüzden adlar aile düzeyinde. Tabloda olmayan tipte kart kodu yazar.
+ */
+const TIP_ADI: [RegExp, string][] = [
+  [/^S64/i, "Sikorsky S-64 Skycrane"],
+  [/^CL2P/i, "Canadair CL-215"],
+  [/^(CL2T|CL4|CL41)/i, "Canadair CL-415"],
+  [/^CL21/i, "Canadair CL-215"],
+  [/^(AT8|A802)/i, "Air Tractor AT-802"],
+  [/^AT5/i, "Air Tractor AT-502"],
+  [/^(M18|PZL)/i, "PZL M-18 Dromader"],
+  [/^KA32/i, "Kamov Ka-32"],
+  [/^BE12/i, "Beriev Be-12"],
+  [/^B46/i, "BAe 146"],
+  [/^B212/i, "Bell 212"],
+  [/^B214/i, "Bell 214"],
+  [/^B412/i, "Bell 412"],
+  [/^B205/i, "Bell 205"],
+  [/^B206/i, "Bell 206"],
+  [/^B407/i, "Bell 407"],
+  [/^B429/i, "Bell 429"],
+  [/^(MI8|MI17)/i, "Mil Mi-8/17"],
+  [/^MI26/i, "Mil Mi-26"],
+  [/^(AS32|AS3B)/i, "Airbus Super Puma"],
+  [/^(EC25|H225)/i, "Airbus H225"],
+  [/^H215/i, "Airbus H215"],
+  [/^(S70|H60)/i, "Sikorsky S-70 / H-60"],
+  [/^UH1/i, "Bell UH-1"],
+  [/^(AW139|A139)/i, "Leonardo AW139"],
+  [/^BK17/i, "Kawasaki BK117"],
+];
+
+export function tipAdi(tip: string): string | null {
+  for (const [re, ad] of TIP_ADI) if (re.test(tip)) return ad;
+  return null;
+}
+
+/**
  * Söndürmede kullanılan ama başka işte de uçan gövdeler.
  * Yangın karinesi için yakınlık + alçaklık + yavaşlık şartı aranır.
  */
@@ -58,7 +107,7 @@ export const KAPSAM_KM = 80;
 /** Bu irtifanın altı "alçak uçuş" — su alma/atma turu bu bantta geçiyor */
 export const CALISMA_TAVANI_FT = 5000;
 
-/** airplanes.live `ac` kaydının kullandığımız alanları */
+/** ADSBExchange v2 biçimli `ac` kaydının (adsb.lol) kullandığımız alanları */
 export interface AdsbRaw {
   hex?: string;
   /** tescil, ör. "N154AC" */
@@ -199,7 +248,7 @@ export function classifyAircraft(
       hex: a.hex,
       tescil: a.r?.trim() || null,
       tip,
-      tipAdi: a.desc?.trim() || null,
+      tipAdi: a.desc?.trim() || tipAdi(tip),
       lon: a.lon,
       lat: a.lat,
       altFt: ft,

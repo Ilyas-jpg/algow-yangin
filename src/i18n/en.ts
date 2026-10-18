@@ -44,9 +44,9 @@ export const en: Dict = {
           "Surface fine particulate (PM2.5) field. The dispersion is computed by ECMWF/CAMS; the grid is coarse because the model's own resolution is coarse. It also includes non-fire sources (traffic, industry, dust).",
       },
       msg: {
-        label: "MSG 15min",
+        label: "Meteosat",
         title:
-          "Meteosat: scans every 15 minutes and fills the gap between polar satellite passes. The location is coarse (pixel 15-25 km²); the ring shows that uncertainty.",
+          "Meteosat: scans every 10-15 minutes and fills the gap between polar satellite passes. The location is coarse (MTG pixel ~2 km², 15-25 km² on the MSG fallback); the ring shows that uncertainty.",
       },
       s3: {
         label: "S3 1km",
@@ -393,7 +393,7 @@ export const en: Dict = {
     maybeNote:
       "This airframe is used for firefighting but can also be an air ambulance or a transport; it is listed because it is flying low right next to the fire.",
     disclaimer:
-      "Source: airplanes.live (volunteer ADS-B network). The type and position are real data; the mission is not. An absent aircraft does not mean there is no response — not every aircraft broadcasts.",
+      "Source: adsb.lol (volunteer ADS-B network, open data, ODbL). The type and position are real data; the mission is not. An absent aircraft does not mean there is no response — not every aircraft broadcasts.",
   },
   news: {
     status: {
@@ -461,6 +461,10 @@ export const en: Dict = {
     farmHidden: "Stubble filter: {n} agricultural fires hidden.",
     farmUnclassified:
       " The cover of {n} events could not be queried (CORINE does not cover the eastern provinces) — those are still in the list.",
+    aircraftDown:
+      "Aircraft data is unavailable right now: the ADS-B source did not respond. No aircraft on the map does not mean there is no response.",
+    aircraftPartial:
+      "Aircraft data is incomplete: {f} of {n} fire areas could not be queried.",
   },
 
   intro: {
@@ -605,7 +609,16 @@ export const en: Dict = {
       ],
       ["where the fire actually went", "b"],
       [
-        " at the next satellite pass. So the scorecard below tests our claim against data that arrived AFTER the forecast. Updated every 15 minutes.",
+        " at the next satellite pass. So the scorecard below tests our claim against data that arrived AFTER the forecast.",
+      ],
+    ] as Seg[],
+    karneLive: "Updated hourly.",
+    karneFrozen:
+      "Forecast logging was paused on 20 September 2026 because our server budget ran out. The scorecard covers the cones drawn up to that day; no new forecasts are being added.",
+    karneFix: [
+      ["Our own mistake (18 October 2026): ", "b"],
+      [
+        "because of a database row cap, the scorecard was computed from only 1,000 of the 49,343 verified forecasts — which is why coverage showed 85%. It now uses all of them. The same cap also starved the verification run, so most forecasts were counted as \"no detection at the next pass\". That figure is inflated and will stay so until the old records are re-verified; the rates above come from the forecasts that could genuinely be measured.",
       ],
     ] as Seg[],
     karneMedian: "median direction error",
@@ -625,7 +638,7 @@ export const en: Dict = {
       [", neighbour "],
       ["73°", "m"],
       [
-        ". So this number being higher than the one there is not a regression — it is a different ruler.",
+        ". So the two numbers come from different rulers and should not be compared directly.",
       ],
     ] as Seg[],
 

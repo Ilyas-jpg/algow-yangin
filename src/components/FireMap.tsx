@@ -21,7 +21,6 @@ import { SMOKE_STEP } from "@/lib/bbox";
 /** Duman lekesi ızgara adımıyla birlikte büyümeli — bkz. smoke-field */
 const SMOKE_SCALE = SMOKE_STEP / 0.5;
 import { fill, type Locale } from "@/lib/i18n";
-import type { ConeGeom } from "@/lib/wind";
 import { useLocale, useT } from "./LocaleProvider";
 import { fmtAgo } from "@/lib/format";
 import type { Dict } from "@/i18n/tr";
@@ -1559,11 +1558,11 @@ export default function FireMap({
       mapRef.current = null;
       setReady(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps --
     // `locale` bilerek bağımlılıkta değil: harita bir kez kuruluyor ve dil
     // değişimi ayrı bir kök düzene (tam sayfa yükleme) gidiyor, yani bu
     // bileşen zaten yeniden bağlanıyor. Bağımlılığa eklemek her dil
     // okumasında haritayı yıkıp yeniden kurardı.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Veri güncellemeleri
@@ -1726,7 +1725,6 @@ export default function FireMap({
     return () => cancelAnimationFrame(raf);
     // effT bağımlılığa girmez: canlı modda 30 sn'de bir değişip animasyonu
     // baştan başlatıyor ve nabız gözle görülür şekilde zıplıyordu.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, live, reducedMotion]);
 
   // Nabız filtresi (taze tespitler) ayrı effect'te — animasyonu sıfırlamadan

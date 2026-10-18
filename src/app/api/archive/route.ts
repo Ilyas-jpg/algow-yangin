@@ -79,9 +79,13 @@ export async function GET(req: NextRequest) {
   };
 
   if (wantPts) {
-    const det = await db.select<Record<string, unknown>>(
+    // Sayfalı: tek select Supabase'in 1000 satırlık tavanında sessizce
+    // kesiliyordu — Manavgat'ın 9 bin pikselinin 1.000'i dönüyordu (bkz.
+    // lib/ml-db SAYFA). Sıralama olay içinde tekil (dt, lon, lat).
+    const det = await db.selectAll<Record<string, unknown>>(
       `fire_detection?select=pass_no,dt,lon,lat,frp,sat,dn&event_id=eq.${olay.id}` +
-        `&order=dt.asc&limit=${MAX_PTS}`
+        "&order=dt.asc,lon.asc,lat.asc",
+      MAX_PTS
     );
     body.detections = "error" in det ? [] : det.rows;
   }

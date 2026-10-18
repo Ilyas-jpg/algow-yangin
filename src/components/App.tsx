@@ -1053,6 +1053,18 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     if (layers.wind && reducedMotion) {
       notes.push(t.layerNote.windReduced);
     }
+    // ADS-B kaynağı düşünce katman SESSİZCE boş kalıyordu (2026-10: ilk
+    // kaynak 403'e geçti, haritada sebepsiz "uçak yok" görünüyordu).
+    if (layers.aircraft && live && aircraft && aircraft.centers > 0 && aircraft.failed) {
+      notes.push(
+        aircraft.failed >= aircraft.centers
+          ? t.layerNote.aircraftDown
+          : fill(t.layerNote.aircraftPartial, {
+              f: aircraft.failed,
+              n: aircraft.centers,
+            })
+      );
+    }
     // Süzgecin ne yaptığını ve neyi yapamadığını açıkça söyle: sessizce
     // "temizlenmiş" bir harita, eksiği olmayan bir harita sanılır.
     if (layers.hideFarm) {
@@ -1081,6 +1093,7 @@ export default function App({ focus, embed = false }: AppProps = {}) {
     fuelData,
     hiddenIds.size,
     coneTooSmall,
+    aircraft,
     t,
     locale,
   ]);

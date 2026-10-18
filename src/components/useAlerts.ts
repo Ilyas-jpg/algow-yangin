@@ -118,7 +118,7 @@ export function useAlerts(events: FireEvent[]) {
     }
     if (!fresh.length) return;
 
-    fresh.forEach(({ ev, wp, km }) => seenRef.current.add(ev.id));
+    fresh.forEach(({ ev }) => seenRef.current.add(ev.id));
     try {
       localStorage.setItem(LS_SEEN, JSON.stringify([...seenRef.current].slice(-400)));
     } catch {

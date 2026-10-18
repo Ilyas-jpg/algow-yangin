@@ -41,9 +41,12 @@ export const tr = {
           "Yüzeydeki ince partikül (PM2.5) alanı. Dağılımı ECMWF/CAMS hesaplar; ızgara kaba çünkü modelin kendi çözünürlüğü de kaba. Yangın dışı kaynakları (trafik, sanayi, toz) da içerir.",
       },
       msg: {
-        label: "MSG 15dk",
+        // Kaynak 2 Ağustos'tan beri MTG (10 dk, piksel ~2 km²), yalnız o
+        // yoksa MSG (15 dk, 15-25 km²). Etiket "MSG 15dk" kalmıştı ve hangi
+        // uydunun çalıştığını yanlış söylüyordu; asıl kaynağı bant yazıyor.
+        label: "Meteosat",
         title:
-          "Meteosat: 15 dakikada bir tarar, uydu geçişleri arasındaki boşluğu doldurur. Konum kabadır (piksel 15-25 km²), halka o belirsizliği gösterir.",
+          "Meteosat: 10-15 dakikada bir tarar, kutup uydularının geçişleri arasındaki boşluğu doldurur. Konum kabadır (MTG pikseli ~2 km², yedek MSG'de 15-25 km²); halka o belirsizliği gösterir.",
       },
       s3: {
         label: "S3 1km",
@@ -387,7 +390,7 @@ export const tr = {
     maybeNote:
       "Bu gövde tipi söndürmede de kullanılıyor ama ambulans veya nakliye de olabilir; yangının dibinde alçak uçtuğu için listelendi.",
     disclaimer:
-      "Kaynak: airplanes.live (gönüllü ADS-B ağı). Tip ve konum gerçek veridir, görev bilgisi değildir. Uçak görünmemesi müdahale olmadığı anlamına gelmez — her hava aracı yayın yapmaz.",
+      "Kaynak: adsb.lol (gönüllü ADS-B ağı, açık veri, ODbL). Tip ve konum gerçek veridir, görev bilgisi değildir. Uçak görünmemesi müdahale olmadığı anlamına gelmez — her hava aracı yayın yapmaz.",
   },
   /** Haber ihbarı kartı — haritadaki daireye tıklanınca açılır */
   news: {
@@ -457,6 +460,11 @@ export const tr = {
     farmHidden: "Anız süzgeci: {n} tarım ateşi gizlendi.",
     farmUnclassified:
       " {n} olayın örtüsü sorulamadı (CORINE doğu illerini kapsamıyor) — onlar listede duruyor.",
+    /** Uçak katmanı açık ama ADS-B kaynağı yanıt vermedi — boş harita "uçak yok" sanılmasın */
+    aircraftDown:
+      "Uçak verisine şu an ulaşılamıyor: ADS-B kaynağı yanıt vermedi. Haritada uçak görünmemesi müdahale olmadığı anlamına gelmez.",
+    aircraftPartial:
+      "Uçak verisi eksik: {n} yangın bölgesinden {f} tanesi sorgulanamadı.",
   },
 
   intro: {
@@ -600,7 +608,17 @@ export const tr = {
       ],
       ["yangının gerçekte nereye gittiğiyle karşılaştırıldı", "b"],
       [
-        ". Yani aşağıdaki karne, iddiamızı kendi verimizle değil, tahminden SONRA gelen veriyle sınıyor. Sayılar 15 dakikada bir güncellenir.",
+        ". Yani aşağıdaki karne, iddiamızı kendi verimizle değil, tahminden SONRA gelen veriyle sınıyor.",
+      ],
+    ] as Seg[],
+    karneLive: "Sayılar saatte bir güncellenir.",
+    /** Boru hattı şalteri inikken (lib/ml-salter) — karne donuk, "canlı" denmez */
+    karneFrozen:
+      "Tahmin günlüğü 20 Eylül 2026'da durduruldu: sunucu bütçemiz dolduğu için kaydı kapattık. Karne o güne kadar çizilen konileri kapsıyor, yeni tahmin eklenmiyor.",
+    karneFix: [
+      ["Kendi hatamız (18 Ekim 2026): ", "b"],
+      [
+        "karne, bir veri tabanı tavanı yüzünden 49.343 doğrulanmış tahminin yalnız 1.000'inden hesaplanıyordu; yayındaki kapsama bu yüzden %85 görünüyordu. Artık hepsinden hesaplanıyor. Aynı tavan doğrulama turunu da kısıtlamış: tahminlerin çoğu bu yüzden \"sonraki geçişte tespit yok\" sayıldı. O sayı şişik ve eski kayıtlar yeniden doğrulanana kadar öyle kalacak; yukarıdaki oranlar ise gerçekten ölçülebilen tahminlerden geliyor.",
       ],
     ] as Seg[],
     karneMedian: "ortanca yön hatası",
@@ -620,7 +638,7 @@ export const tr = {
       [", komşu "],
       ["73°", "m"],
       [
-        ". Yani buradaki sayının orada yazandan yüksek olması bir gerileme değil, farklı cetvel.",
+        ". Yani iki sayı farklı cetvelden geliyor; birbirine doğrudan kıyaslanmamalı.",
       ],
     ] as Seg[],
 

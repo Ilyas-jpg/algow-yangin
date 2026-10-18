@@ -90,6 +90,64 @@ test("rpc: 500 sonra 200 → sonuç döner", async () => {
   assert.equal(s.cagrilar.length, 2);
 });
 
+/**
+ * Supabase'in sessiz satır tavanını taklit eden sunucu: `limit` ne yazılırsa
+ * yazılsın en fazla `tavan` satır döner (gerçekte 1000; 2026-10-18 ölçümü).
+ */
+function sayfaliFetch(toplam: number, tavan: number) {
+  const cagrilar: string[] = [];
+  globalThis.fetch = (async (url: string | URL | Request) => {
+    const u = new URL(String(url));
+    cagrilar.push(u.search);
+    const limit = Number(u.searchParams.get("limit") ?? 1e9);
+    const offset = Number(u.searchParams.get("offset") ?? 0);
+    const n = Math.max(0, Math.min(limit, tavan, toplam - offset));
+    const rows = Array.from({ length: n }, (_, i) => ({ id: offset + i + 1 }));
+    return new Response(JSON.stringify(rows), { status: 200 });
+  }) as typeof fetch;
+  return cagrilar;
+}
+
+test("select tavanı SESSİZCE keser — selectAll keserek değil sayfalayarak okur", async () => {
+  // Hatanın kendisi: tek select 20000 ister, 1000 alır, hata yok.
+  sayfaliFetch(2343, 1000);
+  const tek = await db().select<{ id: number }>("cone_forecast?select=id&order=id.asc&limit=20000");
+  assert.ok("rows" in tek);
+  assert.equal(tek.rows.length, 1000);
+
+  const cagrilar = sayfaliFetch(2343, 1000);
+  const r = await db().selectAll<{ id: number }>("cone_forecast?select=id&order=id.asc", 100_000);
+  assert.ok("rows" in r, JSON.stringify(r));
+  assert.equal(r.rows.length, 2343);
+  assert.equal(new Set(r.rows.map((x) => x.id)).size, 2343, "tekrar eden satır yok");
+  // 1000 + 1000 + 343 + boş sayfa
+  assert.equal(cagrilar.length, 4);
+  assert.match(cagrilar[1], /offset=1000/);
+});
+
+test("selectAll: tavan 1000'den düşükse de eksiksiz okur", async () => {
+  sayfaliFetch(1234, 400);
+  const r = await db().selectAll<{ id: number }>("x?select=id&order=id.asc", 100_000);
+  assert.ok("rows" in r);
+  assert.equal(r.rows.length, 1234);
+});
+
+test("selectAll: max'ı aşmaz", async () => {
+  const cagrilar = sayfaliFetch(5000, 1000);
+  const r = await db().selectAll<{ id: number }>("x?select=id&order=id.asc", 1500);
+  assert.ok("rows" in r);
+  assert.equal(r.rows.length, 1500);
+  assert.match(cagrilar[1], /limit=500&offset=1000/);
+});
+
+test("selectAll: sıralamasız ya da limit taşıyan yol reddedilir, istek atılmaz", async () => {
+  const cagrilar = sayfaliFetch(10, 1000);
+  const a = await db().selectAll("x?select=id", 100);
+  const b = await db().selectAll("x?select=id&order=id.asc&limit=50", 100);
+  assert.ok("error" in a && "error" in b);
+  assert.equal(cagrilar.length, 0);
+});
+
 test("ağ hatası üç kez: eskisi gibi fırlatılır (çağıran 500 döner)", async () => {
   const s = sahteFetch([new TypeError("a"), new TypeError("b"), new TypeError("c")]);
   await assert.rejects(db().select("x?select=id"), /c/);
